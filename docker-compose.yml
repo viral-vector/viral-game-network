@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    container_name: app
+    depends_on:
+      - cache
+      - store
+    environment:
+      - CACHE_ENDPOINT=${CACHE_ENDPOINT}
+      - CACHE_USERNAME=${CACHE_USERNAME}
+      - CACHE_PASSWORD=${CACHE_PASSWORD}
+      - STORE_ENDPOINT=${STORE_ENDPOINT}
+      - STORE_USERNAME=${STORE_USERNAME}
+      - STORE_PASSWORD=${STORE_PASSWORD}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/app
+  cache:
+    image: redis:6.2-alpine
+    env_file:
+      - .env
+    environment:
+      - CACHE_USERNAME=${CACHE_USERNAME}
+      - CACHE_PASSWORD=${CACHE_PASSWORD}
+    container_name: cache-redis
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning
+    volumes: 
+      - viral-game-network-cache:/data
+  store:
+    image: surrealdb/surrealdb:latest
+    env_file:
+      - .env
+    environment:
+      - STORE_PASSWORD=${STORE_USERNAME}
+      - STORE_PASSWORD=${STORE_PASSWORD}
+    container_name: store-surrealdb
+    restart: always
+    command: start --user=${STORE_USERNAME} --pass=${STORE_PASSWORD}
+    ports:
+      - 8000:8000
+    volumes:
+      - viral-game-network-store:/data
+volumes:
+  viral-game-network-cache:
+    driver: local
+  viral-game-network-store:
+    driver: local
