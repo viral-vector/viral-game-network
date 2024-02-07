@@ -5,10 +5,10 @@ type Lobby struct {
 	Name  string `json:"name"`
 	Date_Created string `json:"date_created"`
 	Date_Updated string `json:"date_updated"`
-	Game_Configs string `json:"config"`
+	Configs string `json:"config"`
 	Private bool `json:"private"`
 	Code string `json:"code"`
-	Owner User `json:"owner"`
+	Owner *User `json:"owner"`
 	Users []User `json:"users"`
-	Server Server `json:"server"`
+	Server *Server `json:"server"` 
 }

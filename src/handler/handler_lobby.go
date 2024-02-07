@@ -2,6 +2,7 @@ package handler
 
 import (
 	"os"
+	// "fmt"
 	"strconv"
 	"encoding/json"
 	"github.com/gofiber/fiber/v2"
@@ -13,7 +14,15 @@ import (
 func Handle_AllLobby(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "lobby/all")
 
-	data := repository.AllLobby()
+	data, err := repository.AllLobby()
+
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status": "error",
+			"message": "Error fetching lobbies",
+		})
+	}
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
@@ -27,10 +36,24 @@ func Handle_SetLobby(c *fiber.Ctx) error {
 
 	record := new(dbtype.Lobby)
 	err := json.Unmarshal(c.Body(), record)
+
 	if err != nil {
-		panic(err)
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status": "error",
+			"message": "Bad set lobby request",
+		})
 	}
-	var lobby *dbtype.Lobby = repository.SetLobby(c.Params("id"), record)
+
+	lobby, err := repository.SetLobby(c.Params("id"), record)
+
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status": "error",
+			"message": "Error setting lobby",
+		})
+	}
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
@@ -42,7 +65,15 @@ func Handle_SetLobby(c *fiber.Ctx) error {
 func Handle_GetLobby(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "lobby/get")
 
-	var lobby *dbtype.Lobby = repository.GetLobby(c.Params("id"))
+	lobby, err := repository.GetLobby(c.Params("id"))
+
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status": "error",
+			"message": "Error fetching lobby",
+		})
+	}
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
@@ -54,17 +85,30 @@ func Handle_GetLobby(c *fiber.Ctx) error {
 func Handle_JoinLobby(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "lobby/join")
 
-	var lobby *dbtype.Lobby = repository.GetLobby(c.Params("id"))
+	lobby, err := repository.GetLobby(c.Params("id"))
+
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status": "error",
+			"message": "Error fetching lobby",
+		})
+	}
 
 	max_players, err := strconv.ParseInt(os.Getenv("LOBBY_MAX_PLAYERS"), 0, 0)
 	if err!= nil {
-		panic(err)
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status": "error",
+			"message": "Server error fetching lobby max players", 
+		})
 	}
+
 	if len(lobby.Users) >= int(max_players) {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status": "error",
-			"message": "lobby is full",
+			"message": "Lobby is full",
 		})
 	}
 
@@ -72,7 +116,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status": "error",
-			"message": "invalid lobby code",
+			"message": "Invalid lobby code",
 		})
 	}
 
@@ -85,15 +129,59 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
 				"status": "error",
-				"message": "already joined",
+				"message": "Already joined lobby",
 			})
 		}
 	}
 
+	// Link User to lobby
 	lobby.Users = append(lobby.Users, req_user)
+
+	// Update Lobby
+	_, err = repository.SetLobby(c.Params("id"), lobby)
+
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status": "error",
+			"message": "Error fetching lobby",
+		})
+	}
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
-		"data": repository.SetLobby(c.Params("id"), lobby),
+		"data": lobby,
+	})
+}
+
+// Handle_HostLobby 
+func Handle_HostLobby(c *fiber.Ctx) error {
+	c.Set("Viral-Game-Network-Action", "lobby/host")
+
+	record := new(dbtype.Lobby)
+	if err := c.BodyParser(record); err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status": "error",
+			"message": "Bad lobby host request",
+		})
+	}
+
+	user := c.Locals("user").(*dbtype.User)
+	record.Owner = user
+
+	lobby, err := repository.PutLobby(record)
+
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status": "error",
+			"message": "Error hosting lobby: " + err.Error() ,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "ok",
+		"data": lobby,
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"time"
+	"strconv"
 	"crypto/sha256"
     "crypto/subtle"
 	"github.com/golang-jwt/jwt/v5"
@@ -11,17 +12,23 @@ import (
 )
 
 type Claims struct {
-	UserID string `json:"username"`
+	UserName string `json:"username"`
 	jwt.RegisteredClaims
 }
 
 var app_key = []byte(os.Getenv("APP_KEY"))
 
 func GenerateToken(user *dbtype.User) (string, error) {
+	i, err := strconv.ParseInt(os.Getenv("APP_TOKEN_EXPIRE"), 10, 64)
+	if err != nil {
+  		return "", fmt.Errorf("Server Error Parsing Expire Time")
+	}
+	l := time.Duration(+int(i))
+
 	claims := Claims{
-		UserID: user.ID,
+		UserName: user.Name,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(+15 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(l * time.Minute)),
 			Issuer: "viral-game-network",
 		},
 	}
@@ -44,7 +51,7 @@ func ValidateToken(tokenString string) (*dbtype.User, error) {
 	}
 
 	userdb := new(dbtype.User)
-	userdb.ID = claims.UserID
+	userdb.Name = claims.UserName
 	  
 	return userdb, err
 }

@@ -56,7 +56,9 @@ func serve_routes(app *fiber.App) {
 	// Lobby Routes
 	grp_lobby := gapi.Group("/lobby")
 	grp_lobby.Get("", handler.Handle_AllLobby)
-	grp_lobby.Post("/:id?", handler.Handle_SetLobby)
+	grp_lobby.Post("/host", handler.Handle_HostLobby)
+	grp_lobby.Post("/:id/join", handler.Handle_JoinLobby)
+	grp_lobby.Post("/:id", handler.Handle_SetLobby)
 	grp_lobby.Get("/:id", handler.Handle_GetLobby)
-	grp_lobby.Get("/:id/join", handler.Handle_JoinLobby)
+	
 }
