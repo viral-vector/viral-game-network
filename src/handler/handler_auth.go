@@ -11,7 +11,8 @@ import (
 // Field names should start with an uppercase letter
 type AuthRequestDTO struct {
     AppKey string `json:"Viral-Game-Network-AppKey" xml:"Viral-Game-Network-AppKey" form:"Viral-Game-Network-AppKey"`
-	Username string `json:"username" xml:"username" form:"username"`
+	Name string `json:"name" xml:"name" form:"name"`
+	Guid string `json:"guid" xml:"guid" form:"guid"`
 }
 
 func Handle_ValidateAppKey(c *fiber.Ctx) error {
@@ -60,16 +61,22 @@ func Handle_ValidateToken(c *fiber.Ctx) error {
 func Handle_AuthGuest(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "auth/guest")
 
-	utmp := dbtype.User{
-		Name:"guest_0",
-		Guid:"guest_0",
+	dto := new(AuthRequestDTO)
+
+	if err := c.BodyParser(dto); err != nil {
+		return err
 	}
+	utmp := dbtype.User{
+		Name: dto.Name,
+		Guid: dto.Guid,
+	}
+
 	user, err := repository.GetUser(utmp)
 	if err != nil {
 	user, err = repository.PutUser(utmp)
 	}
 
-	if err != nil {
+	if err != nil || user == nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status": "error",

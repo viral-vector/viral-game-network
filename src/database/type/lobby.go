@@ -8,7 +8,7 @@ type Lobby struct {
 	Configs string `json:"config"`
 	Private bool `json:"private"`
 	Code string `json:"code"`
-	Owner *User `json:"owner"`
-	Users []User `json:"users"`
+	Lobby_Host *User `json:"lobby_host"`
+	Lobby_Users []*LobbyUser `json:"lobby_users"`
 	Server *Server `json:"server"` 
 }

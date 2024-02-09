@@ -2,7 +2,6 @@ package handler
 
 import (
 	"os"
-	// "fmt"
 	"strconv"
 	"encoding/json"
 	"github.com/gofiber/fiber/v2"
@@ -104,7 +103,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 		})
 	}
 
-	if len(lobby.Users) >= int(max_players) {
+	if len(lobby.Lobby_Users) >= int(max_players) {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status": "error",
@@ -120,12 +119,10 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 		})
 	}
 
-	req_user := dbtype.User{
-		Name: "viral-vector-" + c.Get("Viral-Game-Network-Entity"),
-	}
+	req_user := c.Locals("user").(*dbtype.User)
 
-	for _, user := range lobby.Users {
-		if user.Name == req_user.Name {
+	for _, user := range lobby.Lobby_Users {
+		if user.User.ID == req_user.ID {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
 				"status": "error",
@@ -135,18 +132,17 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 	}
 
 	// Link User to lobby
-	lobby.Users = append(lobby.Users, req_user)
-
-	// Update Lobby
-	_, err = repository.SetLobby(c.Params("id"), lobby)
+	err = repository.LinkLobbyUser(lobby.ID, req_user)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status": "error",
-			"message": "Error fetching lobby",
+			"message": "Error joining lobby: " + err.Error(),
 		})
 	}
+
+	lobby, err = repository.GetLobby(lobby.ID)
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
@@ -168,9 +164,8 @@ func Handle_HostLobby(c *fiber.Ctx) error {
 	}
 
 	user := c.Locals("user").(*dbtype.User)
-	record.Owner = user
 
-	lobby, err := repository.PutLobby(record)
+	lobby, err := repository.PutLobby(record, user)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)

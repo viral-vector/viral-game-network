@@ -9,24 +9,24 @@ import (
 	"github.com/surrealdb/surrealdb.go"
 )
 
-func AllUser() []dbtype.User {
+func AllUser() ([]dbtype.User, error) {
 	result, err := database.DBS.Query("SELECT * FROM type::table($tb) WHERE COUNT(users) < $mx AND (private != true);", 
 	map[string]string{
 		"tb": "User",
 		"mx": os.Getenv("LOBBY_MAX_PLAYERS"),
 	});
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
     var users []dbtype.User
 
     _, err = surrealdb.UnmarshalRaw(result, &users)
     if err != nil {
-        panic(err)
+        return nil, err
     }
 
-	return users
+	return users, nil
 }
 
 func GetUser(info dbtype.User) (*dbtype.User, error) {
@@ -34,13 +34,11 @@ func GetUser(info dbtype.User) (*dbtype.User, error) {
 	data, err := database.DBS.Query(`
 		SELECT * 
 		FROM type::table($tb) 
-		WHERE ID = $id 
-			OR Name = $name 
-			OR Guid = $guid 
+		WHERE 
+			(name = $name OR guid = $guid) 
 		LIMIT 1;`, 
 	map[string]string{
 		"tb": "User",
-		// "id": info.ID,
 		"name": info.Name,
 		"guid": info.Guid,
 	})
@@ -55,7 +53,7 @@ func GetUser(info dbtype.User) (*dbtype.User, error) {
 		return nil, err
 	}
 
-	if user[0].ID == "" {
+	if user[0] == nil {
 		return nil, fmt.Errorf("User not found")
 	}
 
