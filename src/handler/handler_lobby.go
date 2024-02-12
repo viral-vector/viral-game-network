@@ -2,7 +2,6 @@ package handler
 
 import (
 	"os"
-	"fmt"
 	"time"
 	"strconv"
 	"encoding/json"
