@@ -8,7 +8,9 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/storage/redis/v3"
+	"github.com/gofiber/contrib/websocket"
 	"viral-game-network/src/handler"
+	"viral-game-network/src/middleware"
 )
 
 func serve_routes(app *fiber.App) {
@@ -41,8 +43,10 @@ func serve_routes(app *fiber.App) {
 	 * 	API Routes
 	 */
 	gapi := app.Group("/api")
+	
 	// Token Validation
 	gapi.Use(handler.Handle_ValidateToken)
+	
 	// Rate Limit
 	gapi.Use(limiter.New(limiter.Config{
 		Max:            15,
@@ -58,7 +62,7 @@ func serve_routes(app *fiber.App) {
 	grp_lobby.Get("", handler.Handle_AllLobby)
 	grp_lobby.Post("/host", handler.Handle_HostLobby)
 	grp_lobby.Post("/:id/join", handler.Handle_JoinLobby)
-	grp_lobby.Post("/:id", handler.Handle_SetLobby)
+	grp_lobby.Get("/:id/socket", middleware.Lobby_Read, websocket.New(handler.Handle_SocketLobby))
+	grp_lobby.Post("/:id", middleware.Lobby_Write, handler.Handle_SetLobby)
 	grp_lobby.Get("/:id", handler.Handle_GetLobby)
-	
 }

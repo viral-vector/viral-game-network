@@ -2,6 +2,7 @@ package handler
 
 import (
 	"time"
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"viral-game-network/src/auth"
 	"viral-game-network/src/database/type"
@@ -10,19 +11,14 @@ import (
 
 // Field names should start with an uppercase letter
 type AuthRequestDTO struct {
-    AppKey string `json:"Viral-Game-Network-AppKey" xml:"Viral-Game-Network-AppKey" form:"Viral-Game-Network-AppKey"`
 	Name string `json:"name" xml:"name" form:"name"`
 	Guid string `json:"guid" xml:"guid" form:"guid"`
 }
 
 func Handle_ValidateAppKey(c *fiber.Ctx) error {
-	dto := new(AuthRequestDTO)
+	app_key := c.Get("Viral-Game-Network-AppKey")
 
-	if err := c.BodyParser(dto); err != nil {
-		return err
-	}
-
-	pass, err := auth.ValidateAppKey(dto.AppKey)
+	pass, err := auth.ValidateAppKey(app_key)
 
 	if err != nil || pass == false {
 		c.Status(fiber.StatusBadRequest)
@@ -40,6 +36,7 @@ func Handle_ValidateToken(c *fiber.Ctx) error {
 	user, err := auth.ValidateToken(token)
 
 	if err != nil {
+		fmt.Println(err, token)
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status": "error",

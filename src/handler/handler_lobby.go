@@ -2,9 +2,15 @@ package handler
 
 import (
 	"os"
+	"fmt"
+	"time"
 	"strconv"
 	"encoding/json"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/contrib/websocket"
+	"github.com/google/uuid"
+	"viral-game-network/src/cache"
+	"viral-game-network/src/pubsub"
 	"viral-game-network/src/database/type"
 	"viral-game-network/src/database/repository"
 )
@@ -121,15 +127,15 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 
 	req_user := c.Locals("user").(*dbtype.User)
 
-	for _, user := range lobby.Lobby_Users {
-		if user.User.ID == req_user.ID {
-			c.Status(fiber.StatusBadRequest)
-			return c.JSON(fiber.Map{
-				"status": "error",
-				"message": "Already joined lobby",
-			})
-		}
-	}
+	// for _, user := range lobby.Lobby_Users {
+	// 	if user.User.ID == req_user.ID {
+	// 		c.Status(fiber.StatusBadRequest)
+	// 		return c.JSON(fiber.Map{
+	// 			"status": "error",
+	// 			"message": "Already joined lobby",
+	// 		})
+	// 	}
+	// }
 
 	// Link User to lobby
 	err = repository.LinkLobbyUser(lobby.ID, req_user)
@@ -179,4 +185,71 @@ func Handle_HostLobby(c *fiber.Ctx) error {
 		"status": "ok",
 		"data": lobby,
 	})
+}
+
+// Handle_SocketLobby
+func Handle_SocketLobby(c *websocket.Conn) {
+	id   := c.Params("id")
+	guid := "lobby:"+id+":channel" 
+	user := c.Locals("user").(*dbtype.User)
+	var (
+		msg []byte
+		err error
+	)
+
+	// Sync
+	channel_cache, _ := cache.Get(guid)
+	if channel_cache != nil {
+		go func(c *websocket.Conn) {
+			for _, element := range channel_cache.([]string) {
+				time.Sleep(100 * time.Millisecond)
+				if err = c.WriteMessage(1, []byte(element)); err != nil {
+					return;
+				}
+			}
+		}(c)
+	}
+		
+	// Sub
+	sb := pubsub.Sub(guid)
+	go func(c *websocket.Conn) {
+		for msg := range sb.Channel() {
+			if err = c.WriteMessage(1, []byte(msg.Payload)); err != nil {
+				defer pubsub.Close(sb)
+				return;
+			}
+		}
+	}(c)
+	
+	// Pub
+	for {
+		if _, msg, err = c.ReadMessage(); err != nil {
+			return
+		}
+		if msg == nil || len(string(msg)) < 3 {
+			if err = c.WriteMessage(1, []byte("{\"error\":\"Message length should >= 3\"}")); err != nil {
+				return;
+			}
+			continue
+		}
+
+		tmp := dbtype.LobbyMessage{
+			ID: uuid.New().String(),
+			User_ID: user.ID,
+			Date_Created: strconv.FormatInt(time.Now().Unix(), 10), 
+			Body: string(msg),
+		}
+		fin, err := json.Marshal(tmp)
+		if err != nil {
+			continue
+		}
+		err = pubsub.Pub(guid, fin)
+		if err != nil {
+			continue
+		}
+		err = cache.Add(guid, string(fin))
+		err = cache.Exp(guid, 60 * time.Minute)
+	}
+
+	defer pubsub.Close(sb)
 }
