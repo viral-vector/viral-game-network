@@ -17,12 +17,17 @@ func Lobby_Read(c *fiber.Ctx) error {
 }
 
 func Lobby_Write(c *fiber.Ctx) error {
-	_, err := check_read(c)
+	lobby, err := check_read(c)
 
 	if err != nil {
-		return fmt.Errorf("Lobby Read Access Failed.")
+		return fmt.Errorf("Lobby Write Access Failed.")
 	}
 
+	user := c.Locals("user").(*dbtype.User)
+
+	if lobby.Lobby_Host.ID != user.ID {
+		return fmt.Errorf("Lobby Write Access Failed.")
+	}
 	return c.Next()
 }
 
@@ -50,5 +55,5 @@ func check_read(c *fiber.Ctx) (*dbtype.Lobby, error) {
 		} 
 	}
 
-	return nil, fmt.Errorf("Not authorized to access lobby.")
+	return lobby, fmt.Errorf("Not authorized to access lobby.")
 }
