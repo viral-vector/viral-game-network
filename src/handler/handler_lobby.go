@@ -99,7 +99,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 		})
 	}
 
-	max_players, err := strconv.ParseInt(os.Getenv("LOBBY_MAX_PLAYERS"), 0, 0)
+	max_players, err := strconv.ParseInt(os.Getenv("MAX_PLAYERS"), 0, 0)
 	if err!= nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{

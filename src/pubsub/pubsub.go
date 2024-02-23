@@ -36,7 +36,6 @@ func Sub(key string) *redis.PubSub {
 	return sb
 }
 
-
 func Close(sb *redis.PubSub) {
 	sb.Close()
 }

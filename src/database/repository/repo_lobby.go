@@ -19,7 +19,7 @@ func AllLobby() ([]dbtype.Lobby, error) {
 	ORDER BY date_created DESC;`, 
 	map[string]string{
 		"tb": "Lobby",
-		"mx": os.Getenv("LOBBY_MAX_PLAYERS"),
+		"mx": os.Getenv("MAX_PLAYERS"),
 	});
 	if err != nil {
 		return nil, err
@@ -39,7 +39,8 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
 	// Get lobby by ID
 	data, err := database.DBS.Query(`
 	SELECT * 
-	,lobby_host.* 
+	,lobby_host.*
+	,lobby_server.* 
 	,->Lobby_Users.* as lobby_users 
     ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) as lobby_users.user 
 	FROM Lobby WHERE id=$id;`, 
@@ -104,14 +105,7 @@ func PutLobby(body *dbtype.Lobby, user *dbtype.User) (*dbtype.Lobby, error) {
 	}
 
 	// Link Host
-	_, err = database.DBS.Query(`UPDATE $id MERGE {
-		lobby_host:$lobby_host
-	}`, 
-	map[string]interface{}{
-		"id": lobby[0].ID,
-		"lobby_host": user.ID,
-	})
-	
+	err = LinkLobbyHost(lobby[0].ID, user)
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +113,34 @@ func PutLobby(body *dbtype.Lobby, user *dbtype.User) (*dbtype.Lobby, error) {
 	lobby[0].Lobby_Host = user
 
 	return lobby[0], nil
+}
+
+func DelLobby(id string) error {
+	_, err := database.DBS.Delete(id)
+	if err != nil {
+		return err
+	}
+
+	err = UnlinkLobbyAllUsers(id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func LinkLobbyHost(id string, user *dbtype.User) (error) {
+	_, err := database.DBS.Query(`UPDATE $id MERGE {
+		lobby_host:$lobby_host
+	}`, 
+	map[string]interface{}{
+		"id": id,
+		"lobby_host": user.ID,
+	})
+	
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func LinkLobbyUser(id string, user *dbtype.User) (error) {
@@ -143,5 +165,31 @@ func LinkLobbyUser(id string, user *dbtype.User) (error) {
 		return err
 	}
 
+	return nil
+}
+
+func UnlinkLobbyAllUsers(id string) (error) {
+	_, err := database.DBS.Query(`DELETE FROM Lobby_Users WHERE in=$lobby;`,
+	map[string]string{
+		"lobby": id,
+	});
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func LinkLobbyServer(id string, server *dbtype.Server) (error) {
+	_, err := database.DBS.Query(`UPDATE $id MERGE {
+		lobby_server:$lobby_server
+	}`, 
+	map[string]interface{}{
+		"id": id,
+		"lobby_server": server.ID,
+	})
+	
+	if err != nil {
+		return err
+	}
 	return nil
 }

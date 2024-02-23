@@ -10,5 +10,5 @@ type Lobby struct {
 	Code string `json:"code"`
 	Lobby_Host *User `json:"lobby_host"`
 	Lobby_Users []*LobbyUser `json:"lobby_users"`
-	Server *Server `json:"server"` 
+	Lobby_Server *Server `json:"lobby_server"` 
 }

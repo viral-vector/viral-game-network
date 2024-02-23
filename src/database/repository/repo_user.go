@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"os"
 	"fmt"
 	"time"
 	"viral-game-network/src/database"
@@ -10,10 +9,9 @@ import (
 )
 
 func AllUser() ([]dbtype.User, error) {
-	result, err := database.DBS.Query("SELECT * FROM type::table($tb) WHERE COUNT(users) < $mx AND (private != true);", 
+	result, err := database.DBS.Query("SELECT * FROM type::table($tb);", 
 	map[string]string{
 		"tb": "User",
-		"mx": os.Getenv("LOBBY_MAX_PLAYERS"),
 	});
 	if err != nil {
 		return nil, err
