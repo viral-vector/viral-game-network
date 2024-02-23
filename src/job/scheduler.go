@@ -18,19 +18,27 @@ func stack() []Entry {
     return []Entry{
         {
             Name: "lobby_server_provisioner",
-            Time: "* * * * * *",
+            Time: "@every 1s",
             Func: Job_Lobby_Server_Provisioner,
+        },
+        {
+            Name: "lobby_server_stewardship",
+            Time: "@every 5s",
+            Func: Job_Lobby_Server_Stewardship,
+        },
+        {
+            Name: "lobby_stewardship",
+            Time: "@every 15s",
+            Func: Job_Lobby_Stewardship,
         },
     }
 }
 
 func Start() {
-    c := cron.New(cron.WithSeconds())
+    run := cron.New(cron.WithSeconds())
     for _, v := range stack() {
-        c.AddFunc(v.Time, func () { 
-            fmt.Println("Scheduler Running: ", v.Name)
-            v.Func()
-        })
+        fmt.Println("Scheduler Scheduling: ", v.Name)
+        run.AddFunc(v.Time,  v.Func)
     }
-    c.Start()
+    run.Start()
 }

@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/contrib/websocket"
-	"github.com/google/uuid"
+	"viral-game-network/src/service"
 	"viral-game-network/src/cache"
 	"viral-game-network/src/pubsub"
 	"viral-game-network/src/database/type"
@@ -99,7 +99,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 		})
 	}
 
-	max_players, err := strconv.ParseInt(os.Getenv("MAX_PLAYERS"), 0, 0)
+	max_players, err := strconv.ParseInt(os.Getenv("LOBBY_MAX_PLAYERS"), 0, 0)
 	if err!= nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -232,22 +232,7 @@ func Handle_SocketLobby(c *websocket.Conn) {
 			continue
 		}
 
-		tmp := dbtype.LobbyMessage{
-			ID: uuid.New().String(),
-			User_ID: user.ID,
-			Date_Created: strconv.FormatInt(time.Now().Unix(), 10), 
-			Body: string(msg),
-		}
-		fin, err := json.Marshal(tmp)
-		if err != nil {
-			continue
-		}
-		err = pubsub.Pub(guid, fin)
-		if err != nil {
-			continue
-		}
-		err = cache.Add(guid, string(fin))
-		err = cache.Exp(guid, 60 * time.Minute)
+		service.Service_Lobby_Notify(id, string(msg), user.ID)
 	}
 
 	defer pubsub.Close(sb)

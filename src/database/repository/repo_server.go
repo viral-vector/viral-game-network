@@ -27,7 +27,7 @@ func AllServer() ([]dbtype.Server, error) {
 	return servers, nil
 }
 
-func GetServer(info dbtype.Server) (*dbtype.Server, error) {
+func GetServer(id string) (*dbtype.Server, error) {
 	// Get server by ID
 	data, err := database.DBS.Query(`
 		SELECT * 
@@ -37,7 +37,7 @@ func GetServer(info dbtype.Server) (*dbtype.Server, error) {
 		LIMIT 1;`, 
 	map[string]string{
 		"tb": "Server",
-		"id": info.ID,
+		"id": id,
 	})
 	if err != nil {
 		return nil, err
@@ -98,21 +98,6 @@ func PutServer(body dbtype.Server, lobby *dbtype.Lobby) (*dbtype.Server, error) 
 		return nil, err
 	}
 
-	// Link Lobby
-	_, err = database.DBS.Query(`UPDATE $id MERGE {
-		lobby:$lobby
-	}`, 
-	map[string]interface{}{
-		"id": server[0].ID,
-		"lobby": lobby.ID,
-	})
-	
-	if err != nil {
-		return nil, err
-	}
-	
-	server[0].Lobby = lobby
-
 	return server[0], nil
 }
 
@@ -122,4 +107,29 @@ func DelServer(id string) error {
 		return err
 	}
 	return nil
+}
+
+func GetServerPorts() []int32 {
+	result, err := database.DBS.Query("SELECT id, port FROM type::table($tb);", 
+	map[string]string{
+		"tb": "Server",
+	});
+	if err != nil {
+		return nil
+	}
+
+    var servers []dbtype.Server
+
+    _, err = surrealdb.UnmarshalRaw(result, &servers)
+    if err != nil {
+        return nil
+    }
+
+	ports := make([]int32, 0)
+	for _, server := range servers {
+		if server.Port!= 0 {
+			ports = append(ports, server.Port)
+		}
+	}
+	return ports
 }

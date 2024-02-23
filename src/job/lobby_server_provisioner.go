@@ -3,6 +3,7 @@ package job
 import (
 	"fmt"
 	"time"
+	"slices"
 	"strings"
 	"viral-game-network/src/k8"
 	"viral-game-network/src/cache"
@@ -11,8 +12,11 @@ import (
 )
 
 func Job_Lobby_Server_Provisioner() {
+	fmt.Println("Job_Lobby_Server_Provisioner")
+
+	
 	lobbies, err := repository.AllLobby()
-	if err!= nil {
+	if err != nil {
 		fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
 	}
 
@@ -28,9 +32,12 @@ func Job_Lobby_Server_Provisioner() {
 			}
 			go func (lobby dbtype.Lobby, label string) {
 				// k8-Lock the lobby
-				cache.Set("k8-lock-" +label, "true", time.Minute * 10)
+				cache.Set("k8-lock-" +label, "true", time.Minute * 1)
 				// Create the server pod
-				Lobby_Server_Provisioner_PUT(lobby, label)
+				err := Lobby_Server_Provisioner_PUT(lobby, label)
+				if err != nil {
+					fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
+				}
 				// k8-Unlock the lobby
 				cache.Del("k8-lock-" +label)
 			}(lobby, label) 
@@ -41,21 +48,39 @@ func Job_Lobby_Server_Provisioner() {
 // Job_Lobby_Server_Provisioner_PUT
 func Lobby_Server_Provisioner_PUT(lobby dbtype.Lobby, label string) error {
 	// Get the server pod
-	lobpod, err := k8.LocateServerPod(label)
+	_, lobpod, err := k8.LocateServerPod(label)
 	if lobpod != nil {
 		return fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
 	}
+
+	// Pick Open Port
+	port_null := repository.GetServerPorts()
+	port_open := int32(-1)
+	for i :=  30000; i <=  30500; i++ {
+        if ok := slices.Contains(port_null, int32(i)); ok == false {
+			port_open = int32(i)
+			break
+		}
+    }
+	if port_open == int32(-1) {
+		return fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", "No open ports")
+	}
+
 	// Create the server pod
-	lobpod, err = k8.CreateServerPod(label)
+	lobpod, service, err := k8.CreateServerPod(label, port_open)
 	if err != nil {
 		return fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
 	}
 
-	// Create A Server Db Entry 
+	// Create A Server Db Entry
+	external_address := ""
+
 	server, err := repository.PutServer(dbtype.Server{
 		Name: lobby.Name,
 		Guid: lobpod.Labels["app"],
-		Address: "http://" + lobpod.Status.String(),
+		Status: string(lobpod.Status.Phase),
+		Address: external_address,
+		Port: int32(service.Spec.Ports[0].NodePort),
 	}, &lobby)
 	if err != nil {
 		// Delete the server pod if we failed to create the server entry
@@ -72,8 +97,6 @@ func Lobby_Server_Provisioner_PUT(lobby dbtype.Lobby, label string) error {
 		// Delete the server entry if we failed to create the server entry
 		repository.DelServer(server.ID)
 	}
-
-	fmt.Println("Server Provisioned for Lobby: ", label, " ", server.Name, " ", server.Address)
 
 	return nil
 }

@@ -12,6 +12,7 @@ func AllLobby() ([]dbtype.Lobby, error) {
 	result, err := database.DBS.Query(`
 	SELECT *
     ,lobby_host.*
+	,lobby_server.*
     ,->Lobby_Users.* as lobby_users 
     ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) as lobby_users.user 
 	FROM type::table($tb) 
@@ -19,7 +20,7 @@ func AllLobby() ([]dbtype.Lobby, error) {
 	ORDER BY date_created DESC;`, 
 	map[string]string{
 		"tb": "Lobby",
-		"mx": os.Getenv("MAX_PLAYERS"),
+		"mx": os.Getenv("LOBBY_MAX_PLAYERS"),
 	});
 	if err != nil {
 		return nil, err

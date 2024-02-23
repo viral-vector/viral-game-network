@@ -8,18 +8,10 @@ services:
     env_file:
       - .env
     container_name: app
+    restart: always
     depends_on:
       - cache
       - store
-    environment:
-      - APP_KEY=${APP_KEY}
-      - APP_ENV=${APP_ENV}
-      - CACHE_ENDPOINT=${CACHE_ENDPOINT}
-      - CACHE_USERNAME=${CACHE_USERNAME}
-      - CACHE_PASSWORD=${CACHE_PASSWORD}
-      - STORE_ENDPOINT=${STORE_ENDPOINT}
-      - STORE_USERNAME=${STORE_USERNAME}
-      - STORE_PASSWORD=${STORE_PASSWORD}
     ports:
       - "3000:3000"
     volumes:
@@ -31,9 +23,6 @@ services:
     image: redis:6.2-alpine
     env_file:
       - .env
-    environment:
-      - CACHE_USERNAME=${CACHE_USERNAME}
-      - CACHE_PASSWORD=${CACHE_PASSWORD}
     container_name: cache-redis
     restart: always
     ports:
@@ -47,9 +36,6 @@ services:
     image: surrealdb/surrealdb:latest
     env_file:
       - .env
-    environment:
-      - STORE_PASSWORD=${STORE_USERNAME}
-      - STORE_PASSWORD=${STORE_PASSWORD}
     container_name: store-surrealdb
     restart: always
     command: start --user=${STORE_USERNAME} --pass=${STORE_PASSWORD}
