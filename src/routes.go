@@ -37,6 +37,7 @@ func serve_routes(app *fiber.App) {
 	// App Key Validation
 	auth.Use(handler.Handle_ValidateAppKey)
 	// User Authentication
+	auth.Post("/lobby", handler.Handle_AuthLobby)
 	auth.Post("/guest", handler.Handle_AuthGuest)
 
 	/**

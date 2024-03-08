@@ -1,12 +1,13 @@
 package handler
 
 import (
-	"time"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
+	"time"
 	"viral-game-network/src/auth"
-	"viral-game-network/src/database/type"
 	"viral-game-network/src/database/repository"
+	dbtype "viral-game-network/src/database/type"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // Field names should start with an uppercase letter
@@ -23,7 +24,7 @@ func Handle_ValidateAppKey(c *fiber.Ctx) error {
 	if err != nil || pass == false {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Unauthorized: Bad or missing App Key",
 		})
 	}
@@ -39,7 +40,7 @@ func Handle_ValidateToken(c *fiber.Ctx) error {
 		fmt.Println(err, token)
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Unauthorized: Bad Token @ " + err.Error(),
 		})
 	}
@@ -53,6 +54,35 @@ func Handle_ValidateToken(c *fiber.Ctx) error {
 	c.Locals("user", user)
 
 	return c.Next()
+}
+
+func Handle_AuthLobby(c *fiber.Ctx) error {
+	c.Set("Viral-Game-Network-Action", "auth/lobby")
+
+	dto := new(AuthRequestDTO)
+
+	if err := c.BodyParser(dto); err != nil {
+		return err
+	}
+	user := dbtype.User{
+		Name: dto.Name,
+		Guid: dto.Guid,
+	}
+
+	access_token, err := auth.GenerateToken(&user)
+
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": "Token generation failed",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":       "ok",
+		"access_token": access_token,
+	})
 }
 
 func Handle_AuthGuest(c *fiber.Ctx) error {
@@ -70,13 +100,13 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 
 	user, err := repository.GetUser(utmp)
 	if err != nil {
-	user, err = repository.PutUser(utmp)
+		user, err = repository.PutUser(utmp)
 	}
 
 	if err != nil || user == nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "User creation failed",
 		})
 	}
@@ -86,7 +116,7 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Token generation failed",
 		})
 	}
@@ -98,7 +128,7 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 	user, err = repository.SetUser(user.ID, user)
 
 	return c.JSON(fiber.Map{
-		"status": "ok", 
+		"status":       "ok",
 		"access_token": access_token,
 	})
 }
