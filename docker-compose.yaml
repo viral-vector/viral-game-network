@@ -45,10 +45,26 @@ services:
       - viral-game-network-store:/data
     networks:
       - viral-game-network
+  registry:
+    image: registry:latest
+    env_file:
+      - .env
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
+    container_name: registry
+    restart: always
+    ports:
+      - 5000:5000
+    volumes:
+      - viral-game-network-registry:/data
+    networks:
+      - viral-game-network
 volumes:
   viral-game-network-cache:
     driver: local
   viral-game-network-store:
+    driver: local
+  viral-game-network-registry:
     driver: local
 networks:
   viral-game-network:
