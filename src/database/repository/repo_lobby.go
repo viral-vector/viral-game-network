@@ -4,7 +4,8 @@ import (
 	"os"
 	"time"
 	"viral-game-network/src/database"
-	"viral-game-network/src/database/type"
+	dbtype "viral-game-network/src/database/type"
+
 	"github.com/surrealdb/surrealdb.go"
 )
 
@@ -17,21 +18,21 @@ func AllLobby() ([]dbtype.Lobby, error) {
     ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) as lobby_users.user 
 	FROM type::table($tb) 
 	WHERE COUNT(lobby_users) < $mx
-	ORDER BY date_created DESC;`, 
-	map[string]string{
-		"tb": "Lobby",
-		"mx": os.Getenv("LOBBY_MAX_PLAYERS"),
-	});
+	ORDER BY date_created DESC;`,
+		map[string]string{
+			"tb": "Lobby",
+			"mx": os.Getenv("LOBBY_MAX_PLAYERS"),
+		})
 	if err != nil {
 		return nil, err
 	}
 
-    var lobbies []dbtype.Lobby
+	var lobbies []dbtype.Lobby
 
-    _, err = surrealdb.UnmarshalRaw(result, &lobbies)
-    if err != nil {
-        return nil, err
-    }
+	_, err = surrealdb.UnmarshalRaw(result, &lobbies)
+	if err != nil {
+		return nil, err
+	}
 
 	return lobbies, nil
 }
@@ -44,15 +45,15 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
 	,lobby_server.* 
 	,->Lobby_Users.* as lobby_users 
     ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) as lobby_users.user 
-	FROM Lobby WHERE id=$id;`, 
-	map[string]string{
-		"id": id,
-	});
+	FROM Lobby WHERE id=$id;`,
+		map[string]string{
+			"id": id,
+		})
 
 	if err != nil {
 		return nil, err
 	}
-  
+
 	lobby := make([]*dbtype.Lobby, 1)
 
 	// Unmarshal data
@@ -81,7 +82,7 @@ func SetLobby(id string, body *dbtype.Lobby) (*dbtype.Lobby, error) {
 	if err != nil {
 		return nil, err
 	}
-		
+
 	return lobby, nil
 }
 
@@ -110,7 +111,7 @@ func PutLobby(body *dbtype.Lobby, user *dbtype.User) (*dbtype.Lobby, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	lobby[0].Lobby_Host = user
 
 	return lobby[0], nil
@@ -129,26 +130,26 @@ func DelLobby(id string) error {
 	return nil
 }
 
-func LinkLobbyHost(id string, user *dbtype.User) (error) {
+func LinkLobbyHost(id string, user *dbtype.User) error {
 	_, err := database.DBS.Query(`UPDATE $id MERGE {
 		lobby_host:$lobby_host
-	}`, 
-	map[string]interface{}{
-		"id": id,
-		"lobby_host": user.ID,
-	})
-	
+	}`,
+		map[string]interface{}{
+			"id":         id,
+			"lobby_host": user.ID,
+		})
+
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func LinkLobbyUser(id string, user *dbtype.User) (error) {
-	_, err := database.DBS.Query(`DELETE FROM Lobby_Users WHERE out=$user;`, 
-	map[string]string{
-		"user": user.ID,
-	});
+func LinkLobbyUser(id string, user *dbtype.User) error {
+	_, err := database.DBS.Query(`DELETE FROM Lobby_Users WHERE out=$user;`,
+		map[string]string{
+			"user": user.ID,
+		})
 	if err != nil {
 		return err
 	}
@@ -156,12 +157,12 @@ func LinkLobbyUser(id string, user *dbtype.User) (error) {
 	_, err = database.DBS.Query(`RELATE $lobby->Lobby_Users->$user 
 		CONTENT {
 			date_created: $date_created
-		};`, 
-	map[string]string{
-		"lobby": id,
-		"user": user.ID,
-		"date_created": time.Now().UTC().Format(time.RFC3339),
-	});
+		};`,
+		map[string]string{
+			"lobby":        id,
+			"user":         user.ID,
+			"date_created": time.Now().UTC().Format(time.RFC3339),
+		})
 	if err != nil {
 		return err
 	}
@@ -169,26 +170,26 @@ func LinkLobbyUser(id string, user *dbtype.User) (error) {
 	return nil
 }
 
-func UnlinkLobbyAllUsers(id string) (error) {
+func UnlinkLobbyAllUsers(id string) error {
 	_, err := database.DBS.Query(`DELETE FROM Lobby_Users WHERE in=$lobby;`,
-	map[string]string{
-		"lobby": id,
-	});
+		map[string]string{
+			"lobby": id,
+		})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func LinkLobbyServer(id string, server *dbtype.Server) (error) {
+func LinkLobbyServer(id string, server *dbtype.Server) error {
 	_, err := database.DBS.Query(`UPDATE $id MERGE {
 		lobby_server:$lobby_server
-	}`, 
-	map[string]interface{}{
-		"id": id,
-		"lobby_server": server.ID,
-	})
-	
+	}`,
+		map[string]interface{}{
+			"id":           id,
+			"lobby_server": server.ID,
+		})
+
 	if err != nil {
 		return err
 	}

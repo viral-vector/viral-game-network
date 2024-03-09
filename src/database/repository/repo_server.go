@@ -1,28 +1,28 @@
 package repository
 
 import (
-	"fmt"
 	"time"
 	"viral-game-network/src/database"
-	"viral-game-network/src/database/type"
+	dbtype "viral-game-network/src/database/type"
+
 	"github.com/surrealdb/surrealdb.go"
 )
 
 func AllServer() ([]dbtype.Server, error) {
-	result, err := database.DBS.Query("SELECT * FROM type::table($tb);", 
-	map[string]string{
-		"tb": "Server",
-	});
+	result, err := database.DBS.Query("SELECT * FROM type::table($tb);",
+		map[string]string{
+			"tb": "Server",
+		})
 	if err != nil {
 		return nil, err
 	}
 
-    var servers []dbtype.Server
+	var servers []dbtype.Server
 
-    _, err = surrealdb.UnmarshalRaw(result, &servers)
-    if err != nil {
-        return nil, err
-    }
+	_, err = surrealdb.UnmarshalRaw(result, &servers)
+	if err != nil {
+		return nil, err
+	}
 
 	return servers, nil
 }
@@ -30,28 +30,22 @@ func AllServer() ([]dbtype.Server, error) {
 func GetServer(id string) (*dbtype.Server, error) {
 	// Get server by ID
 	data, err := database.DBS.Query(`
-		SELECT * 
-		FROM type::table($tb) 
-		WHERE 
-			(ID = $id) 
-		LIMIT 1;`, 
-	map[string]string{
-		"tb": "Server",
-		"id": id,
-	})
+	SELECT * 
+	FROM Server WHERE id=$id;`,
+		map[string]string{
+			"id": id,
+		})
+
 	if err != nil {
 		return nil, err
 	}
 
-	// Unmarshal data
 	server := make([]*dbtype.Server, 1)
+
+	// Unmarshal data
 	_, err = surrealdb.UnmarshalRaw(data, &server)
 	if err != nil {
 		return nil, err
-	}
-
-	if server[0] == nil {
-		return nil, fmt.Errorf("Server not found")
 	}
 
 	return server[0], err
@@ -74,7 +68,7 @@ func SetServer(id string, body *dbtype.Server) (*dbtype.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-		
+
 	return server, nil
 }
 
@@ -110,26 +104,52 @@ func DelServer(id string) error {
 }
 
 func GetServerPorts() []int32 {
-	result, err := database.DBS.Query("SELECT id, port FROM type::table($tb);", 
-	map[string]string{
-		"tb": "Server",
-	});
+	result, err := database.DBS.Query("SELECT id, port FROM type::table($tb);",
+		map[string]string{
+			"tb": "Server",
+		})
 	if err != nil {
 		return nil
 	}
 
-    var servers []dbtype.Server
+	var servers []dbtype.Server
 
-    _, err = surrealdb.UnmarshalRaw(result, &servers)
-    if err != nil {
-        return nil
-    }
+	_, err = surrealdb.UnmarshalRaw(result, &servers)
+	if err != nil {
+		return nil
+	}
 
 	ports := make([]int32, 0)
 	for _, server := range servers {
-		if server.Port!= 0 {
+		if server.Port != 0 {
 			ports = append(ports, server.Port)
 		}
 	}
 	return ports
+}
+
+func TickServer(id string) (*dbtype.Server, error) {
+	var err error
+	var data interface{}
+	var now = time.Now().UTC().Format(time.RFC3339)
+
+	body, err := GetServer(id)
+	if err != nil || body == nil {
+		return nil, err
+	}
+
+	body.Date_Updated = now
+	data, err = database.DBS.Update(id, body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	server := new(dbtype.Server)
+	err = surrealdb.Unmarshal(data, &server)
+	if err != nil {
+		return nil, err
+	}
+
+	return server, nil
 }

@@ -3,14 +3,15 @@ package main
 import (
 	"os"
 	"time"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/fiber/v2/middleware/helmet"
-	"github.com/gofiber/storage/redis/v3"
-	"github.com/gofiber/contrib/websocket"
 	"viral-game-network/src/handler"
 	"viral-game-network/src/middleware"
+
+	"github.com/gofiber/contrib/websocket"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/helmet"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/storage/redis/v3"
 )
 
 func serve_routes(app *fiber.App) {
@@ -30,7 +31,7 @@ func serve_routes(app *fiber.App) {
 	app.Get("/", handler.Handle_Root)
 	app.Get("/health", handler.Handle_Health)
 
-	/**	
+	/**
 	 * 	Auth Routes
 	 */
 	auth := app.Group("/auth")
@@ -44,17 +45,17 @@ func serve_routes(app *fiber.App) {
 	 * 	API Routes
 	 */
 	gapi := app.Group("/api")
-	
+
 	// Token Validation
 	gapi.Use(handler.Handle_ValidateToken)
-	
+
 	// Rate Limit
 	gapi.Use(limiter.New(limiter.Config{
-		Max:            15,
-		Expiration:     3 * time.Second,
+		Max:               15,
+		Expiration:        3 * time.Second,
 		LimiterMiddleware: limiter.SlidingWindow{},
 		Storage: redis.New(redis.Config{
-			URL: "redis://root:@"+os.Getenv("CACHE_ENDPOINT")+"/0",
+			URL: "redis://root:@" + os.Getenv("CACHE_ENDPOINT") + "/0",
 		}),
 	}))
 
@@ -66,4 +67,8 @@ func serve_routes(app *fiber.App) {
 	grp_lobby.Get("/:id/socket", middleware.Lobby_Read, websocket.New(handler.Handle_SocketLobby))
 	grp_lobby.Post("/:id", middleware.Lobby_Write, handler.Handle_SetLobby)
 	grp_lobby.Get("/:id", handler.Handle_GetLobby)
+
+	// Host/Server Routes
+	grp_host := gapi.Group("/host")
+	grp_host.Get("/:id/tick", handler.Handle_TickHost)
 }
