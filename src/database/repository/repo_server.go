@@ -139,6 +139,7 @@ func TickServer(id string) (*dbtype.Server, error) {
 	}
 
 	body.Date_Updated = now
+	body.Status = "Online"
 	data, err = database.DBS.Update(id, body)
 
 	if err != nil {

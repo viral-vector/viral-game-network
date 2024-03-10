@@ -3,11 +3,12 @@ package job
 import (
 	"fmt"
 	"strings"
-	"viral-game-network/src/k8"
-	"viral-game-network/src/database/type"
 	"viral-game-network/src/database/repository"
+	dbtype "viral-game-network/src/database/type"
+	"viral-game-network/src/k8"
 	"viral-game-network/src/service"
-	"k8s.io/api/core/v1"
+
+	v1 "k8s.io/api/core/v1"
 )
 
 func Job_Lobby_Server_Stewardship() {
@@ -22,7 +23,7 @@ func Job_Lobby_Server_Stewardship() {
 	for _, pod := range pods {
 		node, lobpod, err := k8.LocateServerPod(pod.Name)
 
-		if err!= nil {
+		if err != nil {
 			fmt.Errorf("Job_Lobby_Server_Stewardship:  %s", err)
 			continue
 		}
@@ -32,7 +33,7 @@ func Job_Lobby_Server_Stewardship() {
 			continue
 		}
 
-		fmt.Println("Job_Lobby_Server_Stewardship: @",  lobpod.Name)
+		fmt.Println("Job_Lobby_Server_Stewardship: @", lobpod.Name)
 
 		// Get the lobby
 		lobby, err := repository.GetLobby(
@@ -50,39 +51,39 @@ func Job_Lobby_Server_Stewardship() {
 			continue
 		}
 
-		if lobby.Lobby_Server.Status == string(pod.Status.Phase) {
-			continue
+		switch pod.Status.Phase {
+		// Check if the pod is running
+		case v1.PodRunning:
+			Job_Lobby_Server_Stewardship_Running(lobby, lobpod, node)
+			break
+		// Check if the pod is pending
+		case v1.PodPending:
+			break
+		// Check if the pod is failed
+		case v1.PodFailed:
+			// Delete Pod
+			k8.DeleteServerPod(pod.Name)
+
+			// Delete the server from the lobby
+			lobby.Lobby_Server = nil
+
+			// Update the lobby
+			_, err := repository.SetLobby(lobby.ID, lobby)
+			if err != nil {
+				fmt.Println("Job_Lobby_Server_Stewardship:", err)
+				continue
+			}
+			break
 		}
 
-		switch pod.Status.Phase {
-			// Check if the pod is running
-			case v1.PodRunning: 
-				Job_Lobby_Server_Stewardship_Running(lobby, lobpod, node)
-				break;
-			// Check if the pod is pending
-			case v1.PodPending:
-				break;
-			// Check if the pod is failed
-			case v1.PodFailed:
-				// Delete Pod
-				k8.DeleteServerPod(pod.Name)
-
-				// Delete the server from the lobby
-				lobby.Lobby_Server = nil
-
-				// Update the lobby
-				_, err := repository.SetLobby(lobby.ID, lobby)
-				if err!= nil {
-					fmt.Println("Job_Lobby_Server_Stewardship:", err)
-					continue
-				}
-				break;
+		if lobby.Lobby_Server.Status == string(pod.Status.Phase) || lobby.Lobby_Server.Status == "Online" {
+			continue
 		}
 
 		lobby.Lobby_Server.Status = string(pod.Status.Phase)
 		// Update the server
 		_, err = repository.SetServer(lobby.Lobby_Server.ID, lobby.Lobby_Server)
-		if err!= nil {
+		if err != nil {
 			fmt.Println("Job_Lobby_Server_Stewardship:", err)
 			continue
 		}
@@ -95,7 +96,7 @@ func Job_Lobby_Server_Stewardship() {
 
 // Job_Lobby_Server_Stewardship_Running
 func Job_Lobby_Server_Stewardship_Running(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) {
-	
+
 	// Find the external IP address
 	var external_address string = "https://localhost"
 
@@ -108,8 +109,7 @@ func Job_Lobby_Server_Stewardship_Running(lobby *dbtype.Lobby, pod *v1.Pod, node
 		fmt.Println("Job_Lobby_Server_Stewardship: No ExternalIP", node.Name)
 		return
 	}
-	
+
 	// Update the server address
 	lobby.Lobby_Server.Address = external_address
 }
-

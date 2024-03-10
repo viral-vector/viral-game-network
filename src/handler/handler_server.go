@@ -2,6 +2,7 @@ package handler
 
 import (
 	"viral-game-network/src/database/repository"
+	"viral-game-network/src/service"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -28,6 +29,12 @@ func Handle_TickHost(c *fiber.Ctx) error {
 			"status":  "error",
 			"message": "Error fetching server " + lobby.Lobby_Server.ID,
 		})
+	}
+
+	// Notify Lobby Users
+	if lobby.Lobby_Server.Status != "Online" {
+		msg := "Server:Online"
+		service.Service_Lobby_Notify(lobby.ID, msg, "")
 	}
 
 	return c.JSON(fiber.Map{
