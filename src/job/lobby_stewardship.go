@@ -1,19 +1,23 @@
 package job
 
 import (
-	"os"
 	"fmt"
-	"time"
+	"os"
 	"strconv"
+	"time"
+
 	// "viral-game-network/src/database/type"
 	"viral-game-network/src/database/repository"
 	"viral-game-network/src/service"
 )
 
+/**
+ * Manages Lobby Lifecycle
+ */
 func Job_Lobby_Stewardship() {
-	fmt.Println("Job_Lobby_Stewardship")
+	// fmt.Println("Job_Lobby_Stewardship")
 
-	lobbies, err := repository.AllLobby()
+	lobbies, _, err := repository.AllLobby(-1, 1)
 	if err != nil {
 		fmt.Errorf("Job_Lobby_Stewardship:  %s", err)
 		return
@@ -31,7 +35,7 @@ func Job_Lobby_Stewardship() {
 	for _, lobby := range lobbies {
 		date_lobby, _ := time.Parse(time.RFC3339, lobby.Date_Updated)
 		date_diffr := date_now.Sub(date_lobby)
-		
+
 		if date_diffr.Minutes() > lobby_max_persist {
 			// Notify Lobby Users
 			msg := "Server:Lobby Closed"
@@ -43,8 +47,6 @@ func Job_Lobby_Stewardship() {
 			// Delete Lobby
 			repository.DelLobby(lobby.ID)
 		}
-
-		// Do we need a new server?
-		fmt.Println("Job_Lobby_Stewardship: @",  lobby.Name, lobby.ID, date_diffr.Minutes())
+		fmt.Println("Job_Lobby_Stewardship: @", lobby.ID)
 	}
 }

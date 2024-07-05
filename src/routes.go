@@ -23,7 +23,8 @@ func serve_routes(app *fiber.App) {
 	}))
 	app.Use(func(c *fiber.Ctx) error {
 		c.Set("Viral-Game-Network-Entity", c.Get("Viral-Game-Network-Entity"))
-
+		c.Locals("route", c.Path())
+		c.Locals("title", "VGN - "+c.Path())
 		return c.Next()
 	})
 
@@ -40,6 +41,25 @@ func serve_routes(app *fiber.App) {
 	// User Authentication
 	auth.Post("/lobby", handler.Handle_AuthLobby)
 	auth.Post("/guest", handler.Handle_AuthGuest)
+
+	/**
+	 * 	Admin Routes
+	 */
+	admin := app.Group("/admin")
+	// App Key Validation
+	// admin.Use(handler.Handle_ValidateAppKey)
+	// User Authentication
+	admin.Get("/", handler.Handle_Admin_Root)
+	admin.Get("/users", handler.Handle_Admin_Users)
+	admin.Get("/lobbies", handler.Handle_Admin_Lobbies)
+	admin.Get("/servers", handler.Handle_Admin_Servers)
+	admin.Get("/pods", handler.Handle_Admin_Pods)
+	admin.Get("/metrics", handler.Handle_Admin_Root)
+	admin.Get("/configs", handler.Handle_Admin_Root)
+
+	admin.Post("/cluster/start", handler.Handle_Admin_Cluster_Start)
+	admin.Post("/cluster/stop", handler.Handle_Admin_Cluster_Stop)
+	admin.Post("/cluster/pods/stop", handler.Handle_Admin_Cluster_Pods_Stop)
 
 	/**
 	 * 	API Routes

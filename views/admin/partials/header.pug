@@ -1,0 +1,27 @@
+nav#header.navbar.is-fixed-top.is-dark
+  .navbar-brand
+    a.navbar-item(href='/admin')
+      img(src="/images/vgn.webp", alt="")
+    .navbar-burger.js-burger(data-target='nav-menu')
+      span
+      span
+      span
+      span
+  #nav-menu.navbar-menu
+    .navbar-start
+      .navbar-item.has-dropdown
+        a.navbar-link.menu-item(href='/admin') Admin 
+        .navbar-dropdown
+          a.navbar-item.menu-item(href='/admin/users') Users 
+          a.navbar-item.menu-item(href='/admin/lobbies') Lobbies 
+          a.navbar-item.menu-item(href='/admin/servers') Servers 
+      a.navbar-item.menu-item(href='/admin/metrics') Metrics 
+      a.navbar-item.menu-item(href='/admin/configs') Configs 
+    .navbar-end
+      .navbar-item
+        .field.is-grouped
+          p.control
+            a.bd-tw-button.button.is-dark.is-soft(target='_blank')
+              span.icon
+                i.fas.fa-sign-out-alt
+  hr

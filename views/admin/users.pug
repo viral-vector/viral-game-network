@@ -1,0 +1,20 @@
+div#app.my-5.mx-3
+    include partials/header.pug
+    #admin.container.is-fullhd.px-1.py-6
+        .columns
+            .column.is-one-quarter
+                include partials/aside.pug
+            .column
+                section.content
+                    h3.subtitle
+                        | Manage Users
+                hr
+                p.notification.is-info 
+                    | #{.total} users found.
+                    | Viewing #{.paged} of #{.pages} pages.
+                each user in .users
+                    .box
+                        include partials/users/list-item.pug
+                include partials/pager
+include partials/modal_prompt.pug
+script(src="/admin.js")

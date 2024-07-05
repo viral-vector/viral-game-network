@@ -11,8 +11,11 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+/**
+ * Manages Server Lifecycle
+ */
 func Job_Lobby_Server_Stewardship() {
-	fmt.Println("Job_Lobby_Server_Stewardship")
+	// fmt.Println("Job_Lobby_Server_Stewardship")
 
 	pods, err := k8.GetAllServerPods()
 	if err != nil {
@@ -33,7 +36,8 @@ func Job_Lobby_Server_Stewardship() {
 			continue
 		}
 
-		fmt.Println("Job_Lobby_Server_Stewardship: @", lobpod.Name)
+		fmt.Println("Job_Lobby_Server_Stewardship: @ ", lobpod.Name)
+		PrintPod(lobpod)
 
 		// Get the lobby
 		lobby, err := repository.GetLobby(
@@ -76,7 +80,7 @@ func Job_Lobby_Server_Stewardship() {
 			break
 		}
 
-		if lobby.Lobby_Server.Status == string(pod.Status.Phase) || lobby.Lobby_Server.Status == "Online" {
+		if lobby.Lobby_Server == nil || lobby.Lobby_Server.Status == string(pod.Status.Phase) || lobby.Lobby_Server.Status == "Online" {
 			continue
 		}
 
@@ -112,4 +116,20 @@ func Job_Lobby_Server_Stewardship_Running(lobby *dbtype.Lobby, pod *v1.Pod, node
 
 	// Update the server address
 	lobby.Lobby_Server.Address = external_address
+}
+
+func PrintPod(pod *v1.Pod) {
+	fmt.Println("Pod: ", pod.Name)
+	fmt.Println("NS: ", pod.Namespace)
+	fmt.Println("  Status: ", pod.Status.Phase, pod.Status.Message)
+	fmt.Println("  Node: ", pod.Spec.NodeName)
+	fmt.Println("  IP: ", pod.Status.PodIP)
+	fmt.Println("  Containers:")
+	for _, container := range pod.Spec.Containers {
+		fmt.Println("    ", container.Name, container.Image)
+	}
+	// Iterate over the container statuses and print the restart count
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		fmt.Println(fmt.Printf("Container Name: %s, Restart Count: %d\n", containerStatus.Name, containerStatus.RestartCount))
+	}
 }

@@ -1,0 +1,40 @@
+.card
+    header.card-header
+        p.card-header-title.subtitle.is-5 Cluster Status
+        p.card-header-icon(aria-label="more options")
+            span.icon
+                i.fas.fa-info-circle(aria-hidden="true")
+    .card-content
+        .content
+            if .cluster.version
+                p 
+                    | K8 Version: 
+                    span.tag.is-info.is-medium #{.cluster.version}
+                    | &nbsp;
+                    | Live Nodes:
+                    span.tag.is-info.is-medium #{.cluster.nodes.total}
+                each node in .cluster.nodes.nodes
+                    hr
+                    include cluster_node.pug
+            else 
+                p 
+                    i.fas.fa-ban
+                    span K8 cluster not running:  
+                    | #{.cluster.error}   
+    footer.card-footer.py-2.px-3
+        form.form.card-footer-item(action="/admin/cluster/start", method="post", data-confirm-message="Start the Cluster?")
+            button.button.is-rounded.is-primary(type="submit") 
+                i.fas.fa-play
+                | &nbsp;
+                | Start Cluster
+        form.form.card-footer-item(action="/admin/cluster/stop", method="post",  data-confirm-message="Stop the Cluster?")
+            button.button.is-rounded.is-danger(type="submit") 
+                i.fas.fa-ban
+                | &nbsp;
+                | Stop Cluster
+        form.form.card-footer-item(action="/admin/pods/stop-all", method="post",  data-confirm-message="Stop all Pods?")
+            button.button.is-rounded.is-danger(type="submit") 
+                i.fas.fa-ban
+                | &nbsp;
+                | Stop Pods
+                

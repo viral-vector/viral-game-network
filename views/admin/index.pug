@@ -1,0 +1,22 @@
+div#app.my-5.mx-3
+    include partials/header.pug
+    #admin.container.is-fullhd.px-1.py-6
+        .columns
+            .column.is-one-quarter
+                include partials/aside.pug
+            .column(data-controller="dashboard")
+                section.content
+                    h2.title Dashboard
+                    h3.subtitle
+                        | Viral Game Network Dashboard
+                    hr
+                    include partials/index/cluster.pug
+                br
+                br
+                .columns
+                    .column
+                        canvas#chart-sample-a
+                    .column
+                        canvas#chart-sample-b
+include partials/modal_prompt.pug
+script(src="/admin.js")

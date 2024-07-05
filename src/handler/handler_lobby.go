@@ -1,37 +1,41 @@
 package handler
 
 import (
-	"os"
-	"time"
-	"strconv"
 	"encoding/json"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/contrib/websocket"
-	"viral-game-network/src/service"
+	"os"
+	"strconv"
+	"time"
 	"viral-game-network/src/cache"
-	"viral-game-network/src/pubsub"
-	"viral-game-network/src/database/type"
 	"viral-game-network/src/database/repository"
+	dbtype "viral-game-network/src/database/type"
+	"viral-game-network/src/pubsub"
+	"viral-game-network/src/service"
+
+	"github.com/gofiber/contrib/websocket"
+	"github.com/gofiber/fiber/v2"
 )
 
-// Handle_AllLobby 
+// Handle_AllLobby
 func Handle_AllLobby(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "lobby/all")
+	curPage, _ := strconv.Atoi(c.Query("page", "1"))
+	perPage, _ := strconv.Atoi(c.Query("show", "100"))
 
-	data, err := repository.AllLobby()
+	data, total, err := repository.AllLobby(perPage, curPage)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Error fetching lobbies",
 		})
 	}
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
-		"data": data,
-	})	
+		"data":   data,
+		"total":  total,
+	})
 }
 
 // Handle_SetLobby
@@ -44,7 +48,7 @@ func Handle_SetLobby(c *fiber.Ctx) error {
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Bad set lobby request",
 		})
 	}
@@ -54,18 +58,18 @@ func Handle_SetLobby(c *fiber.Ctx) error {
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Error setting lobby",
 		})
 	}
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
-		"data": lobby,
+		"data":   lobby,
 	})
 }
 
-// Handle_GetLobby 
+// Handle_GetLobby
 func Handle_GetLobby(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "lobby/get")
 
@@ -74,18 +78,18 @@ func Handle_GetLobby(c *fiber.Ctx) error {
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Error fetching lobby",
 		})
 	}
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
-		"data": lobby,
+		"data":   lobby,
 	})
 }
 
-// Handle_JoinLobby 
+// Handle_JoinLobby
 func Handle_JoinLobby(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "lobby/join")
 
@@ -94,24 +98,24 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Error fetching lobby",
 		})
 	}
 
 	max_players, err := strconv.ParseInt(os.Getenv("LOBBY_MAX_PLAYERS"), 0, 0)
-	if err!= nil {
+	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
-			"message": "Server error fetching lobby max players", 
+			"status":  "error",
+			"message": "Server error fetching lobby max players",
 		})
 	}
 
 	if len(lobby.Lobby_Users) >= int(max_players) {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Lobby is full",
 		})
 	}
@@ -119,7 +123,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 	if lobby.Private == true && lobby.Code != c.Params("code") {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Invalid lobby code",
 		})
 	}
@@ -142,7 +146,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Error joining lobby: " + err.Error(),
 		})
 	}
@@ -151,11 +155,11 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
-		"data": lobby,
+		"data":   lobby,
 	})
 }
 
-// Handle_HostLobby 
+// Handle_HostLobby
 func Handle_HostLobby(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "lobby/host")
 
@@ -163,7 +167,7 @@ func Handle_HostLobby(c *fiber.Ctx) error {
 	if err := c.BodyParser(record); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
+			"status":  "error",
 			"message": "Bad lobby host request",
 		})
 	}
@@ -175,21 +179,21 @@ func Handle_HostLobby(c *fiber.Ctx) error {
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"status": "error",
-			"message": "Error hosting lobby: " + err.Error() ,
+			"status":  "error",
+			"message": "Error hosting lobby: " + err.Error(),
 		})
 	}
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
-		"data": lobby,
+		"data":   lobby,
 	})
 }
 
 // Handle_SocketLobby
 func Handle_SocketLobby(c *websocket.Conn) {
-	id   := c.Params("id")
-	guid := "lobby:"+id+":channel" 
+	id := c.Params("id")
+	guid := "lobby:" + id + ":channel"
 	user := c.Locals("user").(*dbtype.User)
 	var (
 		msg []byte
@@ -203,23 +207,23 @@ func Handle_SocketLobby(c *websocket.Conn) {
 			for _, element := range channel_cache.([]string) {
 				time.Sleep(100 * time.Millisecond)
 				if err = c.WriteMessage(1, []byte(element)); err != nil {
-					return;
+					return
 				}
 			}
 		}(c)
 	}
-		
+
 	// Sub
 	sb := pubsub.Sub(guid)
 	go func(c *websocket.Conn) {
 		for msg := range sb.Channel() {
 			if err = c.WriteMessage(1, []byte(msg.Payload)); err != nil {
 				defer pubsub.Close(sb)
-				return;
+				return
 			}
 		}
 	}(c)
-	
+
 	// Pub
 	for {
 		if _, msg, err = c.ReadMessage(); err != nil {
@@ -227,7 +231,7 @@ func Handle_SocketLobby(c *websocket.Conn) {
 		}
 		if msg == nil || len(string(msg)) < 3 {
 			if err = c.WriteMessage(1, []byte("{\"error\":\"Message length should >= 3\"}")); err != nil {
-				return;
+				return
 			}
 			continue
 		}

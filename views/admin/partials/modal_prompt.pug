@@ -1,0 +1,12 @@
+.modal(data-controller="modal_prompt")
+	.modal-background
+	.modal-card
+		header.modal-card-head
+			p.modal-card-title(data-modal_prompt-target="title") Modal title
+			button.delete(aria-label="close")
+		section.modal-card-body(data-modal_prompt-target="message")
+            | Modal body text
+		footer.modal-card-foot
+			.buttons
+				button.button.is-success(data-modal_prompt-target="accept") Confirm
+				button.button(data-modal_prompt-target="reject") Cancel

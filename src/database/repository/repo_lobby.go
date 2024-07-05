@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"os"
 	"time"
 	"viral-game-network/src/database"
@@ -9,8 +10,8 @@ import (
 	"github.com/surrealdb/surrealdb.go"
 )
 
-func AllLobby() ([]dbtype.Lobby, error) {
-	result, err := database.DBS.Query(`
+func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
+	lQuery := `
 	SELECT *
     ,lobby_host.*
 	,lobby_server.*
@@ -18,23 +19,49 @@ func AllLobby() ([]dbtype.Lobby, error) {
     ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) as lobby_users.user 
 	FROM type::table($tb) 
 	WHERE COUNT(lobby_users) < $mx
-	ORDER BY date_created DESC;`,
-		map[string]string{
-			"tb": "Lobby",
-			"mx": os.Getenv("LOBBY_MAX_PLAYERS"),
-		})
+	ORDER BY date_created DESC
+	`
+	params := map[string]interface{}{
+		"tb": "Lobby",
+		"mx": os.Getenv("LOBBY_MAX_PLAYERS"),
+	}
+
+	if count > -1 {
+		lQuery = fmt.Sprintf("%s %s", lQuery, `LIMIT $ct START $pg`)
+		params["ct"] = count
+		params["pg"] = (pager - 1) * count
+	}
+
+	// Get All Lobbies
+	result, err := database.DBS.Query(fmt.Sprintf("%s%s", lQuery, `;`), params)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	var lobbies []dbtype.Lobby
-
 	_, err = surrealdb.UnmarshalRaw(result, &lobbies)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return lobbies, nil
+	// Count All Lobbies
+	result, err = database.DBS.Query("SELECT count() AS total FROM type::table($tb) GROUP ALL;",
+		map[string]interface{}{
+			"tb": "Lobby",
+		})
+	if err != nil {
+		return lobbies, 0, err
+	}
+
+	var total []struct {
+		Total int `json:"total"`
+	}
+	_, err = surrealdb.UnmarshalRaw(result, &total)
+	if err != nil || len(total) == 0 {
+		return lobbies, 0, err
+	}
+
+	return lobbies, total[0].Total, nil
 }
 
 func GetLobby(id string) (*dbtype.Lobby, error) {

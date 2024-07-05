@@ -1,69 +1,253 @@
 package k8
 
 import (
-	"log"
-	"fmt"
 	"context"
-	"k8s.io/client-go/kubernetes"
-    "k8s.io/client-go/tools/clientcmd"
-	"k8s.io/api/core/v1"
-    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"fmt"
+	"log"
+	"math/rand"
+	"strconv"
+	"strings"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 var ctx = context.Background()
+var config *rest.Config
 var namespace = "viral-game-network"
 var clientset *kubernetes.Clientset
-
+var portRange = []int32{30000, 30020}
 
 func init() {
-	go func() {
-		erro := CreateCluster()
-		if erro != nil {
-			log.Fatalf(erro.Error())
+	var err error
 
-			return
-		}
+	kinit, err := CheckCluster()
+	if err != nil {
+		log.Println("k8 init error: ", err)
+		return
+	}
+	if !kinit {
+		log.Println("k8 init error: Cluster not running")
+		return
+	}
 
-		// Create the clientset
-		config, err := clientcmd.BuildConfigFromFlags("", "/root/.config/k3d/kubeconfig-viral-game-network.yaml")
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-		clientset, err = kubernetes.NewForConfig(config)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-
-		// Define the namespace
-		space := &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: namespace,
-			},
-		}
-
-		// Create the namespace
-		result, err := clientset.CoreV1().Namespaces().Create(ctx, space, metav1.CreateOptions{})
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("Created namespace %q.\n", result.Name)
-
-		log.Println(clientset.Discovery().ServerVersion())
-	}()
+	LoadConfiguration()
 }
 
-func GetAllServerPods() ([]v1.Pod, error) {
+func LoadConfiguration() error {
+	var err error
+
+	// Create the clientset from the config
+	config, err = clientcmd.BuildConfigFromFlags("", "/root/.config/k3d/kubeconfig-viral-game-network.yaml")
+	if err != nil {
+		log.Println("k8 config error: ", err)
+		return err
+	}
+
+	clientset, err = kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Println("k8 clientset error: ", err)
+		return err
+	}
+	return nil
+}
+
+func CheckCreateCluster() error {
+	var err error
+
+	kinit, err := CheckCluster()
+	if err != nil {
+		log.Println("k8 init error: ", err)
+		return err
+	}
+	if !kinit {
+		erro := CreateCluster(portRange[0], portRange[1])
+		if erro != nil {
+			return fmt.Errorf("k8 error creating cluster: " + erro.Error())
+		}
+		// Load the configuration
+		LoadConfiguration()
+		// Namespace
+		CreateNameSpace()
+		// Print versrion
+		version, err := clientset.Discovery().ServerVersion()
+		if err == nil {
+			log.Println("k8 cluster initialized: ", version.String())
+		}
+	}
+
+	return nil
+}
+
+func CheckDeleteCluster() error {
+	erro := DeleteCluster()
+	if erro != nil {
+		return fmt.Errorf("k8 error creating cluster: " + erro.Error())
+	}
+	return nil
+}
+
+func CreateNameSpace() error {
 	if clientset == nil {
-		return nil, fmt.Errorf("Kubernetes not initialized!")
+		return fmt.Errorf("kubernetes not initialized")
+	}
+
+	existing, err := clientset.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if err == nil && existing.Name == namespace {
+		return nil
+	}
+
+	// Define the namespace
+	space := &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}
+	// Create the namespace
+	result, err := clientset.CoreV1().Namespaces().Create(ctx, space, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create namespace: %v", err)
+	}
+
+	fmt.Println("Created K8 Namespace: " + result.Name)
+
+	return nil
+}
+
+func GetClusterStatus() (map[string]interface{}, error) {
+	if clientset == nil {
+		return nil, fmt.Errorf("kubernetes not initialized")
+	}
+
+	// Get Version
+	verInfo := ""
+	version, _ := clientset.Discovery().ServerVersion()
+	if version != nil {
+		verInfo = version.String()
+	}
+
+	// Get Nodes
+	nodeInfo := map[string]interface{}{}
+	nodes, _ := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	nodeInfo["nodes"] = map[string]interface{}{}
+	nodeInfo["total"] = 0
+	if nodes != nil {
+		nodeInfo["total"] = len(nodes.Items)
+		for _, node := range nodes.Items {
+			pods, _ := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+				FieldSelector: "spec.nodeName=" + node.Name,
+			})
+			nodeInfo["nodes"].(map[string]interface{})[node.Name] = map[string]interface{}{
+				"name":  node.Name,
+				"ipv4":  GetNodeExternalIP(node),
+				"pods":  len(pods.Items),
+				"phase": node.Status.Phase,
+			}
+		}
+	}
+
+	return map[string]interface{}{
+		"version": verInfo,
+		"nodes":   nodeInfo,
+	}, nil
+}
+
+func GetPortRange(min, max int32) []int32 {
+	var ports []int32
+	for i := min; i <= max; i++ {
+		ports = append(ports, i)
+	}
+	return ports
+}
+
+func FindOpenNodePort() (string, int32, error) {
+	if clientset == nil {
+		return "", -1, fmt.Errorf("kubernetes not initialized")
+	}
+
+	// Get the list of nodes
+	nodes, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", -1, fmt.Errorf("error listing nodes: %s", err.Error())
+	}
+
+	// Final return values
+	nodeFinal := ""
+	portFinal := int32(-1)
+
+	// Create map of node ports
+	nodePorts := make(map[string][]int32)
+	for _, node := range nodes.Items {
+		nodePorts[node.Name] = []int32{}
+		// Get the list of pods on each node & Collect used ports
+		pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+			FieldSelector: "spec.nodeName=" + node.Name,
+		})
+		if err != nil {
+			log.Printf("error listing pods on node %s: %s", node.Name, err.Error())
+			continue
+		}
+
+		usedPorts := map[string]bool{}
+		for _, pod := range pods.Items {
+			for _, container := range pod.Spec.Containers {
+				for _, port := range container.Ports {
+					usedPorts[strconv.Itoa(int(port.ContainerPort))] = true
+				}
+			}
+		}
+
+		// Set unused ports
+		for _, port := range GetPortRange(portRange[0], portRange[1]) {
+			if _, exists := usedPorts[strconv.Itoa(int(port))]; !exists {
+				nodePorts[node.Name] = append(nodePorts[node.Name], port)
+			}
+		}
+	}
+
+	// Find the node with the most ports & select a random port
+	maxPorts := int32(0)
+	for node, ports := range nodePorts {
+		if int32(len(ports)) > maxPorts {
+			maxPorts = int32(len(ports))
+			nodeFinal = node
+		}
+	}
+	portFinal = nodePorts[nodeFinal][rand.Intn(len(nodePorts[nodeFinal]))]
+
+	return nodeFinal, portFinal, nil
+}
+
+// Kill all server pods
+func KillAllServerPods() ([]v1.Pod, error) {
+	if clientset == nil {
+		return nil, fmt.Errorf("kubernetes not initialized")
 	}
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		fmt.Errorf("GetAllServerPods: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("error pulling pods: %s", err)
+	}
+	for _, pod := range pods.Items {
+		label := strings.Replace(pod.Name, "server-", "", -1)
+		DeleteServerPod(label)
+	}
+	return pods.Items, nil
+}
+
+// Get All server Pods
+func GetAllServerPods() ([]v1.Pod, error) {
+	if clientset == nil {
+		return nil, fmt.Errorf("kubernetes not initialized")
+	}
+
+	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("error pulling pods: %s", err)
 	}
 	return pods.Items, nil
 }
@@ -71,71 +255,70 @@ func GetAllServerPods() ([]v1.Pod, error) {
 // Locate Server Pod
 func LocateServerPod(label string) (*v1.Node, *v1.Pod, error) {
 	if clientset == nil {
-		return nil, nil, fmt.Errorf("Kubernetes not initialized!")
+		return nil, nil, fmt.Errorf("kubernetes not initialized")
 	}
 
-	pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, label, metav1.GetOptions{})
-    if err != nil {
-        return nil, nil, err
-    }
+	pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, "server-"+label, metav1.GetOptions{})
+	if err != nil {
+		return nil, nil, err
+	}
 
 	node, err := clientset.CoreV1().Nodes().Get(ctx, pod.Spec.NodeName, metav1.GetOptions{})
-    if err != nil {
-        return nil, nil, err
-    }
+	if err != nil {
+		return nil, nil, err
+	}
 
-	service, _ := locate_service(label)
+	service, _ := LocateService(label)
 	if service == nil {
-		return nil, nil, fmt.Errorf("Server Pod Not Accessible!")
+		return nil, nil, fmt.Errorf("server pod not accessible")
 	}
 
 	return node, pod, nil
 }
 
 // Create Server Pod
-func CreateServerPod(label string, sPort int32) (*v1.Pod, *v1.Service, error) {
+func CreateServerPod(label string, node string, sPort int32, aPort int32, image string, command []string) (*v1.Pod, *v1.Service, error) {
 	if clientset == nil {
-		return nil, nil, fmt.Errorf("Kubernetes not initialized!")
+		return nil, nil, fmt.Errorf("kubernetes not initialized")
 	}
-
-	label = "server-"+label 
-	aPort := int32(8080)
 
 	// Create Pod
 	pod := &v1.Pod{
-        ObjectMeta: metav1.ObjectMeta{
-            Name: label,
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "server-" + label,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": label,
+				"app": "server-" + label,
 			},
-        },
-        Spec: v1.PodSpec{
+		},
+		Spec: v1.PodSpec{
+			NodeName:      node,
+			HostNetwork:   true,
 			RestartPolicy: v1.RestartPolicyNever,
-            Containers: []v1.Container{
-                {
-                    Name:    label,
-                    Image:   "gcr.io/google-samples/node-hello:1.0", //TODO: Change to your image
-                    // Command: []string{"nginx", "-g", "daemon off;"}, // TODO: Change to your command
+			Containers: []v1.Container{
+				{
+					Name:    "server-" + label,
+					Image:   image,
+					Command: command,
 					Ports: []v1.ContainerPort{
 						{
-							ContainerPort:  aPort,
+							ContainerPort: aPort,
 						},
 					},
-                },
-            },
-        },
-    }
+				},
+			},
+		},
+	}
 
-    pod, err := clientset.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
-    if err != nil {
-		fmt.Println("Failed to create pod: %v", err)
-       	return nil, nil, err
-    }
-
-	ser, err := create_service(label, aPort, sPort)
+	pod, err := clientset.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 	if err != nil {
-		fmt.Println("Failed to create pod: %v", err)
+		fmt.Println("Failed to create pod: ", err)
+		return nil, nil, err
+	}
+
+	ser, err := CreateService(label, aPort, sPort)
+	if err != nil {
+		fmt.Println("Failed to create pod: ", err)
 		// Delete the server pod if we failed to create the service entry
 		DeleteServerPod(label)
 
@@ -148,31 +331,30 @@ func CreateServerPod(label string, sPort int32) (*v1.Pod, *v1.Service, error) {
 // Delete Server Pod
 func DeleteServerPod(label string) error {
 	if clientset == nil {
-		return fmt.Errorf("Kubernetes not initialized!")
+		return fmt.Errorf("kubernetes not initialized")
 	}
 
 	err := clientset.CoreV1().Pods(namespace).Delete(
-        ctx,
-        label,
-        metav1.DeleteOptions{},
-    )
+		ctx,
+		"server-"+label,
+		metav1.DeleteOptions{},
+	)
 	if err != nil {
-		return fmt.Errorf("Failed to delete pod: %v", err)
+		return fmt.Errorf("failed to delete pod: %v", err)
 	}
 
-	err = delete_service(label)
+	_ = DeleteService(label)
 
 	return nil
 }
 
-
 // Locate a Service
-func locate_service(label string) (*v1.Service, error) {
+func LocateService(label string) (*v1.Service, error) {
 	if clientset == nil {
-		return nil, fmt.Errorf("Kubernetes not initialized!")
+		return nil, fmt.Errorf("kubernetes not initialized")
 	}
 
-	service, err := clientset.CoreV1().Services(namespace).Get(ctx, label+"-service", metav1.GetOptions{})
+	service, err := clientset.CoreV1().Services(namespace).Get(ctx, "service-"+label, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -180,17 +362,17 @@ func locate_service(label string) (*v1.Service, error) {
 }
 
 // Creates a Service
-func create_service(label string, aPort int32, sPort int32) (*v1.Service, error) {
+func CreateService(label string, aPort int32, sPort int32) (*v1.Service, error) {
 	if clientset == nil {
-		return nil, fmt.Errorf("Kubernetes not initialized!")
+		return nil, fmt.Errorf("kubernetes not initialized")
 	}
 
 	service := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: label+ "-service" ,
+			Name:      "service-" + label,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": label+ "-service",
+				"app": "service-" + label,
 			},
 		},
 		Spec: v1.ServiceSpec{
@@ -199,41 +381,56 @@ func create_service(label string, aPort int32, sPort int32) (*v1.Service, error)
 				{
 					Port: aPort,
 					TargetPort: intstr.IntOrString{
-						Type: intstr.Int,
+						Type:   intstr.Int,
 						IntVal: aPort,
 					},
 					NodePort: sPort,
-					Protocol: v1.ProtocolTCP,	
+					Protocol: v1.ProtocolTCP,
 				},
 			},
 			Selector: map[string]string{
-				"app": label,
+				"app": "server-" + label,
 			},
 		},
 	}
 
 	service, err := clientset.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{})
 	if err != nil {
-		fmt.Println("Failed to create service: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to create service: %v", err)
 	}
 	return service, nil
 }
 
 // Deletes a Service
-func delete_service(label string) error {
+func DeleteService(label string) error {
 	if clientset == nil {
-		return fmt.Errorf("Kubernetes not initialized!")
+		return fmt.Errorf("kubernetes not initialized")
 	}
-	
+
 	err := clientset.CoreV1().Services(namespace).Delete(
-        ctx,
-        label+"-service",
-        metav1.DeleteOptions{},
-    )
+		ctx,
+		"service-"+label,
+		metav1.DeleteOptions{},
+	)
 	if err != nil {
-		return fmt.Errorf("Failed to delete service: %v", err)
+		return fmt.Errorf("failed to delete service: %v", err)
 	}
 
 	return nil
+}
+
+// Helper function to get the external IP of a node
+func GetNodeExternalIP(node v1.Node) string {
+	for _, address := range node.Status.Addresses {
+		if address.Type == v1.NodeExternalIP {
+			return address.Address
+		}
+	}
+	// Fallback to internal IP if external IP is not available
+	for _, address := range node.Status.Addresses {
+		if address.Type == v1.NodeInternalIP {
+			return address.Address
+		}
+	}
+	return ""
 }

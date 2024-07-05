@@ -52,8 +52,8 @@ RUN go mod tidy
 # Download the dependencies
 RUN go mod download
 # Install the Air tool
-RUN go get -u  github.com/cosmtrek/air
-RUN go install github.com/cosmtrek/air
+RUN go get -u  github.com/air-verse/air
+RUN go install github.com/air-verse/air
 # Expose the port that the application listens on
 EXPOSE 3000
 

@@ -4,27 +4,51 @@ import (
 	"fmt"
 	"time"
 	"viral-game-network/src/database"
-	"viral-game-network/src/database/type"
+	dbtype "viral-game-network/src/database/type"
+
 	"github.com/surrealdb/surrealdb.go"
 )
 
-func AllUser() ([]dbtype.User, error) {
-	result, err := database.DBS.Query("SELECT * FROM type::table($tb);", 
-	map[string]string{
-		"tb": "User",
-	});
+func AllUser(count int, pager int) ([]dbtype.User, int, error) {
+	// Get All Users
+	result, err := database.DBS.Query(`
+	SELECT * 
+	FROM type::table($tb) 
+	ORDER BY date_created DESC 
+	LIMIT $ct START $pg;`,
+		map[string]interface{}{
+			"tb": "User",
+			"ct": count,
+			"pg": (pager - 1) * count,
+		})
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-    var users []dbtype.User
+	var users []dbtype.User
+	_, err = surrealdb.UnmarshalRaw(result, &users)
+	if err != nil {
+		return nil, 0, err
+	}
 
-    _, err = surrealdb.UnmarshalRaw(result, &users)
-    if err != nil {
-        return nil, err
-    }
+	// Count All Users
+	result, err = database.DBS.Query("SELECT count() AS total FROM type::table($tb) GROUP ALL;",
+		map[string]interface{}{
+			"tb": "User",
+		})
+	if err != nil {
+		return users, 0, err
+	}
 
-	return users, nil
+	var total []struct {
+		Total int `json:"total"`
+	}
+	_, err = surrealdb.UnmarshalRaw(result, &total)
+	if err != nil || len(total) == 0 {
+		return users, 0, err
+	}
+
+	return users, total[0].Total, nil
 }
 
 func GetUser(info dbtype.User) (*dbtype.User, error) {
@@ -34,12 +58,12 @@ func GetUser(info dbtype.User) (*dbtype.User, error) {
 		FROM type::table($tb) 
 		WHERE 
 			(name = $name OR guid = $guid) 
-		LIMIT 1;`, 
-	map[string]string{
-		"tb": "User",
-		"name": info.Name,
-		"guid": info.Guid,
-	})
+		LIMIT 1;`,
+		map[string]string{
+			"tb":   "User",
+			"name": info.Name,
+			"guid": info.Guid,
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +99,7 @@ func SetUser(id string, body *dbtype.User) (*dbtype.User, error) {
 	if err != nil {
 		return nil, err
 	}
-		
+
 	return user, nil
 }
 
