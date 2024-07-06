@@ -5,6 +5,8 @@ div#app.my-5.mx-3
             .column.is-one-quarter
                 include partials/aside.pug
             .column(data-controller="dashboard")
+                include partials/modal_prompt.pug
+                include partials/notification.pug
                 section.content
                     h2.title Dashboard
                     h3.subtitle
@@ -18,5 +20,4 @@ div#app.my-5.mx-3
                         canvas#chart-sample-a
                     .column
                         canvas#chart-sample-b
-include partials/modal_prompt.pug
 script(src="/admin.js")

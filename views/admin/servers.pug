@@ -5,6 +5,8 @@ div#app.my-5.mx-3
             .column.is-one-quarter
                 include partials/aside.pug
             .column
+                include partials/modal_prompt.pug
+                include partials/notification.pug
                 section.content
                     h3.subtitle
                         | Manage Servers
@@ -15,6 +17,5 @@ div#app.my-5.mx-3
                 each user in .users
                     .box
                         include partials/servers/list-item.pug
-                include partials/pager
-include partials/modal_prompt.pug
+                include partials/pager.pug
 script(src="/admin.js")

@@ -9,7 +9,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func Handle_Admin_Root(c *fiber.Ctx) error {
+func Handle_Admin_SSEvents(c *fiber.Ctx) error {
+
+	return nil
+}
+
+func Handle_Admin_Dash(c *fiber.Ctx) error {
 	// Get the cluster status
 	cluster, cluster_err := k8.GetClusterStatus()
 
@@ -87,23 +92,31 @@ func Handle_Admin_Pods(c *fiber.Ctx) error {
 
 // ##> Admin API
 func Handle_Admin_Cluster_Start(c *fiber.Ctx) error {
-	err := k8.CheckCreateCluster()
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-	return c.JSON(fiber.Map{})
+	go func() {
+		err := k8.CheckCreateCluster()
+		if err != nil {
+			// return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			// 	"error": err.Error(),
+			// })
+		}
+	}()
+	return c.JSON(fiber.Map{
+		"message": "Starting cluster",
+	})
 }
 
 func Handle_Admin_Cluster_Stop(c *fiber.Ctx) error {
-	err := k8.CheckDeleteCluster()
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-	return c.JSON(fiber.Map{})
+	go func() {
+		err := k8.CheckDeleteCluster()
+		if err != nil {
+			// return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			// 	"error": err.Error(),
+			// })
+		}
+	}()
+	return c.JSON(fiber.Map{
+		"message": "Stopping cluster",
+	})
 }
 
 func Handle_Admin_Cluster_Pods_Stop(c *fiber.Ctx) error {

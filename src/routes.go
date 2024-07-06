@@ -49,13 +49,14 @@ func serve_routes(app *fiber.App) {
 	// App Key Validation
 	// admin.Use(handler.Handle_ValidateAppKey)
 	// User Authentication
-	admin.Get("/", handler.Handle_Admin_Root)
+	admin.Get("/", handler.Handle_Admin_Dash)
 	admin.Get("/users", handler.Handle_Admin_Users)
 	admin.Get("/lobbies", handler.Handle_Admin_Lobbies)
 	admin.Get("/servers", handler.Handle_Admin_Servers)
 	admin.Get("/pods", handler.Handle_Admin_Pods)
-	admin.Get("/metrics", handler.Handle_Admin_Root)
-	admin.Get("/configs", handler.Handle_Admin_Root)
+	admin.Get("/metrics", handler.Handle_Admin_Dash)
+	admin.Get("/configs", handler.Handle_Admin_Dash)
+	admin.Get("/ssevents", handler.Handle_Admin_SSEvents)
 
 	admin.Post("/cluster/start", handler.Handle_Admin_Cluster_Start)
 	admin.Post("/cluster/stop", handler.Handle_Admin_Cluster_Stop)

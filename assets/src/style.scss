@@ -1,9 +1,17 @@
-@import "bulma";
+@import "~bulma";
 @import '~@fortawesome/fontawesome-free/css/all.min.css';
 
 // Header/Nav
-#header{
-    hr{
+#header {
+    hr {
         margin: 5px 0px 0px;
+    }
+}
+
+.notification {
+    .tag {
+        inset-inline-start: 0rem;
+        position: absolute;
+        top: -0.5rem;
     }
 }
