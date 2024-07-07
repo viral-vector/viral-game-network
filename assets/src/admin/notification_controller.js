@@ -21,7 +21,7 @@ export default class extends Controller {
             1000
         );
         
-        // this.SSEventListen();
+        this.SSEventListen();
     }
 
     Notifications () {
@@ -51,16 +51,9 @@ export default class extends Controller {
 
     SSEventListen () {
         let eventSource = new EventSource("/admin/ssevents");
-
-        eventSource.onopen = (event) => {
-            console.log("EventSource connected")
-        }
-        eventSource.onerror = (event) => {
-            console.log("EventSource error")
-        }
         eventSource.onmessage = (event) => {
-            // let data = JSON.parse(event.data)
-            // notifications.push(data)
+            let data = JSON.parse(event.data)
+            this.NotificationsPush({"type": data.severity, "message":data.message});
         }
     }
 }

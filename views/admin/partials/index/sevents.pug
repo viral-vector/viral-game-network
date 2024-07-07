@@ -1,0 +1,24 @@
+.card
+    header.card-header
+        p.card-header-title.subtitle.is-5 System Events
+        p.card-header-icon(aria-label="more options")
+            span.icon
+                i.fas.fa-info-circle(aria-hidden="true")
+    .card-content
+        .content
+            each event in .sevents
+                hr
+                div.level
+                    .level-item.has-text-centered
+                        div
+                            p.heading Date
+                            p.subtitle #{.Date_Created}
+                    .level-item.has-text-centered
+                        div
+                            p.heading Message
+                            p.subtitle #{.Message}
+                    .level-item.has-text-centered
+                        div
+                            p.heading Severity
+                            p.subtitle #{.Severity}
+                
