@@ -91,7 +91,7 @@ func Handle_Admin_Pods(c *fiber.Ctx) error {
 	pods, _ := k8.GetAllServerPodsAndServices()
 	total := len(pods)
 
-	return c.Render("admin/k8_pods", fiber.Map{
+	return c.Render("admin/pods", fiber.Map{
 		"pods":  pods,
 		"total": total,
 		"pages": int(math.Ceil(float64(total) / float64(perPage))),
