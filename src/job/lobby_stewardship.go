@@ -8,7 +8,7 @@ import (
 
 	// "viral-game-network/src/database/type"
 	"viral-game-network/src/database/repository"
-	"viral-game-network/src/service"
+	"viral-game-network/src/ministration"
 )
 
 /**
@@ -39,7 +39,7 @@ func Job_Lobby_Stewardship() {
 		if date_diffr.Minutes() > lobby_max_persist {
 			// Notify Lobby Users
 			msg := "Server:Lobby Closed"
-			service.Service_Lobby_Notify(lobby.ID, msg, "")
+			ministration.Service_Lobby_Notify(lobby.ID, msg, "")
 
 			// Delete Server
 			repository.DelServer(lobby.Lobby_Server.ID)

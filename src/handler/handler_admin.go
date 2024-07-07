@@ -39,11 +39,8 @@ func Handle_Admin_Dash(c *fiber.Ctx) error {
 
 func Handle_Admin_Users(c *fiber.Ctx) error {
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
-	perPage := 5
-	users, total, error := repository.AllUser(perPage, curPage)
-	if error != nil {
-		return c.SendString(error.Error())
-	}
+	perPage := 15
+	users, total, _ := repository.AllUser(perPage, curPage)
 
 	return c.Render("admin/users", fiber.Map{
 		"users": users,
@@ -55,11 +52,8 @@ func Handle_Admin_Users(c *fiber.Ctx) error {
 
 func Handle_Admin_Lobbies(c *fiber.Ctx) error {
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
-	perPage := 5
-	lobbies, total, error := repository.AllLobby(perPage, curPage)
-	if error != nil {
-		return c.SendString(error.Error())
-	}
+	perPage := 15
+	lobbies, total, _ := repository.AllLobby(perPage, curPage)
 
 	return c.Render("admin/lobbies", fiber.Map{
 		"lobbies": lobbies,
@@ -75,23 +69,33 @@ func Handle_Admin_Servers(c *fiber.Ctx) error {
 }
 
 func Handle_Admin_Pods(c *fiber.Ctx) error {
-	// pods, _ := k8.GetAllServerPods()
-	node, port, err := k8.FindOpenNodePort()
+	// node, port, err := k8.FindOpenNodePort()
+	// if err == nil {
+	// 	// Create a new pod
+	// 	// Create the server pod
+	// 	cmd := []string{}
+	// 	_, _, err = k8.CreateServerPod("wordpress-latest", node, int32(port), int32(3000), "wordpress:latest", cmd)
+	// 	if err != nil {
+	// 		return fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
+	// 	}
+	// }
 
-	// Create a new pod
+	// return c.JSON(fiber.Map{
+	// 	"node": node,
+	// 	"port": port,
+	// 	"err":  err,
+	// })
 
-	return c.JSON(fiber.Map{
-		"node": node,
-		"port": port,
-		"err":  err,
-	})
-
-	if err != nil {
-		return c.SendString(err.Error())
-	}
+	curPage, _ := strconv.Atoi(c.Query("page", "1"))
+	perPage := 15
+	pods, _ := k8.GetAllServerPodsAndServices()
+	total := len(pods)
 
 	return c.Render("admin/k8_pods", fiber.Map{
-		// "iPods": pods,
+		"pods":  pods,
+		"total": total,
+		"pages": int(math.Ceil(float64(total) / float64(perPage))),
+		"paged": curPage,
 	})
 }
 
@@ -174,5 +178,19 @@ func Handle_Admin_Cluster_Stop(c *fiber.Ctx) error {
 }
 
 func Handle_Admin_Cluster_Pods_Stop(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{})
+	go func() {
+		err := k8.KillAllServerPods()
+		systemEvent := dbtype.SystemEvent{
+			Severity: "info",
+			Message:  "Pods Stop: Success",
+		}
+		if err != nil {
+			systemEvent.Message = "Pods Stop: Error @ " + err.Error()
+			systemEvent.Severity = "error"
+		}
+		repository.PutSystemEvent(systemEvent)
+	}()
+	return c.JSON(fiber.Map{
+		"message": "Stopping all pods",
+	})
 }

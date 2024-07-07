@@ -30,7 +30,7 @@ func Job_Lobby_Server_Provisioner() {
 		// If the server pod exists, we are done
 		// Get the server pod
 		fmt.Println("Job_Lobby_Server_Provisioner: @ Looking ", label)
-		_, lobpod, _ := k8.LocateServerPod(label)
+		_, lobpod, _, _ := k8.LocateServerPod(label)
 		if lobpod == nil && lobby.Lobby_Server != nil {
 			repository.DelServer(lobby.Lobby_Server.ID)
 			lobby.Lobby_Server = nil
@@ -60,7 +60,7 @@ func Job_Lobby_Server_Provisioner() {
 // Job_Lobby_Server_Provisioner_PUT
 func Lobby_Server_Provisioner_PUT(lobby dbtype.Lobby, label string) error {
 	// Get the server pod
-	_, lobpod, err := k8.LocateServerPod(label)
+	_, lobpod, _, err := k8.LocateServerPod(label)
 	if lobpod != nil {
 		return fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
 	}

@@ -10,7 +10,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -20,7 +19,12 @@ var ctx = context.Background()
 var config *rest.Config
 var namespace = "viral-game-network"
 var clientset *kubernetes.Clientset
-var portRange = []int32{30000, 30020}
+var portRange = []int32{30000, 30005}
+
+type PodService struct {
+	Pod     v1.Pod
+	Service *v1.Service
+}
 
 func init() {
 	var err error
@@ -223,24 +227,24 @@ func FindOpenNodePort() (string, int32, error) {
 }
 
 // Kill all server pods
-func KillAllServerPods() ([]v1.Pod, error) {
+func KillAllServerPods() error {
 	if clientset == nil {
-		return nil, fmt.Errorf("kubernetes not initialized")
+		return fmt.Errorf("kubernetes not initialized")
 	}
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("error pulling pods: %s", err)
+		return fmt.Errorf("error pulling pods: %s", err)
 	}
 	for _, pod := range pods.Items {
 		label := strings.Replace(pod.Name, "server-", "", -1)
 		DeleteServerPod(label)
 	}
-	return pods.Items, nil
+	return nil
 }
 
 // Get All server Pods
-func GetAllServerPods() ([]v1.Pod, error) {
+func GetAllServerPodsAndServices() ([]PodService, error) {
 	if clientset == nil {
 		return nil, fmt.Errorf("kubernetes not initialized")
 	}
@@ -249,31 +253,44 @@ func GetAllServerPods() ([]v1.Pod, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error pulling pods: %s", err)
 	}
-	return pods.Items, nil
+
+	var podServices []PodService
+	for _, pod := range pods.Items {
+		service, err := LocateService(pod.Name)
+		if err != nil {
+			log.Printf("Error locating service for pod %s: %s", pod.Name, err.Error())
+		}
+		podServices = append(podServices, PodService{
+			Pod:     pod,
+			Service: service,
+		})
+	}
+
+	return podServices, nil
 }
 
 // Locate Server Pod
-func LocateServerPod(label string) (*v1.Node, *v1.Pod, error) {
+func LocateServerPod(label string) (*v1.Node, *v1.Pod, *v1.Service, error) {
 	if clientset == nil {
-		return nil, nil, fmt.Errorf("kubernetes not initialized")
+		return nil, nil, nil, fmt.Errorf("kubernetes not initialized")
 	}
 
 	pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, "server-"+label, metav1.GetOptions{})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	node, err := clientset.CoreV1().Nodes().Get(ctx, pod.Spec.NodeName, metav1.GetOptions{})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	service, _ := LocateService(label)
-	if service == nil {
-		return nil, nil, fmt.Errorf("server pod not accessible")
+	service, err := LocateService(label)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
-	return node, pod, nil
+	return node, pod, service, nil
 }
 
 // Create Server Pod
@@ -303,6 +320,11 @@ func CreateServerPod(label string, node string, sPort int32, aPort int32, image 
 					Ports: []v1.ContainerPort{
 						{
 							ContainerPort: aPort,
+							Protocol:      v1.ProtocolTCP,
+						},
+						{
+							ContainerPort: aPort,
+							Protocol:      v1.ProtocolUDP,
 						},
 					},
 				},
@@ -319,9 +341,7 @@ func CreateServerPod(label string, node string, sPort int32, aPort int32, image 
 	ser, err := CreateService(label, aPort, sPort)
 	if err != nil {
 		fmt.Println("Failed to create pod: ", err)
-		// Delete the server pod if we failed to create the service entry
 		DeleteServerPod(label)
-
 		return nil, nil, err
 	}
 
@@ -343,8 +363,10 @@ func DeleteServerPod(label string) error {
 		return fmt.Errorf("failed to delete pod: %v", err)
 	}
 
-	_ = DeleteService(label)
-
+	err = DeleteService(label)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -379,13 +401,16 @@ func CreateService(label string, aPort int32, sPort int32) (*v1.Service, error) 
 			Type: v1.ServiceTypeNodePort,
 			Ports: []v1.ServicePort{
 				{
-					Port: aPort,
-					TargetPort: intstr.IntOrString{
-						Type:   intstr.Int,
-						IntVal: aPort,
-					},
+					Name:     "service-" + label + "-port-tcp",
+					Port:     aPort,
 					NodePort: sPort,
 					Protocol: v1.ProtocolTCP,
+				},
+				{
+					Name:     "service-" + label + "-port-udp",
+					Port:     aPort,
+					NodePort: sPort,
+					Protocol: v1.ProtocolUDP,
 				},
 			},
 			Selector: map[string]string{

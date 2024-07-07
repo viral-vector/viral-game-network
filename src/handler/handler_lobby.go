@@ -8,8 +8,8 @@ import (
 	"viral-game-network/src/cache"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
+	"viral-game-network/src/ministration"
 	"viral-game-network/src/pubsub"
-	"viral-game-network/src/service"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -238,6 +238,6 @@ func Handle_SocketLobby(c *websocket.Conn) {
 			continue
 		}
 
-		service.Service_Lobby_Notify(id, string(msg), user.ID)
+		ministration.Service_Lobby_Notify(id, string(msg), user.ID)
 	}
 }

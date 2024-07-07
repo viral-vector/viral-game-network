@@ -14,7 +14,7 @@ div#app.my-5.mx-3
                 p.notification.is-info 
                     | #{.total} pods found.
                     | Viewing #{.paged} of #{.pages} pages.
-                each user in .users
+                each pod in .pods
                     .box
                         include partials/k8_pods/list-item.pug
                 include partials/pager.pug
