@@ -120,7 +120,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 		})
 	}
 
-	if lobby.Private == true && lobby.Code != c.Params("code") {
+	if lobby.Private && lobby.Code != c.Params("code") {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -151,7 +151,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 		})
 	}
 
-	lobby, err = repository.GetLobby(lobby.ID)
+	lobby, _ = repository.GetLobby(lobby.ID)
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
@@ -224,6 +224,8 @@ func Handle_SocketLobby(c *websocket.Conn) {
 		}
 	}(c)
 
+	defer pubsub.Close(sb)
+
 	// Pub
 	for {
 		if _, msg, err = c.ReadMessage(); err != nil {
@@ -238,6 +240,4 @@ func Handle_SocketLobby(c *websocket.Conn) {
 
 		service.Service_Lobby_Notify(id, string(msg), user.ID)
 	}
-
-	defer pubsub.Close(sb)
 }

@@ -21,7 +21,7 @@ func Handle_ValidateAppKey(c *fiber.Ctx) error {
 
 	pass, err := auth.ValidateAppKey(app_key)
 
-	if err != nil || pass == false {
+	if err != nil || !pass {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -50,8 +50,9 @@ func Handle_ValidateToken(c *fiber.Ctx) error {
 	}
 
 	user, err = repository.GetUser(record)
-
-	c.Locals("user", user)
+	if err == nil {
+		c.Locals("user", user)
+	}
 
 	return c.Next()
 }
@@ -125,7 +126,7 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 	user.Date_LastLogin = time.Now().UTC().Format(time.RFC3339)
 
 	// Update user
-	user, err = repository.SetUser(user.ID, user)
+	repository.SetUser(user.ID, user)
 
 	return c.JSON(fiber.Map{
 		"status":       "ok",
