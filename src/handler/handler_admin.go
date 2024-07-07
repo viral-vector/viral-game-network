@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
@@ -71,7 +72,6 @@ func Handle_Admin_Servers(c *fiber.Ctx) error {
 func Handle_Admin_Pods(c *fiber.Ctx) error {
 	// node, port, err := k8.FindOpenNodePort()
 	// if err == nil {
-	// 	// Create a new pod
 	// 	// Create the server pod
 	// 	cmd := []string{}
 	// 	_, _, err = k8.CreateServerPod("wordpress-latest", node, int32(port), int32(3000), "wordpress:latest", cmd)
@@ -96,6 +96,21 @@ func Handle_Admin_Pods(c *fiber.Ctx) error {
 		"total": total,
 		"pages": int(math.Ceil(float64(total) / float64(perPage))),
 		"paged": curPage,
+	})
+}
+
+func Handle_Admin_Pods_Edit(c *fiber.Ctx) error {
+	node, pod, service, err := k8.LocateServerPod(
+		strings.Replace(c.Params("id"), "server-", "", -1))
+
+	if err != nil {
+		return c.Redirect("/admin/pods")
+	}
+
+	return c.Render("admin/pods", fiber.Map{
+		"pod":     pod,
+		"node":    node,
+		"service": service,
 	})
 }
 

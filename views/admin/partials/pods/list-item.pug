@@ -1,21 +1,16 @@
-.container
-    .columns
-        .column
-            strong Phase:
-            | #{.Pod.Status.Phase}
-        .column
-            strong Node:
-            | #{.Pod.Spec.NodeName}
-        .column
-            strong IP:
-            | #{.Pod.Status.HostIP}
-            | &nbsp; @ &nbsp;
-            | #{.Pod.Status.PodIP}
-        .column
-            strong Name:
+.columns
+    .column
+        a(href="/admin/pods/" .Pod.Name, title="Edit Pod " .Pod.Name)
+            span.icon
+                span.fas.fa-pencil
             | #{.Pod.Name}
-        .column
-            strong CreationTimestamp:
-            | #{.Pod.CreationTimestamp}
-    .columns
+    .column
+        strong Phase:
+        | #{.Pod.Status.Phase}
+    .column
+        strong Node:
+        | #{.Pod.Spec.NodeName}
+    .column
+        strong IP:
+        | #{.Pod.Status.HostIP}
                 

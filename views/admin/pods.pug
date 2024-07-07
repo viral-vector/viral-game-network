@@ -11,11 +11,16 @@ div#app.my-5.mx-3
                     h3.subtitle
                         | Manage k8 Pods
                 hr
-                p.notification.is-info 
-                    | #{.total} pods found.
-                    | Viewing #{.paged} of #{.pages} pages.
-                each pod in .pods
-                    .box
-                        include partials/pods/list-item.pug
-                include partials/pager.pug
+                if .pod 
+                    p.notification.is-info
+                        | Viewing #{.pod.Name}
+                    include partials/pods/edit-item.pug
+                else
+                    p.notification.is-info 
+                        | #{.total} pods found.
+                        | Viewing #{.paged} of #{.pages} pages.
+                    each pod in .pods
+                        .box
+                            include partials/pods/list-item.pug
+                    include partials/pager.pug
 script(src="/admin.js")

@@ -398,7 +398,8 @@ func CreateService(label string, aPort int32, sPort int32) (*v1.Service, error) 
 			},
 		},
 		Spec: v1.ServiceSpec{
-			Type: v1.ServiceTypeNodePort,
+			Type:                  v1.ServiceTypeNodePort,
+			ExternalTrafficPolicy: v1.ServiceExternalTrafficPolicyLocal,
 			Ports: []v1.ServicePort{
 				{
 					Name:     "service-" + label + "-port-tcp",

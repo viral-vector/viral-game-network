@@ -1,0 +1,60 @@
+.section
+    .container
+        .content
+            h4.subtitle Pod Information
+            .columns
+                .column
+                    strong Name:
+                .column #{.pod.Name}
+            .columns
+                .column
+                    strong Status:
+                .column #{.pod.Status.Phase}
+            .columns
+                .column
+                    strong Start Time:
+                .column #{.pod.CreationTimestamp}
+            hr
+            h4.subtitle Node Information
+            .columns
+                .column
+                    strong Node Name:
+                .column #{.node.Name}
+            .columns
+                .column
+                    strong Node IP:
+                .column 
+                    ul
+                        each address in .node.Status.Addresses
+                            li #{.Address}
+            hr
+            h4.subtitle Service Information
+            .columns
+                .column
+                    strong Service Name:
+                .column #{.service.Name} (#{.service.Spec.Type}) (#{.service.Spec.ExternalTrafficPolicy})
+            .columns
+                .column
+                    strong Cluster IP:
+                .column #{.service.Spec.ClusterIP}
+            .columns
+                .column
+                    strong External IPs:
+                .column
+                    ul
+                        each ip in .service.Spec.ExternalIPs 
+                            li #{.}
+            .columns
+                .column
+                    strong Ports:
+                .column
+                    ul
+                        each port in .service.Spec.Ports
+                            li 
+                                | Name: #{.Name}  
+                                br
+                                | Type: #{.Protocol}
+                                br 
+                                | Port: #{.Port} 
+                                br
+                                | NodePort: #{.NodePort} 
