@@ -4,7 +4,7 @@ div#app.my-5.mx-3
         .columns
             .column.is-one-quarter
                 include partials/aside.pug
-            .column
+            .column(data-controller="crud" data-crud-list-value="/admin/pods" data-crud-create-value="/admin/pods" data-crud-edit-value="/admin/pods/:id" data-crud-delete-value="/admin/pods/:id")
                 include partials/modal_prompt.pug
                 include partials/notification.pug
                 section.content
@@ -19,6 +19,11 @@ div#app.my-5.mx-3
                     p.notification.is-info 
                         | #{.total} pods found.
                         | Viewing #{.paged} of #{.pages} pages.
+                    p.p-3
+                       a.has-text-primary(data-action="click->crud#create")
+                        span.icon
+                            span.fas.fa-plus-circle 
+                        | Add Pod
                     each pod in .pods
                         .box
                             include partials/pods/list-item.pug

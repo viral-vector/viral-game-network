@@ -70,22 +70,6 @@ func Handle_Admin_Servers(c *fiber.Ctx) error {
 }
 
 func Handle_Admin_Pods(c *fiber.Ctx) error {
-	// node, port, err := k8.FindOpenNodePort()
-	// if err == nil {
-	// 	// Create the server pod
-	// 	cmd := []string{}
-	// 	_, _, err = k8.CreateServerPod("wordpress-latest", node, int32(port), int32(3000), "wordpress:latest", cmd)
-	// 	if err != nil {
-	// 		return fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
-	// 	}
-	// }
-
-	// return c.JSON(fiber.Map{
-	// 	"node": node,
-	// 	"port": port,
-	// 	"err":  err,
-	// })
-
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
 	pods, _ := k8.GetAllServerPodsAndServices()
@@ -96,6 +80,29 @@ func Handle_Admin_Pods(c *fiber.Ctx) error {
 		"total": total,
 		"pages": int(math.Ceil(float64(total) / float64(perPage))),
 		"paged": curPage,
+	})
+}
+
+func Handle_Admin_Pods_Create(c *fiber.Ctx) error {
+	node, port, err := k8.FindOpenNodePort()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// Create the server pod
+	cmd := []string{}
+	pod, service, err := k8.CreateServerPod("nginx", node, int32(port), int32(80), "nginx", cmd)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"pod":     pod,
+		"service": service,
 	})
 }
 
@@ -111,6 +118,22 @@ func Handle_Admin_Pods_Edit(c *fiber.Ctx) error {
 		"pod":     pod,
 		"node":    node,
 		"service": service,
+	})
+}
+
+func Handle_Admin_Pods_Delete(c *fiber.Ctx) error {
+	err := k8.DeleteServerPod(
+		strings.Replace(c.Params("id"), "server-", "", -1))
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"redirect": "/admin/pods",
+		"message":  "Deleted " + c.Params("id"),
 	})
 }
 

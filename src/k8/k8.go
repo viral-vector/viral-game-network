@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	k8_k3d "viral-game-network/src/k8/k3d"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +30,7 @@ type PodService struct {
 func init() {
 	var err error
 
-	kinit, err := CheckCluster()
+	kinit, err := k8_k3d.CheckCluster()
 	if err != nil {
 		log.Println("k8 init error: ", err)
 		return
@@ -63,13 +64,13 @@ func LoadConfiguration() error {
 func CheckCreateCluster() error {
 	var err error
 
-	kinit, err := CheckCluster()
+	kinit, err := k8_k3d.CheckCluster()
 	if err != nil {
 		log.Println("k8 init error: ", err)
 		return err
 	}
 	if !kinit {
-		erro := CreateCluster(portRange[0], portRange[1])
+		erro := k8_k3d.CreateCluster(portRange[0], portRange[1])
 		if erro != nil {
 			return fmt.Errorf("k8 error creating cluster: " + erro.Error())
 		}
@@ -88,7 +89,7 @@ func CheckCreateCluster() error {
 }
 
 func CheckDeleteCluster() error {
-	erro := DeleteCluster()
+	erro := k8_k3d.DeleteCluster()
 	if erro != nil {
 		return fmt.Errorf("k8 error creating cluster: " + erro.Error())
 	}
@@ -256,9 +257,11 @@ func GetAllServerPodsAndServices() ([]PodService, error) {
 
 	var podServices []PodService
 	for _, pod := range pods.Items {
-		service, err := LocateService(pod.Name)
+		podName := strings.Replace(pod.Name, "server-", "", -1)
+
+		service, err := LocateService(podName)
 		if err != nil {
-			log.Printf("Error locating service for pod %s: %s", pod.Name, err.Error())
+			log.Printf("Error locating service for pod %s: %s", podName, err.Error())
 		}
 		podServices = append(podServices, PodService{
 			Pod:     pod,
@@ -309,9 +312,12 @@ func CreateServerPod(label string, node string, sPort int32, aPort int32, image 
 			},
 		},
 		Spec: v1.PodSpec{
-			NodeName:      node,
+			// NodeName:      node,
 			HostNetwork:   true,
 			RestartPolicy: v1.RestartPolicyNever,
+			NodeSelector: map[string]string{
+				"kubernetes.io/hostname": node,
+			},
 			Containers: []v1.Container{
 				{
 					Name:    "server-" + label,

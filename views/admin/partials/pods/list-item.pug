@@ -1,3 +1,6 @@
+p 
+    a.icon.has-text-danger.is-pulled-right
+        span.fas.fa-trash(data-action="click->crud#delete" data-id=.Pod.Name)
 .columns
     .column
         a(href="/admin/pods/" .Pod.Name, title="Edit Pod " .Pod.Name)

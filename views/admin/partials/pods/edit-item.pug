@@ -1,3 +1,6 @@
+p 
+    a.icon.has-text-danger.is-pulled-right
+        span.fas.fa-trash(data-action="click->crud#delete" data-id=.Pod.Name)
 .section
     .container
         .content
@@ -9,7 +12,11 @@
             .columns
                 .column
                     strong Status:
-                .column #{.pod.Status.Phase}
+                .column 
+                    | #{.pod.Status.Phase}
+                    br
+                    ul
+                        li #{.pod.Status.Message}
             .columns
                 .column
                     strong Start Time:
@@ -26,7 +33,7 @@
                 .column 
                     ul
                         each address in .node.Status.Addresses
-                            li #{.Address}
+                            li #{.Address} #{.Type}
             hr
             h4.subtitle Service Information
             .columns
