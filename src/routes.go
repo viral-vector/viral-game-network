@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 	"viral-game-network/src/handler"
+	handler_admin "viral-game-network/src/handler/admin"
 	"viral-game-network/src/middleware"
 
 	"github.com/gofiber/contrib/websocket"
@@ -49,21 +50,21 @@ func serve_routes(app *fiber.App) {
 	// App Key Validation
 	// admin.Use(handler.Handle_ValidateAppKey)
 	// User Authentication
-	admin.Get("/", handler.Handle_Admin_Dash)
-	admin.Get("/users", handler.Handle_Admin_Users)
-	admin.Get("/lobbies", handler.Handle_Admin_Lobbies)
-	admin.Get("/servers", handler.Handle_Admin_Servers)
-	admin.Get("/pods", handler.Handle_Admin_Pods)
-	admin.Post("/pods", handler.Handle_Admin_Pods_Create)
-	admin.Delete("/pods/:id", handler.Handle_Admin_Pods_Delete)
-	admin.Get("/pods/:id", handler.Handle_Admin_Pods_Edit)
-	admin.Get("/metrics", handler.Handle_Admin_Dash)
-	admin.Get("/configs", handler.Handle_Admin_Dash)
-	admin.Get("/ssevents", handler.Handle_Admin_SSEvents)
+	admin.Get("/", handler_admin.Handle_Dash)
+	admin.Get("/users", handler_admin.Handle_Users)
+	admin.Get("/lobbies", handler_admin.Handle_Lobbies)
+	admin.Get("/servers", handler_admin.Handle_Servers)
+	admin.Get("/pods", handler_admin.Handle_Pods)
+	admin.Post("/pods", handler_admin.Handle_Pods_Create)
+	admin.Delete("/pods/:id", handler_admin.Handle_Pods_Delete)
+	admin.Get("/pods/:id", handler_admin.Handle_Pods_Edit)
+	admin.Get("/metrics", handler_admin.Handle_Dash)
+	admin.Get("/configs", handler_admin.Handle_Dash)
+	admin.Get("/ssevents", handler_admin.Handle_SSEvents)
 
-	admin.Post("/cluster/start", handler.Handle_Admin_Cluster_Start)
-	admin.Post("/cluster/stop", handler.Handle_Admin_Cluster_Stop)
-	admin.Post("/cluster/pods/stop", handler.Handle_Admin_Cluster_Pods_Stop)
+	admin.Post("/cluster/start", handler_admin.Handle_Cluster_Start)
+	admin.Post("/cluster/stop", handler_admin.Handle_Cluster_Stop)
+	admin.Post("/cluster/pods/stop", handler_admin.Handle_Cluster_Pods_Stop)
 
 	/**
 	 * 	API Routes

@@ -1,4 +1,4 @@
-package handler
+package handler_admin
 
 import (
 	"bufio"
@@ -16,7 +16,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func Handle_Admin_Dash(c *fiber.Ctx) error {
+func Handle_Dash(c *fiber.Ctx) error {
 	// Get the cluster status
 	cluster, cluster_err := k8.GetClusterStatus()
 
@@ -38,7 +38,7 @@ func Handle_Admin_Dash(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admin_Users(c *fiber.Ctx) error {
+func Handle_Users(c *fiber.Ctx) error {
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
 	users, total, _ := repository.AllUser(perPage, curPage)
@@ -51,7 +51,7 @@ func Handle_Admin_Users(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admin_Lobbies(c *fiber.Ctx) error {
+func Handle_Lobbies(c *fiber.Ctx) error {
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
 	lobbies, total, _ := repository.AllLobby(perPage, curPage)
@@ -64,12 +64,12 @@ func Handle_Admin_Lobbies(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admin_Servers(c *fiber.Ctx) error {
+func Handle_Servers(c *fiber.Ctx) error {
 
 	return c.Render("admin/servers", fiber.Map{})
 }
 
-func Handle_Admin_Pods(c *fiber.Ctx) error {
+func Handle_Pods(c *fiber.Ctx) error {
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
 	pods, _ := k8.GetAllServerPodsAndServices()
@@ -83,7 +83,7 @@ func Handle_Admin_Pods(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admin_Pods_Create(c *fiber.Ctx) error {
+func Handle_Pods_Create(c *fiber.Ctx) error {
 	node, port, err := k8.FindOpenNodePort()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -106,7 +106,7 @@ func Handle_Admin_Pods_Create(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admin_Pods_Edit(c *fiber.Ctx) error {
+func Handle_Pods_Edit(c *fiber.Ctx) error {
 	node, pod, service, err := k8.LocateServerPod(
 		strings.Replace(c.Params("id"), "server-", "", -1))
 
@@ -121,7 +121,7 @@ func Handle_Admin_Pods_Edit(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admin_Pods_Delete(c *fiber.Ctx) error {
+func Handle_Pods_Delete(c *fiber.Ctx) error {
 	err := k8.DeleteServerPod(
 		strings.Replace(c.Params("id"), "server-", "", -1))
 
@@ -138,7 +138,7 @@ func Handle_Admin_Pods_Delete(c *fiber.Ctx) error {
 }
 
 // ##> Admin API
-func Handle_Admin_SSEvents(c *fiber.Ctx) error {
+func Handle_SSEvents(c *fiber.Ctx) error {
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
 	c.Set("Connection", "keep-alive")
@@ -179,7 +179,7 @@ func Handle_Admin_SSEvents(c *fiber.Ctx) error {
 	return nil
 }
 
-func Handle_Admin_Cluster_Start(c *fiber.Ctx) error {
+func Handle_Cluster_Start(c *fiber.Ctx) error {
 	go func() {
 		err := k8.CheckCreateCluster()
 		systemEvent := dbtype.SystemEvent{
@@ -197,7 +197,7 @@ func Handle_Admin_Cluster_Start(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admin_Cluster_Stop(c *fiber.Ctx) error {
+func Handle_Cluster_Stop(c *fiber.Ctx) error {
 	go func() {
 		err := k8.CheckDeleteCluster()
 		systemEvent := dbtype.SystemEvent{
@@ -215,7 +215,7 @@ func Handle_Admin_Cluster_Stop(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admin_Cluster_Pods_Stop(c *fiber.Ctx) error {
+func Handle_Cluster_Pods_Stop(c *fiber.Ctx) error {
 	go func() {
 		err := k8.KillAllServerPods()
 		systemEvent := dbtype.SystemEvent{
