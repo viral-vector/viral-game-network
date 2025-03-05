@@ -190,7 +190,7 @@ func Handle_Cluster_Start(c *fiber.Ctx) error {
 			systemEvent.Message = "Cluster Start: Error @ " + err.Error()
 			systemEvent.Severity = "error"
 		}
-		repository.PutSystemEvent(systemEvent)
+		repository.PutSystemEvent(&systemEvent)
 	}()
 	return c.JSON(fiber.Map{
 		"message": "Starting cluster",
@@ -208,7 +208,7 @@ func Handle_Cluster_Stop(c *fiber.Ctx) error {
 			systemEvent.Message = "Cluster Stop: Error @ " + err.Error()
 			systemEvent.Severity = "error"
 		}
-		repository.PutSystemEvent(systemEvent)
+		repository.PutSystemEvent(&systemEvent)
 	}()
 	return c.JSON(fiber.Map{
 		"message": "Stopping cluster",
@@ -226,7 +226,7 @@ func Handle_Cluster_Pods_Stop(c *fiber.Ctx) error {
 			systemEvent.Message = "Pods Stop: Error @ " + err.Error()
 			systemEvent.Severity = "error"
 		}
-		repository.PutSystemEvent(systemEvent)
+		repository.PutSystemEvent(&systemEvent)
 	}()
 	return c.JSON(fiber.Map{
 		"message": "Stopping all pods",

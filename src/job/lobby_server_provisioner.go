@@ -25,14 +25,14 @@ func Job_Lobby_Server_Provisioner() {
 
 	for _, lobby := range lobbies {
 		// Get the label for the lobby
-		label := strings.Split(lobby.ID, ":")[1]
+		label := strings.Split(lobby.ID.String(), ":")[1]
 
 		// If the server pod exists, we are done
 		// Get the server pod
 		fmt.Println("Job_Lobby_Server_Provisioner: @ Looking ", label)
 		_, lobpod, _, _ := k8.LocateServerPod(label)
 		if lobpod == nil && lobby.Lobby_Server != nil {
-			repository.DelServer(lobby.Lobby_Server.ID)
+			repository.DelServer(lobby.Lobby_Server.ID.String())
 			lobby.Lobby_Server = nil
 		}
 
@@ -82,7 +82,7 @@ func Lobby_Server_Provisioner_PUT(lobby dbtype.Lobby, label string) error {
 		str = strings.Replace(str, "${VNET_KEY}", os.Getenv("VNET_KEY"), -1)
 
 		str = strings.Replace(str, "${LOBBY_MAX_PLAYERS}", os.Getenv("LOBBY_MAX_PLAYERS"), -1)
-		str = strings.Replace(str, "${LOBBY_ID}", lobby.ID, -1)
+		str = strings.Replace(str, "${LOBBY_ID}", lobby.ID.String(), -1)
 		str = strings.Replace(str, "${LOBBY_NAME}", lobby.Name, -1)
 		cmd = append(cmd, str)
 	}
@@ -103,7 +103,7 @@ func Lobby_Server_Provisioner_PUT(lobby dbtype.Lobby, label string) error {
 	// Create A Server Db Entry
 	external_address := ""
 
-	server, err := repository.PutServer(dbtype.Server{
+	server, err := repository.PutServer(&dbtype.Server{
 		Name:    lobby.Name,
 		Guid:    lobpod.Labels["app"],
 		Status:  string(lobpod.Status.Phase),
@@ -118,12 +118,12 @@ func Lobby_Server_Provisioner_PUT(lobby dbtype.Lobby, label string) error {
 	}
 
 	// Link Lobby & Server
-	err = repository.LinkLobbyServer(lobby.ID, server)
+	err = repository.LinkLobbyServer(lobby.ID.String(), server)
 	if err != nil {
 		// Delete the server pod if we failed to create the server entry
 		k8.DeleteServerPod(label)
 		// Delete the server entry if we failed to create the server entry
-		repository.DelServer(server.ID)
+		repository.DelServer(server.ID.String())
 	}
 
 	return nil

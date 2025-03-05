@@ -6,8 +6,6 @@ import (
 	"time"
 	"viral-game-network/src/database"
 	dbtype "viral-game-network/src/database/type"
-
-	"github.com/surrealdb/surrealdb.go"
 )
 
 func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
@@ -16,7 +14,7 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
     ,lobby_host.*
 	,lobby_server.*
     ,->Lobby_Users.* as lobby_users 
-    ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) as lobby_users.user 
+    ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) as lobby_users_user 
 	FROM type::table($tb) 
 	WHERE COUNT(lobby_users) < $mx
 	ORDER BY date_created DESC
@@ -27,36 +25,24 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 	}
 
 	if count > -1 {
-		lQuery = fmt.Sprintf("%s %s", lQuery, `LIMIT $ct START $pg`)
+		lQuery = fmt.Sprintf("%s LIMIT $ct START $pg", lQuery)
 		params["ct"] = count
 		params["pg"] = (pager - 1) * count
 	}
 
-	// Get All Lobbies
-	result, err := database.DBS.Query(fmt.Sprintf("%s%s", lQuery, `;`), params)
+	// Get all lobbies.
+	lobbies, err := database.Query[dbtype.Lobby](fmt.Sprintf("%s;", lQuery), params)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	var lobbies []dbtype.Lobby
-	_, err = surrealdb.UnmarshalRaw(result, &lobbies)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	// Count All Lobbies
-	result, err = database.DBS.Query("SELECT count() AS total FROM type::table($tb) GROUP ALL;",
+	// Count all lobbies.
+	total, err := database.Query[dbtype.Total](
+		"SELECT count() AS total FROM type::table($tb) GROUP ALL;",
 		map[string]interface{}{
 			"tb": "Lobby",
-		})
-	if err != nil {
-		return lobbies, 0, err
-	}
-
-	var total []struct {
-		Total int `json:"total"`
-	}
-	_, err = surrealdb.UnmarshalRaw(result, &total)
+		},
+	)
 	if err != nil || len(total) == 0 {
 		return lobbies, 0, err
 	}
@@ -65,160 +51,129 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 }
 
 func GetLobby(id string) (*dbtype.Lobby, error) {
-	// Get lobby by ID
-	data, err := database.DBS.Query(`
+	// Get lobby by ID.
+	lobbies, err := database.Query[dbtype.Lobby](
+		`
 	SELECT * 
 	,lobby_host.*
 	,lobby_server.* 
 	,->Lobby_Users.* as lobby_users 
-    ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) as lobby_users.user 
+    ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) as lobby_users_user 
 	FROM Lobby WHERE id=$id;`,
-		map[string]string{
+		map[string]interface{}{
 			"id": id,
 		})
-
 	if err != nil {
 		return nil, err
 	}
-
-	lobby := make([]*dbtype.Lobby, 1)
-
-	// Unmarshal data
-	_, err = surrealdb.UnmarshalRaw(data, &lobby)
-	if err != nil {
-		return nil, err
+	if len(lobbies) == 0 {
+		return nil, fmt.Errorf("lobby not found")
 	}
-
-	return lobby[0], nil
+	return &lobbies[0], nil
 }
 
 func SetLobby(id string, body *dbtype.Lobby) (*dbtype.Lobby, error) {
-	var err error
-	var data interface{}
-	var now = time.Now().UTC().Format(time.RFC3339)
-
-	body.Date_Updated = now
-	data, err = database.DBS.Update(id, body)
-
+	body.Date_Updated = time.Now().UTC().Format(time.RFC3339)
+	// Update the lobby record.
+	lobby, err := database.Update[dbtype.Lobby](body)
 	if err != nil {
 		return nil, err
 	}
-
-	lobby := new(dbtype.Lobby)
-	err = surrealdb.Unmarshal(data, &lobby)
-	if err != nil {
-		return nil, err
-	}
-
 	return lobby, nil
 }
 
 func PutLobby(body *dbtype.Lobby, user *dbtype.User) (*dbtype.Lobby, error) {
-	var err error
-	var data interface{}
-	var now = time.Now().UTC().Format(time.RFC3339)
-
+	now := time.Now().UTC().Format(time.RFC3339)
 	body.Date_Created = now
 	body.Date_Updated = now
-	data, err = database.DBS.Create("Lobby", body)
 
+	// Create the lobby.
+	lobby, err := database.Create[dbtype.Lobby](body)
+	if err != nil {
+		return nil, err
+	}
+	if lobby == nil{
+		return nil, fmt.Errorf("failed to create lobby")
+	}
+
+	// Link the host.
+	err = LinkLobbyHost(lobby.ID.String(), user)
 	if err != nil {
 		return nil, err
 	}
 
-	// Unmarshal data
-	lobby := make([]*dbtype.Lobby, 1)
-	err = surrealdb.Unmarshal(data, &lobby)
-	if err != nil {
-		return nil, err
-	}
-
-	// Link Host
-	err = LinkLobbyHost(lobby[0].ID, user)
-	if err != nil {
-		return nil, err
-	}
-
-	lobby[0].Lobby_Host = user
-
-	return lobby[0], nil
+	lobby.Lobby_Host = user
+	
+	return lobby, nil
 }
 
 func DelLobby(id string) error {
-	_, err := database.DBS.Delete(id)
+	err := database.Delete[dbtype.Lobby](id)
 	if err != nil {
 		return err
 	}
-
-	err = UnlinkLobbyAllUsers(id)
-	if err != nil {
-		return err
-	}
-	return nil
+	return UnlinkLobbyAllUsers(id)
 }
 
 func LinkLobbyHost(id string, user *dbtype.User) error {
-	_, err := database.DBS.Query(`UPDATE $id MERGE {
-		lobby_host:$lobby_host
-	}`,
+	_, err := database.Query[any](
+		`UPDATE $id MERGE {
+			lobby_host: $lobby_host
+		}`,
 		map[string]interface{}{
 			"id":         id,
-			"lobby_host": user.ID,
-		})
-
-	if err != nil {
-		return err
-	}
-	return nil
+			"lobby_host": user.ID.String(),
+		},
+	)
+	return err
 }
 
 func LinkLobbyUser(id string, user *dbtype.User) error {
-	_, err := database.DBS.Query(`DELETE FROM Lobby_Users WHERE out=$user;`,
-		map[string]string{
-			"user": user.ID,
-		})
+	// First, remove any existing relation.
+	_, err := database.Query[any](
+		`DELETE FROM Lobby_Users WHERE out=$user;`,
+		map[string]interface{}{
+			"user": user.ID.String(),
+		},
+	)
 	if err != nil {
 		return err
 	}
 
-	_, err = database.DBS.Query(`RELATE $lobby->Lobby_Users->$user 
+	// Create the relation between the lobby and the user.
+	_, err = database.Query[any](
+		`RELATE $lobby->Lobby_Users->$user 
 		CONTENT {
 			date_created: $date_created
 		};`,
-		map[string]string{
+		map[string]interface{}{
 			"lobby":        id,
 			"user":         user.ID,
 			"date_created": time.Now().UTC().Format(time.RFC3339),
-		})
-	if err != nil {
-		return err
-	}
-
-	return nil
+		},
+	)
+	return err
 }
 
 func UnlinkLobbyAllUsers(id string) error {
-	_, err := database.DBS.Query(`DELETE FROM Lobby_Users WHERE in=$lobby;`,
-		map[string]string{
+	_, err := database.Query[any](
+		`DELETE FROM Lobby_Users WHERE in=$lobby;`,
+		map[string]interface{}{
 			"lobby": id,
-		})
-	if err != nil {
-		return err
-	}
-	return nil
+		},
+	)
+	return err
 }
 
 func LinkLobbyServer(id string, server *dbtype.Server) error {
-	_, err := database.DBS.Query(`UPDATE $id MERGE {
-		lobby_server:$lobby_server
-	}`,
+	_, err := database.Query[any](
+		`UPDATE $id MERGE {
+			lobby_server: $lobby_server
+		}`,
 		map[string]interface{}{
 			"id":           id,
 			"lobby_server": server.ID,
-		})
-
-	if err != nil {
-		return err
-	}
-	return nil
+		},
+	)
+	return err
 }

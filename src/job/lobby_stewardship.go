@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	// "viral-game-network/src/database/type"
 	"viral-game-network/src/database/repository"
 	"viral-game-network/src/ministration"
 )
@@ -39,14 +38,14 @@ func Job_Lobby_Stewardship() {
 		if date_diffr.Minutes() > lobby_max_persist {
 			// Notify Lobby Users
 			msg := "Server:Lobby Closed"
-			ministration.Service_Lobby_Notify(lobby.ID, msg, "")
+			ministration.Service_Lobby_Notify(lobby.ID.String(), msg, "")
 
 			// Delete Server
-			repository.DelServer(lobby.Lobby_Server.ID)
+			repository.DelServer(lobby.Lobby_Server.ID.String())
 
 			// Delete Lobby
-			repository.DelLobby(lobby.ID)
+			repository.DelLobby(lobby.ID.String())
 		}
-		fmt.Println("Job_Lobby_Stewardship: @", lobby.ID)
+		fmt.Println("Job_Lobby_Stewardship: @", lobby.ID.String())
 	}
 }

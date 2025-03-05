@@ -1,7 +1,11 @@
 package dbtype
 
+import (
+	"github.com/surrealdb/surrealdb.go/pkg/models"
+)
+
 type Server struct {
-	ID      string `json:"id,omitempty"`
+	ID      *models.RecordID `json:"id,omitempty"`
 	Name    string `json:"name"`
 	Guid 	string `json:"guid"`
 	Status  string `json:"status"`
@@ -10,4 +14,8 @@ type Server struct {
 	Address string `json:"address"`
 	Port int32 `json:"port"`
 	Configs string `json:"config"`
+}
+
+func (u Server) TableName() string {
+	return "Server"
 }

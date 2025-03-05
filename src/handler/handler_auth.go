@@ -49,7 +49,7 @@ func Handle_ValidateToken(c *fiber.Ctx) error {
 		Name: user.Name,
 	}
 
-	user, err = repository.GetUser(record)
+	user, err = repository.GetUser(&record)
 	if err == nil {
 		c.Locals("user", user)
 	}
@@ -76,7 +76,7 @@ func Handle_AuthLobby(c *fiber.Ctx) error {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
-			"message": "Token generation failed",
+			"message": "Token generation failed: " + err.Error(),
 		})
 	}
 
@@ -99,10 +99,12 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 		Guid: dto.Guid,
 	}
 
-	user, err := repository.GetUser(utmp)
+	user, err := repository.GetUser(&utmp)
 	if err != nil {
-		user, err = repository.PutUser(utmp)
+		user, err = repository.PutUser(&utmp)
 	}
+
+	fmt.Println(err, user)
 
 	if err != nil || user == nil {
 		c.Status(fiber.StatusBadRequest)
@@ -118,7 +120,7 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
-			"message": "Token generation failed",
+			"message": "Token generation failed: " + err.Error(),
 		})
 	}
 
@@ -126,7 +128,7 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 	user.Date_LastLogin = time.Now().UTC().Format(time.RFC3339)
 
 	// Update user
-	repository.SetUser(user.ID, user)
+	repository.SetUser(user.ID.String(), user)
 
 	return c.JSON(fiber.Map{
 		"status":       "ok",

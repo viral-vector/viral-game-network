@@ -5,13 +5,9 @@ import (
 	"time"
 	"viral-game-network/src/database"
 	dbtype "viral-game-network/src/database/type"
-
-	"github.com/surrealdb/surrealdb.go"
 )
 
 func GetSystemEvents(count int32) ([]dbtype.SystemEvent, error) {
-	var err error
-
 	lQuery := `
 	SELECT *
 	FROM type::table($tb) 
@@ -23,23 +19,14 @@ func GetSystemEvents(count int32) ([]dbtype.SystemEvent, error) {
 		"ct": count,
 	}
 
-	// Get All Events
-	result, err := database.DBS.Query(fmt.Sprintf("%s%s", lQuery, `;`), params)
+	events, err := database.Query[dbtype.SystemEvent](fmt.Sprintf("%s%s", lQuery, `;`), params)
 	if err != nil {
 		return nil, err
 	}
-
-	var events []dbtype.SystemEvent
-	_, err = surrealdb.UnmarshalRaw(result, &events)
-	if err != nil {
-		return nil, err
-	}
-
 	return events, nil
 }
 
 func GetSystemEventsInFrame(seconds int32) ([]dbtype.SystemEvent, error) {
-	var err error
 	startTime := time.Now().Add(time.Duration(-seconds) * time.Second).Format(time.RFC3339)
 
 	lQuery := `
@@ -53,38 +40,21 @@ func GetSystemEventsInFrame(seconds int32) ([]dbtype.SystemEvent, error) {
 		"dd": startTime,
 	}
 
-	// Get All Events
-	result, err := database.DBS.Query(fmt.Sprintf("%s%s", lQuery, `;`), params)
+	events, err := database.Query[dbtype.SystemEvent](fmt.Sprintf("%s%s", lQuery, `;`), params)
 	if err != nil {
 		return nil, err
 	}
-
-	var events []dbtype.SystemEvent
-	_, err = surrealdb.UnmarshalRaw(result, &events)
-	if err != nil {
-		return nil, err
-	}
-
 	return events, nil
 }
 
-func PutSystemEvent(body dbtype.SystemEvent) (*dbtype.SystemEvent, error) {
-	var err error
-	var data interface{}
+func PutSystemEvent(body *dbtype.SystemEvent) (*dbtype.SystemEvent, error) {
 	var now = time.Now().UTC().Format(time.RFC3339)
 
 	body.Date_Created = now
-	data, err = database.DBS.Create("SystemEvent", body)
+	event, err := database.Create[dbtype.SystemEvent](body)
 
 	if err != nil {
 		return nil, err
 	}
-
-	// Unmarshal data
-	event := make([]*dbtype.SystemEvent, 1)
-	err = surrealdb.Unmarshal(data, &event)
-	if err != nil {
-		return nil, err
-	}
-	return event[0], nil
+	return event, nil
 }

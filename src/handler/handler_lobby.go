@@ -141,7 +141,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 	// }
 
 	// Link User to lobby
-	err = repository.LinkLobbyUser(lobby.ID, req_user)
+	err = repository.LinkLobbyUser(lobby.ID.String(), req_user)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -151,7 +151,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 		})
 	}
 
-	lobby, _ = repository.GetLobby(lobby.ID)
+	lobby, _ = repository.GetLobby(lobby.ID.String())
 
 	return c.JSON(fiber.Map{
 		"status": "ok",
@@ -238,6 +238,6 @@ func Handle_SocketLobby(c *websocket.Conn) {
 			continue
 		}
 
-		ministration.Service_Lobby_Notify(id, string(msg), user.ID)
+		ministration.Service_Lobby_Notify(id, string(msg), user.ID.String())
 	}
 }

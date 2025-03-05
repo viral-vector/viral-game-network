@@ -69,7 +69,7 @@ func Job_Lobby_Server_Stewardship() {
 			lobby.Lobby_Server = nil
 
 			// Update the lobby
-			_, err := repository.SetLobby(lobby.ID, lobby)
+			_, err := repository.SetLobby(lobby.ID.String(), lobby)
 			if err != nil {
 				fmt.Println("Job_Lobby_Server_Stewardship:", err)
 				continue
@@ -82,7 +82,7 @@ func Job_Lobby_Server_Stewardship() {
 
 		lobby.Lobby_Server.Status = string(lobpod.Status.Phase)
 		// Update the server
-		_, err = repository.SetServer(lobby.Lobby_Server.ID, lobby.Lobby_Server)
+		_, err = repository.SetServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server)
 		if err != nil {
 			fmt.Println("Job_Lobby_Server_Stewardship:", err)
 			continue
@@ -90,7 +90,7 @@ func Job_Lobby_Server_Stewardship() {
 
 		// Notify Lobby Users
 		msg := "Server:" + lobby.Lobby_Server.Status
-		ministration.Service_Lobby_Notify(lobby.ID, msg, "")
+		ministration.Service_Lobby_Notify(lobby.ID.String(), msg, "")
 	}
 }
 

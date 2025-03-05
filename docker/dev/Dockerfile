@@ -1,5 +1,5 @@
 # Stage 1: Build the ENVironment
-FROM golang:1.22rc2-alpine3.19 AS build
+FROM golang:1.23rc2-alpine3.19 AS base
 
 ENV PROJECT_DIR=/app \
     GO111MODULE=on \
@@ -31,10 +31,8 @@ COPY ./k8 /etc/rancher/k3d
 # Run the script
 #CMD ["/etc/rancher/k3d/k3d-build.sh"]
 
-
 # Set the working directory
 WORKDIR /app
-
 
 # Generate ssl certificates
 RUN mkdir -p ./bin/ssl
@@ -56,10 +54,6 @@ RUN go get -u  github.com/air-verse/air
 RUN go install github.com/air-verse/air
 # Expose the port that the application listens on
 EXPOSE 3000
-
-
-# Stage 2: Build the Go application binary
-FROM build AS app-build
 
 # Copy the rest of the application source code
 COPY . .

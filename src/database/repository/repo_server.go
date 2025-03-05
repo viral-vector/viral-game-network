@@ -1,102 +1,57 @@
 package repository
 
 import (
+	"fmt"
 	"time"
 	"viral-game-network/src/database"
 	dbtype "viral-game-network/src/database/type"
-
-	"github.com/surrealdb/surrealdb.go"
 )
 
 func AllServer() ([]dbtype.Server, error) {
-	result, err := database.DBS.Query("SELECT * FROM type::table($tb);",
-		map[string]string{
+	servers, err := database.Query[dbtype.Server]("SELECT * FROM type::table($tb);",
+		map[string]interface{}{
 			"tb": "Server",
 		})
 	if err != nil {
 		return nil, err
 	}
-
-	var servers []dbtype.Server
-
-	_, err = surrealdb.UnmarshalRaw(result, &servers)
-	if err != nil {
-		return nil, err
-	}
-
 	return servers, nil
 }
 
 func GetServer(id string) (*dbtype.Server, error) {
-	// Get server by ID
-	data, err := database.DBS.Query(`
-	SELECT * 
-	FROM Server WHERE id=$id;`,
-		map[string]string{
-			"id": id,
-		})
-
+	server, err := database.Select[dbtype.Server](id)
 	if err != nil {
 		return nil, err
 	}
-
-	server := make([]*dbtype.Server, 1)
-
-	// Unmarshal data
-	_, err = surrealdb.UnmarshalRaw(data, &server)
-	if err != nil {
-		return nil, err
+	if server == nil {
+		return nil, fmt.Errorf("server not found")
 	}
-
-	return server[0], err
-}
-
-func SetServer(id string, body *dbtype.Server) (*dbtype.Server, error) {
-	var err error
-	var data interface{}
-	var now = time.Now().UTC().Format(time.RFC3339)
-
-	body.Date_Updated = now
-	data, err = database.DBS.Update(id, body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	server := new(dbtype.Server)
-	err = surrealdb.Unmarshal(data, &server)
-	if err != nil {
-		return nil, err
-	}
-
 	return server, nil
 }
 
-func PutServer(body dbtype.Server, lobby *dbtype.Lobby) (*dbtype.Server, error) {
-	var err error
-	var data interface{}
-	var now = time.Now().UTC().Format(time.RFC3339)
+func SetServer(id string, body *dbtype.Server) (*dbtype.Server, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	body.Date_Updated = now
+	server, err := database.Update[dbtype.Server](body)
+	if err != nil {
+		return nil, err
+	}
+	return server, nil
+}
 
+func PutServer(body *dbtype.Server, lobby *dbtype.Lobby) (*dbtype.Server, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
 	body.Date_Created = now
 	body.Date_Updated = now
-	data, err = database.DBS.Create("Server", body)
-
+	server, err := database.Create[dbtype.Server](body)
 	if err != nil {
 		return nil, err
 	}
-
-	// Unmarshal data
-	server := make([]*dbtype.Server, 1)
-	err = surrealdb.Unmarshal(data, &server)
-	if err != nil {
-		return nil, err
-	}
-
-	return server[0], nil
+	return server, nil
 }
 
 func DelServer(id string) error {
-	_, err := database.DBS.Delete(id)
+	err := database.Delete[dbtype.Lobby](id)
 	if err != nil {
 		return err
 	}
@@ -104,17 +59,8 @@ func DelServer(id string) error {
 }
 
 func GetServerPorts() []int32 {
-	result, err := database.DBS.Query("SELECT id, port FROM type::table($tb);",
-		map[string]string{
-			"tb": "Server",
-		})
-	if err != nil {
-		return nil
-	}
-
-	var servers []dbtype.Server
-
-	_, err = surrealdb.UnmarshalRaw(result, &servers)
+	servers, err := database.Query[dbtype.Server]("SELECT id, port FROM Server;",
+		map[string]interface{}{})
 	if err != nil {
 		return nil
 	}
@@ -129,28 +75,18 @@ func GetServerPorts() []int32 {
 }
 
 func TickServer(id string) (*dbtype.Server, error) {
-	var err error
-	var data interface{}
-	var now = time.Now().UTC().Format(time.RFC3339)
-
-	body, err := GetServer(id)
-	if err != nil || body == nil {
+	now := time.Now().UTC().Format(time.RFC3339)
+	server, err := GetServer(id)
+	if err != nil || server == nil {
 		return nil, err
 	}
 
-	body.Date_Updated = now
-	body.Status = "Online"
-	data, err = database.DBS.Update(id, body)
-
+	server.Date_Updated = now
+	server.Status = "Online"
+	updated, err := database.Update[dbtype.Server](server)
 	if err != nil {
 		return nil, err
 	}
 
-	server := new(dbtype.Server)
-	err = surrealdb.Unmarshal(data, &server)
-	if err != nil {
-		return nil, err
-	}
-
-	return server, nil
+	return updated, nil
 }

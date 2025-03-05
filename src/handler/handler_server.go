@@ -21,20 +21,20 @@ func Handle_TickHost(c *fiber.Ctx) error {
 		})
 	}
 
-	server, err := repository.TickServer(lobby.Lobby_Server.ID)
+	server, err := repository.TickServer(lobby.Lobby_Server.ID.String())
 
 	if err != nil || server == nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
-			"message": "Error fetching server " + lobby.Lobby_Server.ID,
+			"message": "Error fetching server " + lobby.Lobby_Server.ID.String(),
 		})
 	}
 
 	// Notify Lobby Users
 	if lobby.Lobby_Server.Status != "Online" {
 		msg := "Server:Online"
-		ministration.Service_Lobby_Notify(lobby.ID, msg, "")
+		ministration.Service_Lobby_Notify(lobby.ID.String(), msg, "")
 	}
 
 	return c.JSON(fiber.Map{

@@ -1,7 +1,11 @@
 package dbtype
 
+import (
+	"github.com/surrealdb/surrealdb.go/pkg/models"
+)
+
 type Lobby struct {
-	ID    string `json:"id,omitempty"`
+	ID    *models.RecordID `json:"id,omitempty"`
 	Name  string `json:"name"`
 	Date_Created string `json:"date_created"`
 	Date_Updated string `json:"date_updated"`
@@ -11,4 +15,8 @@ type Lobby struct {
 	Lobby_Host *User `json:"lobby_host"`
 	Lobby_Users []*LobbyUser `json:"lobby_users"`
 	Lobby_Server *Server `json:"lobby_server"` 
+}
+
+func (u Lobby) TableName() string {
+	return "Lobby"
 }
