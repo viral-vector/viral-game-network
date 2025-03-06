@@ -104,8 +104,6 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 		user, err = repository.PutUser(&utmp)
 	}
 
-	fmt.Println(err, user)
-
 	if err != nil || user == nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{

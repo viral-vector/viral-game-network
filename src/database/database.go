@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"log"
 	"os"
     "github.com/surrealdb/surrealdb.go"
@@ -39,19 +40,29 @@ func init() {
 }
 
 func Query[T any](query string, params map[string]interface{}) ([]T, error) {
-	// Call the SDK's Query which returns a pointer to a slice of QueryResult[T]
-	queryResults, err := surrealdb.Query[T](DBS, query, params)
-	if err != nil {
-		return nil, err
+	// First attempt: decode each QueryResult.Result as []T.
+	queryResultsSlice, err := surrealdb.Query[[]T](DBS, query, params)
+	if err == nil {
+		resultsSlice := *queryResultsSlice
+		var output []T
+		for _, qr := range resultsSlice {
+			// Expecting qr.Result to be of type []T, so flatten it.
+			output = append(output, qr.Result...)
+		}
+		return output, nil
 	}
 
-	// Dereference the pointer
-	resultsSlice := *queryResults
+	// If the first decoding fails, try to decode as a single T.
+	queryResultsSingle, err2 := surrealdb.Query[T](DBS, query, params)
+	if err2 != nil {
+		// Return the original error if both attempts fail.
+		return nil, fmt.Errorf("failed decoding as []T: %w; also failed decoding as T: %v", err, err2)
+	}
 
-	// Extract the actual results from each QueryResult element.
-	// This assumes that each QueryResult has a field `Result` of type T.
+	resultsSingle := *queryResultsSingle
 	var output []T
-	for _, qr := range resultsSlice {
+	for _, qr := range resultsSingle {
+		// Here qr.Result is a single T value; append it directly.
 		output = append(output, qr.Result)
 	}
 	return output, nil
