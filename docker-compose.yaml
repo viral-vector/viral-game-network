@@ -66,4 +66,6 @@ volumes:
     driver: local
 networks:
   viral-game-network:
+    name: viral-game-network
     driver: bridge
+    external: true

@@ -1,11 +1,10 @@
 # Stage 1: Build the ENVironment
-FROM golang:1.23rc2-alpine3.19 AS base
+FROM golang:1.23.0-alpine3.19 AS base
 
 ENV PROJECT_DIR=/app \
     GO111MODULE=on \
     GOOS=linux \
     CGO_ENABLED=0
-
 
 # Set the working directory
 WORKDIR /tmp
@@ -14,13 +13,13 @@ RUN apk update && \
     apk add --no-cache curl bash git jq sudo docker openssl ca-certificates && \
     rm -rf /var/cache/apk/*
 # Install kubectl
-ENV KUBECTL_VERSION=1.23.3
+ENV KUBECTL_VERSION=1.32.0
 RUN curl -LO "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \ 
     && chmod +x ./kubectl \ 
     && mv ./kubectl /usr/local/bin/kubectl
 # Install k3d
-ENV K3D_VERSION=5.4.6
-RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+ENV K3D_VERSION=5.8.3
+RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=v${K3D_VERSION} bash
 # Set up k3d configuration
 COPY ./k8/k3d-config.yaml /etc/rancher/k3d/config.yaml
 # Copy the build script

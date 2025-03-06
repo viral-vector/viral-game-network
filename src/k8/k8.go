@@ -130,11 +130,16 @@ func GetClusterStatus() (map[string]interface{}, error) {
 
 	// Get Version
 	verInfo := ""
-	version, _ := clientset.Discovery().ServerVersion()
-	if version != nil {
+	version, err := clientset.Discovery().ServerVersion()
+	if err != nil {
+		log.Fatalf("Error fetching server version: %v", err)
+	}
+	if version == nil {
+		log.Println("ServerVersion returned nil")
+	} else {
 		verInfo = version.String()
 	}
-
+	
 	// Get Nodes
 	nodeInfo := map[string]interface{}{}
 	nodes, _ := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
@@ -313,7 +318,6 @@ func CreateServerPod(label string, node string, sPort int32, aPort int32, image 
 		},
 		Spec: v1.PodSpec{
 			// NodeName:      node,
-			HostNetwork:   true,
 			RestartPolicy: v1.RestartPolicyNever,
 			NodeSelector: map[string]string{
 				"kubernetes.io/hostname": node,
@@ -323,6 +327,7 @@ func CreateServerPod(label string, node string, sPort int32, aPort int32, image 
 					Name:    "server-" + label,
 					Image:   image,
 					Command: command,
+					ImagePullPolicy: v1.PullIfNotPresent,
 					Ports: []v1.ContainerPort{
 						{
 							ContainerPort: aPort,

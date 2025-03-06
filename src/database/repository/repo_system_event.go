@@ -15,7 +15,7 @@ func GetSystemEvents(count int32) ([]dbtype.SystemEvent, error) {
 	LIMIT $ct
 	`
 	params := map[string]interface{}{
-		"tb": "SystemEvent",
+		"tb": "System_Event",
 		"ct": count,
 	}
 
@@ -36,7 +36,7 @@ func GetSystemEventsInFrame(seconds int32) ([]dbtype.SystemEvent, error) {
 	ORDER BY date_created DESC
 	`
 	params := map[string]interface{}{
-		"tb": "SystemEvent",
+		"tb": "System_Event",
 		"dd": startTime,
 	}
 
