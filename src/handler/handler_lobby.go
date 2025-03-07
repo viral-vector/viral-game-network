@@ -141,7 +141,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 	// }
 
 	// Link User to lobby
-	err = repository.LinkLobbyUser(lobby.ID.String(), req_user)
+	err = repository.LinkLobbyUser(lobby, req_user)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)

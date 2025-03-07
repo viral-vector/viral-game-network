@@ -12,9 +12,9 @@ type Lobby struct {
 	Configs string `json:"config"`
 	Private bool `json:"private"`
 	Code string `json:"code"`
-	Lobby_Host *User `json:"lobby_host"`
-	Lobby_Users []*LobbyUser `json:"lobby_users"`
-	Lobby_Server *Server `json:"lobby_server"` 
+	Lobby_Host *User `json:"lobby_host,omitempty"`
+	Lobby_Users []*LobbyUser `json:"lobby_users,omitempty"`
+	Lobby_Server *Server `json:"lobby_server,omitempty"` 
 }
 
 func (u Lobby) TableName() string {

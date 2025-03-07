@@ -11,16 +11,15 @@ import (
 func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 	lQuery := `
 	SELECT *
-    ,lobby_host.*
-	,lobby_server.*
-    ,->Lobby_Users.* as lobby_users 
-    ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) as lobby_users_user 
-	FROM type::table($tb) 
+	,array::first(SELECT * FROM ->Lobby_Host.out) AS lobby_host
+	,array::first(SELECT * FROM ->Lobby_Server.out) AS lobby_server
+	,->Lobby_Users.* AS lobby_users 
+    ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) AS lobby_users_user 
+	FROM Lobby 
 	WHERE COUNT(lobby_users) < $mx
 	ORDER BY date_created DESC
 	`
 	params := map[string]interface{}{
-		"tb": "Lobby",
 		"mx": os.Getenv("LOBBY_MAX_PLAYERS"),
 	}
 
@@ -33,14 +32,15 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 	// Get all lobbies.
 	lobbies, err := database.Query[dbtype.Lobby](fmt.Sprintf("%s;", lQuery), params)
 	if err != nil {
+		fmt.Println("AllLobby: ", err)
 		return nil, 0, err
 	}
 
 	// Count all lobbies.
 	total, err := database.Query[dbtype.Total](
-		"SELECT count() AS total FROM type::table($tb) GROUP ALL;",
+		"SELECT count() AS total FROM Lobby GROUP ALL;",
 		map[string]interface{}{
-			"tb": "Lobby",
+			
 		},
 	)
 	if err != nil || len(total) == 0 {
@@ -55,10 +55,10 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
 	lobbies, err := database.Query[dbtype.Lobby](
 		`
 	SELECT * 
-	,lobby_host.*
-	,lobby_server.* 
-	,->Lobby_Users.* as lobby_users 
-    ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) as lobby_users_user 
+	,array::first(SELECT * FROM ->Lobby_Host.out) AS lobby_host
+	,array::first(SELECT * FROM ->Lobby_Server.out) AS lobby_server
+	,->Lobby_Users.* AS lobby_users 
+    ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) AS lobby_users_user 
 	FROM Lobby WHERE id=$id;`,
 		map[string]interface{}{
 			"id": id,
@@ -97,12 +97,10 @@ func PutLobby(body *dbtype.Lobby, user *dbtype.User) (*dbtype.Lobby, error) {
 	}
 
 	// Link the host.
-	err = LinkLobbyHost(lobby.ID.String(), user)
+	err = LinkLobbyHost(lobby, user)
 	if err != nil {
 		return nil, err
 	}
-
-	lobby.Lobby_Host = user
 	
 	return lobby, nil
 }
@@ -115,23 +113,17 @@ func DelLobby(id string) error {
 	return UnlinkLobbyAllUsers(id)
 }
 
-func LinkLobbyHost(id string, user *dbtype.User) error {
-	_, err := database.Query[any](
-		`UPDATE $id MERGE {
-			lobby_host: $lobby_host
-		}`,
-		map[string]interface{}{
-			"id":         id,
-			"lobby_host": user.ID.String(),
-		},
-	)
+func LinkLobbyHost(lobby *dbtype.Lobby, user *dbtype.User) error {
+	err := database.Relate(lobby.ID, user.ID, "Lobby_Host", map[string]interface{}{
+
+	})
 	return err
 }
 
-func LinkLobbyUser(id string, user *dbtype.User) error {
+func LinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User) error {
 	// First, remove any existing relation.
 	_, err := database.Query[any](
-		`DELETE FROM Lobby_Users WHERE out=$user;`,
+		`DELETE FROM Lobby_Users WHERE out=$user RETURN *;`,
 		map[string]interface{}{
 			"user": user.ID.String(),
 		},
@@ -140,24 +132,15 @@ func LinkLobbyUser(id string, user *dbtype.User) error {
 		return err
 	}
 
-	// Create the relation between the lobby and the user.
-	_, err = database.Query[any](
-		`RELATE $lobby->Lobby_Users->$user 
-		CONTENT {
-			date_created: $date_created
-		};`,
-		map[string]interface{}{
-			"lobby":        id,
-			"user":         user.ID,
-			"date_created": time.Now().UTC().Format(time.RFC3339),
-		},
-	)
+	err = database.Relate(lobby.ID, user.ID, "Lobby_Users", map[string]interface{}{
+		"date_created": time.Now().UTC().Format(time.RFC3339),
+	})
 	return err
 }
 
 func UnlinkLobbyAllUsers(id string) error {
 	_, err := database.Query[any](
-		`DELETE FROM Lobby_Users WHERE in=$lobby;`,
+		`DELETE FROM Lobby_Users WHERE in=$lobby RETURN *;`,
 		map[string]interface{}{
 			"lobby": id,
 		},
@@ -165,15 +148,9 @@ func UnlinkLobbyAllUsers(id string) error {
 	return err
 }
 
-func LinkLobbyServer(id string, server *dbtype.Server) error {
-	_, err := database.Query[any](
-		`UPDATE $id MERGE {
-			lobby_server: $lobby_server
-		}`,
-		map[string]interface{}{
-			"id":           id,
-			"lobby_server": server.ID,
-		},
-	)
+func LinkLobbyServer(lobby *dbtype.Lobby, server *dbtype.Server) error {
+	err := database.Relate(lobby.ID, server.ID, "Lobby_Server", map[string]interface{}{
+		"date_created": time.Now().UTC().Format(time.RFC3339),
+	})
 	return err
 }

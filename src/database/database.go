@@ -90,3 +90,15 @@ func Select[T any](id string) (*T, error) {
 	}
 	return record, nil
 }
+
+func Relate(in *models.RecordID, out *models.RecordID, table string, data map[string]interface{}) (error) {
+	// Create a new relationship.
+	relationship := &surrealdb.Relationship{
+		In:       *in,
+		Out:      *out,
+		Relation: models.Table(table),
+		Data: data,
+	}
+	err := surrealdb.Relate(DBS, relationship)
+	return err
+}
