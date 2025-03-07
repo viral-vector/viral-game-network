@@ -46,11 +46,9 @@ func check_read(c *fiber.Ctx) (*dbtype.Lobby, error) {
 	}
 
 	// Check host/user
-	host := new(dbtype.LobbyUser)
-	host.User = *lobby.Lobby_Host
-	lobby_users := append(lobby.Lobby_Users, host)
+	lobby_users := append(lobby.Lobby_Users, lobby.Lobby_Host)
 	for _, lobby_user := range lobby_users {
-		if user.ID == lobby_user.User.ID {
+		if user.ID == lobby_user.ID {
 			return lobby, nil
 		} 
 	}

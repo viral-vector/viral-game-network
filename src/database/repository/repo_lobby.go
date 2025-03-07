@@ -11,10 +11,11 @@ import (
 func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 	lQuery := `
 	SELECT *
-	,array::first(SELECT * FROM ->Lobby_Host.out) AS lobby_host
-	,array::first(SELECT * FROM ->Lobby_Server.out) AS lobby_server
-	,->Lobby_Users.* AS lobby_users 
-    ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) AS lobby_users_user 
+    ,(IF count(SELECT id FROM ->Lobby_Host.out) > 0
+       {array::first(SELECT id, name, guid FROM ->Lobby_Host.out)} ELSE {NULL}) AS lobby_host
+    ,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
+       {array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
+    ,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
 	FROM Lobby 
 	WHERE COUNT(lobby_users) < $mx
 	ORDER BY date_created DESC
@@ -55,10 +56,11 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
 	lobbies, err := database.Query[dbtype.Lobby](
 		`
 	SELECT * 
-	,array::first(SELECT * FROM ->Lobby_Host.out) AS lobby_host
-	,array::first(SELECT * FROM ->Lobby_Server.out) AS lobby_server
-	,->Lobby_Users.* AS lobby_users 
-    ,array::first(SELECT id, name, guid FROM ->Lobby_Users.out) AS lobby_users_user 
+    ,(IF count(SELECT id FROM ->Lobby_Host.out) > 0
+       {array::first(SELECT id, name, guid FROM ->Lobby_Host.out)} ELSE {NULL}) AS lobby_host
+    ,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
+       {array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
+    ,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
 	FROM Lobby WHERE id=$id;`,
 		map[string]interface{}{
 			"id": id,

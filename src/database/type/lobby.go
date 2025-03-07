@@ -13,7 +13,7 @@ type Lobby struct {
 	Private bool `json:"private"`
 	Code string `json:"code"`
 	Lobby_Host *User `json:"lobby_host,omitempty"`
-	Lobby_Users []*LobbyUser `json:"lobby_users,omitempty"`
+	Lobby_Users []*User `json:"lobby_users,omitempty"`
 	Lobby_Server *Server `json:"lobby_server,omitempty"` 
 }
 

@@ -22,7 +22,7 @@ func Handle_ValidateAppKey(c *fiber.Ctx) error {
 	pass, err := auth.ValidateAppKey(app_key)
 
 	if err != nil || !pass {
-		c.Status(fiber.StatusBadRequest)
+		c.Status(fiber.StatusForbidden)
 		return c.JSON(fiber.Map{
 			"status":  "error",
 			"message": "Unauthorized: Bad or missing App Key",
@@ -38,7 +38,7 @@ func Handle_ValidateToken(c *fiber.Ctx) error {
 
 	if err != nil {
 		fmt.Println(err, token)
-		c.Status(fiber.StatusBadRequest)
+		c.Status(fiber.StatusForbidden)
 		return c.JSON(fiber.Map{
 			"status":  "error",
 			"message": "Unauthorized: Bad Token @ " + err.Error(),
@@ -73,7 +73,7 @@ func Handle_AuthLobby(c *fiber.Ctx) error {
 	access_token, err := auth.GenerateToken(&user)
 
 	if err != nil {
-		c.Status(fiber.StatusBadRequest)
+		c.Status(fiber.StatusForbidden)
 		return c.JSON(fiber.Map{
 			"status":  "error",
 			"message": "Token generation failed: " + err.Error(),

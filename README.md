@@ -10,7 +10,7 @@ Viral-Network (Viral Games Network Backend) is a game backend server written in 
 
 ## Commands
 1. Image to registry
-    * docker build -t viral-game-network-registry:5000/my-app:latest .
+    * docker build -t localhost:5000/bbserver:1.0.0 .
         * Builds your image and tags it with the registry address 
-    * docker push viral-game-network-registry:5000/my-app:latest
+    * docker push localhost:5000/bbserver:1.0.0
         * Push your image to the local registry
