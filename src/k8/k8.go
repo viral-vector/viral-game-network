@@ -47,6 +47,7 @@ func LoadConfiguration() error {
 	var err error
 
 	// Create the clientset from the config
+	k8_k3d.WrtiteKubeConfig()
 	config, err = clientcmd.BuildConfigFromFlags("", "/root/.config/k3d/kubeconfig-viral-game-network.yaml")
 	if err != nil {
 		log.Println("k8 config error: ", err)
@@ -98,7 +99,7 @@ func CheckDeleteCluster() error {
 
 func CreateNameSpace() error {
 	if clientset == nil {
-		return fmt.Errorf("kubernetes not initialized")
+		return fmt.Errorf("Cluster Not Running")
 	}
 
 	existing, err := clientset.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
@@ -125,17 +126,17 @@ func CreateNameSpace() error {
 
 func GetClusterStatus() (map[string]interface{}, error) {
 	if clientset == nil {
-		return nil, fmt.Errorf("kubernetes not initialized")
+		return nil, fmt.Errorf("Cluster Not Running")
 	}
 
 	// Get Version
 	verInfo := ""
 	version, err := clientset.Discovery().ServerVersion()
 	if err != nil {
-		log.Fatalf("Error fetching server version: %v", err)
+		return nil, fmt.Errorf("Cluster Critical Error")
 	}
 	if version == nil {
-		log.Println("ServerVersion returned nil")
+		return nil, fmt.Errorf("Cluster Version returned nil")
 	} else {
 		verInfo = version.String()
 	}
@@ -176,7 +177,7 @@ func GetPortRange(min, max int32) []int32 {
 
 func FindOpenNodePort() (string, int32, error) {
 	if clientset == nil {
-		return "", -1, fmt.Errorf("kubernetes not initialized")
+		return "", -1, fmt.Errorf("Cluster Not Running")
 	}
 
 	// Get the list of nodes
@@ -194,7 +195,7 @@ func FindOpenNodePort() (string, int32, error) {
 	for _, node := range nodes.Items {
 		nodePorts[node.Name] = []int32{}
 		// Get the list of pods on each node & Collect used ports
-		pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+		pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 			FieldSelector: "spec.nodeName=" + node.Name,
 		})
 		if err != nil {
@@ -204,9 +205,24 @@ func FindOpenNodePort() (string, int32, error) {
 
 		usedPorts := map[string]bool{}
 		for _, pod := range pods.Items {
+			// Get Node Service & iterate NodePorts
+			serviceName := strings.Replace(pod.Name, "server-", "", -1)
+			service, err := LocateService(serviceName)
+			if err != nil {
+				log.Printf("Error locating service for pod %s: %s", pod.Name, err.Error())
+				continue
+			}
+			for _, port := range service.Spec.Ports {
+				usedPorts[strconv.Itoa(int(port.NodePort))] = true
+			}
+
+			// Iterate through each container and its ports.
 			for _, container := range pod.Spec.Containers {
 				for _, port := range container.Ports {
-					usedPorts[strconv.Itoa(int(port.ContainerPort))] = true
+					// If using hostPort, it will be set in this field.
+					if port.HostPort != 0 {
+						usedPorts[strconv.Itoa(int(port.HostPort))] = true
+					}
 				}
 			}
 		}
@@ -235,7 +251,7 @@ func FindOpenNodePort() (string, int32, error) {
 // Kill all server pods
 func KillAllServerPods() error {
 	if clientset == nil {
-		return fmt.Errorf("kubernetes not initialized")
+		return fmt.Errorf("Cluster Not Running")
 	}
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
@@ -252,7 +268,7 @@ func KillAllServerPods() error {
 // Get All server Pods
 func GetAllServerPodsAndServices() ([]PodService, error) {
 	if clientset == nil {
-		return nil, fmt.Errorf("kubernetes not initialized")
+		return nil, fmt.Errorf("Cluster Not Running")
 	}
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
@@ -280,7 +296,7 @@ func GetAllServerPodsAndServices() ([]PodService, error) {
 // Locate Server Pod
 func LocateServerPod(label string) (*v1.Node, *v1.Pod, *v1.Service, error) {
 	if clientset == nil {
-		return nil, nil, nil, fmt.Errorf("kubernetes not initialized")
+		return nil, nil, nil, fmt.Errorf("Cluster Not Running")
 	}
 
 	pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, "server-"+label, metav1.GetOptions{})
@@ -302,9 +318,18 @@ func LocateServerPod(label string) (*v1.Node, *v1.Pod, *v1.Service, error) {
 }
 
 // Create Server Pod
-func CreateServerPod(label string, node string, sPort int32, aPort int32, image string, command []string) (*v1.Pod, *v1.Service, error) {
+func CreateServerPod(label string, node string, sPort int32, aPort int32, image string, command []string, env map[string]string) (*v1.Pod, *v1.Service, error) {
 	if clientset == nil {
-		return nil, nil, fmt.Errorf("kubernetes not initialized")
+		return nil, nil, fmt.Errorf("Cluster Not Running")
+	}
+
+	// Convert map to slice of corev1.EnvVar
+	var envVars []v1.EnvVar
+	for key, value := range env {
+		envVars = append(envVars, v1.EnvVar{
+			Name:  key,
+			Value: value,
+		})
 	}
 
 	// Create Pod
@@ -317,7 +342,6 @@ func CreateServerPod(label string, node string, sPort int32, aPort int32, image 
 			},
 		},
 		Spec: v1.PodSpec{
-			// NodeName:      node,
 			RestartPolicy: v1.RestartPolicyNever,
 			NodeSelector: map[string]string{
 				"kubernetes.io/hostname": node,
@@ -327,7 +351,7 @@ func CreateServerPod(label string, node string, sPort int32, aPort int32, image 
 					Name:    "server-" + label,
 					Image:   image,
 					Command: command,
-					ImagePullPolicy: v1.PullIfNotPresent,
+					ImagePullPolicy: v1.PullAlways,
 					Ports: []v1.ContainerPort{
 						{
 							ContainerPort: aPort,
@@ -338,6 +362,7 @@ func CreateServerPod(label string, node string, sPort int32, aPort int32, image 
 							Protocol:      v1.ProtocolUDP,
 						},
 					},
+					Env: envVars,
 				},
 			},
 		},
@@ -362,7 +387,7 @@ func CreateServerPod(label string, node string, sPort int32, aPort int32, image 
 // Delete Server Pod
 func DeleteServerPod(label string) error {
 	if clientset == nil {
-		return fmt.Errorf("kubernetes not initialized")
+		return fmt.Errorf("Cluster Not Running")
 	}
 
 	err := clientset.CoreV1().Pods(namespace).Delete(
@@ -384,7 +409,7 @@ func DeleteServerPod(label string) error {
 // Locate a Service
 func LocateService(label string) (*v1.Service, error) {
 	if clientset == nil {
-		return nil, fmt.Errorf("kubernetes not initialized")
+		return nil, fmt.Errorf("Cluster Not Running")
 	}
 
 	service, err := clientset.CoreV1().Services(namespace).Get(ctx, "service-"+label, metav1.GetOptions{})
@@ -397,7 +422,7 @@ func LocateService(label string) (*v1.Service, error) {
 // Creates a Service
 func CreateService(label string, aPort int32, sPort int32) (*v1.Service, error) {
 	if clientset == nil {
-		return nil, fmt.Errorf("kubernetes not initialized")
+		return nil, fmt.Errorf("Cluster Not Running")
 	}
 
 	service := &v1.Service{
@@ -441,7 +466,7 @@ func CreateService(label string, aPort int32, sPort int32) (*v1.Service, error) 
 // Deletes a Service
 func DeleteService(label string) error {
 	if clientset == nil {
-		return fmt.Errorf("kubernetes not initialized")
+		return fmt.Errorf("Cluster Not Running")
 	}
 
 	err := clientset.CoreV1().Services(namespace).Delete(

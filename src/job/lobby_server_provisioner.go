@@ -23,15 +23,23 @@ func Job_Lobby_Server_Provisioner() {
 		fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
 	}
 
+	// Pick Open Node/Port
+	_, sPort, err := k8.FindOpenNodePort()
+	if err != nil {
+		fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
+	}
+	fmt.Println("Job_Lobby_Server_Provisioner: @ Port ", sPort)
+
 	for _, lobby := range lobbies {
 		// Get the label for the lobby
 		label := strings.Split(lobby.ID.String(), ":")[1]
 
-		// If the server pod exists, we are done
-		// Get the server pod
 		fmt.Println("Job_Lobby_Server_Provisioner: @ Looking ", label)
+
+		// Get the server pod
 		_, lobpod, _, _ := k8.LocateServerPod(label)
 		if lobpod == nil && lobby.Lobby_Server != nil {
+			fmt.Println("Job_Lobby_Server_Provisioner: @ Deleting ", lobby.Lobby_Server)
 			repository.DelServer(lobby.Lobby_Server.ID.String())
 			lobby.Lobby_Server = nil
 		}
@@ -44,7 +52,7 @@ func Job_Lobby_Server_Provisioner() {
 			}
 			go func(lobby dbtype.Lobby, label string) {
 				// k8-Lock the lobby
-				cache.Set("k8-lock-"+label, "true", time.Minute*1)
+				cache.Set("k8-lock-"+label, "true", time.Minute*5)
 				// Create the server pod
 				err := Lobby_Server_Provisioner_PUT(lobby, label)
 				if err != nil {
@@ -59,16 +67,17 @@ func Job_Lobby_Server_Provisioner() {
 
 // Job_Lobby_Server_Provisioner_PUT
 func Lobby_Server_Provisioner_PUT(lobby dbtype.Lobby, label string) error {
+	fmt.Println("Job_Lobby_Server_Provisioner: @ Serving ", label)
+
 	// Get the server pod
 	_, lobpod, _, err := k8.LocateServerPod(label)
 	if lobpod != nil {
-		return fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
+		fmt.Println("Job_Lobby_Server_Provisioner: @ Errors ", lobpod.Status.Phase, err)
+		return err
 	}
 
-	return nil
-
-	// Pick Open Node/Port TODO: get port to pass to createserverpod
-	node, _, err := k8.FindOpenNodePort()
+	// Pick Open Node/Port
+	node, sPort, err := k8.FindOpenNodePort()
 
 	// Format the command
 	cmd := []string{}
@@ -87,18 +96,31 @@ func Lobby_Server_Provisioner_PUT(lobby dbtype.Lobby, label string) error {
 		cmd = append(cmd, str)
 	}
 
-	aport, err := strconv.ParseInt(os.Getenv("GAME_PORT"), 10, 32)
+	// Prepare ENVS
+	env := map[string]string{
+		"GAME_NAME": os.Getenv("GAME_NAME"),
+		"GAME_HOST": os.Getenv("GAME_HOST"),
+		"GAME_PORT": os.Getenv("GAME_PORT"),
+		"VNET_HOST": os.Getenv("VNET_HOST"),
+		"VNET_PORT": os.Getenv("VNET_PORT"),
+		"VNET_KEY":  os.Getenv("VNET_KEY"),
+		"LOBBY_MAX_PLAYERS": os.Getenv("LOBBY_MAX_PLAYERS"),
+		"LOBBY_ID":   lobby.ID.String(),
+		"LOBBY_NAME": lobby.Name,
+	}
+
+	aPort, err := strconv.ParseInt(os.Getenv("GAME_PORT"), 10, 32)
 	if err != nil {
+		fmt.Println("Job_Lobby_Server_Provisioner: @ Errors ", err)
 		return fmt.Errorf("error converting string to int: %s", err)
 	}
 
 	// Create the server pod
-	// TODO: use port from FindOpenNodePort
-	lobpod, service, err := k8.CreateServerPod(label, node, int32(0), int32(aport), os.Getenv("GAME_DOKIMAGE"), cmd)
+	image := os.Getenv("GAME_DOKIMAGE")
+	lobpod, service, err := k8.CreateServerPod(label, node, int32(sPort), int32(aPort), image, cmd, env)
 	if err != nil {
 		return fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
 	}
-	fmt.Println("Job_Lobby_Server_Provisioner: Server Created : ", lobpod.Status.Phase)
 
 	// Create A Server Db Entry
 	external_address := ""
@@ -118,13 +140,15 @@ func Lobby_Server_Provisioner_PUT(lobby dbtype.Lobby, label string) error {
 	}
 
 	// Link Lobby & Server
-	err = repository.LinkLobbyServer(lobby.ID.String(), server)
+	err = repository.LinkLobbyServer(&lobby, server)
 	if err != nil {
 		// Delete the server pod if we failed to create the server entry
 		k8.DeleteServerPod(label)
 		// Delete the server entry if we failed to create the server entry
 		repository.DelServer(server.ID.String())
 	}
+
+	fmt.Println("Job_Lobby_Server_Provisioner: Server Created : ", lobpod.Status.Phase)
 
 	return nil
 }

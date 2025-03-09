@@ -1,6 +1,7 @@
 package handler_admin
 
 import (
+	"os"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -91,9 +92,22 @@ func Handle_Pods_Create(c *fiber.Ctx) error {
 		})
 	}
 
+	// Prepare ENVS
+	env := map[string]string{
+		"GAME_NAME": os.Getenv("GAME_NAME"),
+		"GAME_HOST": os.Getenv("GAME_HOST"),
+		"GAME_PORT": os.Getenv("GAME_PORT"),
+		"VNET_HOST": os.Getenv("VNET_HOST"),
+		"VNET_PORT": os.Getenv("VNET_PORT"),
+		"VNET_KEY":  os.Getenv("VNET_KEY"),
+		"LOBBY_MAX_PLAYERS": os.Getenv("LOBBY_MAX_PLAYERS"),
+		"LOBBY_ID":   "0",
+		"LOBBY_NAME": "Lobby",
+	}
+
 	// Create the server pod
 	cmd := []string{}
-	pod, service, err := k8.CreateServerPod("nginx", node, int32(port), int32(80), "nginx", cmd)
+	pod, service, err := k8.CreateServerPod("nginx", node, int32(port), int32(80), "nginx", cmd, env)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),

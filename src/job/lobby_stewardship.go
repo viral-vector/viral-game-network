@@ -41,7 +41,9 @@ func Job_Lobby_Stewardship() {
 			ministration.Service_Lobby_Notify(lobby.ID.String(), msg, "")
 
 			// Delete Server
-			repository.DelServer(lobby.Lobby_Server.ID.String())
+			if lobby.Lobby_Server != nil {
+				repository.DelServer(lobby.Lobby_Server.ID.String())
+			}
 
 			// Delete Lobby
 			repository.DelLobby(lobby.ID.String())

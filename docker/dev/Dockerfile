@@ -24,6 +24,7 @@ RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=v
 COPY ./k8/k3d-config.yaml /etc/rancher/k3d/config.yaml
 # Copy the build script
 COPY ./k8 /etc/rancher/k3d
+COPY ./k8 /etc/rancher/k3s
 # Make the script executable
 #RUN chmod +x /etc/rancher/k3d/k3d-build.sh
 #ENV KUBECONFIG=/etc/rancher/k3d/kubeconfig.yaml

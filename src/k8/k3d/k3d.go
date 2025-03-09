@@ -26,26 +26,36 @@ func CreateCluster(portMin int32, portMax int32) error {
 	// Delete the cluster if it exists
 	DeleteCluster()
 
-	portDefinition := fmt.Sprintf("%d-%d:%d-%d@server:%d:direct",
-		portMin, portMax, portMin, portMax, 0)
+	nodes := []string{"server:0"}
 
-	cmd_b := exec.Command(
-		"k3d", "cluster", "create", cluster_name, "-p", portDefinition, "--config", "/etc/rancher/k3d/config.yaml",
+	// Build an array of port definitions using the provided port range.
+	var portDefinitions []string
+	for _, node := range nodes {
+		pd := fmt.Sprintf("%d-%d:%d-%d@%s:direct", portMin, portMax, portMin, portMax, node)
+		portDefinitions = append(portDefinitions, pd)
+	}
+
+	// Build command arguments.
+	cmdArgs := []string{
+		"cluster", "create", cluster_name,
 		"--registry-config", "/etc/rancher/k3d/registries.yaml",
-	)
-	output, err := cmd_b.CombinedOutput()
+	}
+	// Append each port definition using the -p flag.
+	for _, pd := range portDefinitions {
+		cmdArgs = append(cmdArgs, "-p", pd)
+	}
+	// Append additional config file flag.
+	cmdArgs = append(cmdArgs, "--config", "/etc/rancher/k3d/config.yaml")
+
+
+	cmd := exec.Command("k3d", cmdArgs...)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to create k3d cluster: %v\nOutput: %s", err, string(output))
 	}
 	fmt.Println("Created Cluster: " + cluster_name)
 
-	cmd_d := exec.Command("k3d", "kubeconfig", "write", cluster_name)
-	output, err = cmd_d.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to write kubeconfig: %v\nOutput: %s", err, string(output))
-	}
-
-	return nil
+	return WrtiteKubeConfig()
 }
 
 func CheckCluster() (bool, error) {
@@ -65,4 +75,16 @@ func CheckCluster() (bool, error) {
 	}
 
 	return false, nil
+}
+
+func WrtiteKubeConfig() error {
+	cluster_name := "viral-game-network"
+
+	cmd := exec.Command("k3d", "kubeconfig", "write", cluster_name)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to write kubeconfig: %v\nOutput: %s", err, string(output))
+	}
+	fmt.Println("kubeconfig: Output: %s", string(output))
+	return nil
 }
