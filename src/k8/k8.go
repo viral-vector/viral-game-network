@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/rand"
 	"strconv"
-	"strings"
 	"encoding/json"
 	k8_k3d "viral-game-network/src/k8/k3d"
 	v1 "k8s.io/api/core/v1"
@@ -31,7 +30,7 @@ func init() {
 		return
 	}
 	if !kinit {
-		log.Println("k8 init error: Cluster not running")
+		log.Println("k8 init error: K8 Error: Cluster Not Running")
 		return
 	}
 
@@ -88,7 +87,7 @@ func CheckDeleteCluster() error {
 
 func CreateNameSpace() error {
 	if clientset == nil {
-		return fmt.Errorf("Cluster Not Running")
+		return fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 
 	existing, err := clientset.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
@@ -115,7 +114,7 @@ func CreateNameSpace() error {
 
 func GetClusterStatus() (map[string]interface{}, error) {
 	if clientset == nil {
-		return nil, fmt.Errorf("Cluster Not Running")
+		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 
 	// Get Version
@@ -166,14 +165,14 @@ func GetPortRange(min, max int32) []int32 {
 
 func GetNode(name string) (*v1.Node, error) {
 	if clientset == nil {
-		return nil, fmt.Errorf("Cluster Not Running")
+		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 	return clientset.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
 }
 
 func FindOpenNodePort() (*v1.Node, int32, error) {
 	if clientset == nil {
-		return nil, -1, fmt.Errorf("Cluster Not Running")
+		return nil, -1, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 
 	// Get the list of nodes
@@ -242,7 +241,7 @@ func FindOpenNodePort() (*v1.Node, int32, error) {
 // Kill all server pods
 func KillAllServerPods() error {
 	if clientset == nil {
-		return fmt.Errorf("Cluster Not Running")
+		return fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
@@ -250,8 +249,7 @@ func KillAllServerPods() error {
 		return fmt.Errorf("error pulling pods: %s", err)
 	}
 	for _, pod := range pods.Items {
-		label := strings.Replace(pod.Name, "server-", "", -1)
-		DeleteServerPod(label)
+		DeleteServerPod(pod.Name)
 	}
 	return nil
 }
@@ -259,7 +257,7 @@ func KillAllServerPods() error {
 // Get All server Pods
 func GetAllServerPods() ([]*v1.Pod, error) {
 	if clientset == nil {
-		return nil, fmt.Errorf("Cluster Not Running")
+		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 
 	list, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
@@ -277,10 +275,10 @@ func GetAllServerPods() ([]*v1.Pod, error) {
 // Locate Server Pod
 func LocateServerPod(label string) (*v1.Node, *v1.Pod, error) {
 	if clientset == nil {
-		return nil, nil, fmt.Errorf("Cluster Not Running")
+		return nil, nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 
-	pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, "server-"+label, metav1.GetOptions{})
+	pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, label, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -296,7 +294,7 @@ func LocateServerPod(label string) (*v1.Node, *v1.Pod, error) {
 // Create Server Pod
 func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, image string, command []string, env map[string]string) (*v1.Pod, error) {
 	if clientset == nil {
-		return nil, fmt.Errorf("Cluster Not Running")
+		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 
 	// Convert map to slice of corev1.EnvVar
@@ -311,10 +309,10 @@ func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, imag
 	// Create Pod
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "server-" + label,
+			Name:      label,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": "server-" + label,
+				"app": label,
 				"hostport": strconv.Itoa(int(sPort)),
 			},
 		},
@@ -325,7 +323,7 @@ func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, imag
 			},
 			Containers: []v1.Container{
 				{
-					Name:    "server-" + label,
+					Name:    label,
 					Image:   image,
 					Command: command,
 					ImagePullPolicy: v1.PullAlways,
@@ -373,7 +371,7 @@ func AddServerPodLabel(label string, labels map[string]string) error {
 	
 	_, err = clientset.CoreV1().Pods(namespace).Patch(
 		ctx,
-		"server-"+label,
+		label,
 		types.MergePatchType,
 		patchData,
 		metav1.PatchOptions{},
@@ -387,11 +385,11 @@ func AddServerPodLabel(label string, labels map[string]string) error {
 // Delete Server Pod
 func DeleteServerPod(label string) error {
 	if clientset == nil {
-		return fmt.Errorf("Cluster Not Running")
+		return fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 	err := clientset.CoreV1().Pods(namespace).Delete(
 		ctx,
-		"server-"+label,
+		label,
 		metav1.DeleteOptions{},
 	)
 	if err != nil {

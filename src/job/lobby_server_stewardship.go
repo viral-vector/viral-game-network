@@ -2,7 +2,6 @@ package job
 
 import (
 	"fmt"
-	"strings"
 	"time"
 	"viral-game-network/src/cache"
 	"viral-game-network/src/database/repository"
@@ -22,33 +21,27 @@ func Job_Lobby_Server_Stewardship() {
 		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: %s", err))
 		return
 	}
-	for _, pod := range pods {
-		// Get the label for the pod
-		label := strings.Split(pod.Name, "-")[1]
-		
+	for _, pod := range pods {		
 		// Check if we have a lock on the pod
-		if cache_lock, _ := cache.Get("server-stewardship-lock-" + label); cache_lock != nil {
+		if cache_lock, _ := cache.Get("server-stewardship-lock-" + pod.Name); cache_lock != nil {
 			continue
 		}
-		go func(pod *v1.Pod, label string) {
+		go func(pod *v1.Pod, podName string) {
 			// Lock the pod
-			cache.Set("server-stewardship-lock-"+label, "true", time.Second*30)
+			cache.Set("server-stewardship-lock-" + podName, "true", time.Second*30)
 
 			fmt.Println("RUN_Lobby_Server_Stewardship: @ Looking", pod.Name)
 
 			// RUN
 			RUN_Lobby_Server_Stewardship(pod)
 			// Unlock the pod
-			cache.Del("server-stewardship-lock-" + label)
-		}(pod, label)
+			cache.Del("server-stewardship-lock-" + podName)
+		}(pod, pod.Name)
 	}
 }
 
 func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
-	// Get the label for the pod
-	label := strings.Split(pod.Name, "-")[1]
-
-	node, lobpod, err := k8.LocateServerPod(label)
+	node, lobpod, err := k8.LocateServerPod(pod.Name)
 
 	if err != nil {
 		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: %s", err))
@@ -61,9 +54,7 @@ func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 	}
 	
 	// Get the lobby
-	lobby, err := repository.GetLobby(
-		strings.Replace(lobpod.Name, "server-", "Lobby:", -1),
-	)
+	lobby, err := repository.GetLobby("Lobby:" + lobpod.Name)
 	if err != nil {
 		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: @ Lobby Fetch Error %s", err))
 		return
@@ -118,12 +109,9 @@ func RUN_Lobby_Server_Stewardship_Running(lobby *dbtype.Lobby, pod *v1.Pod, node
 }
 
 // Purge a Server & Pod
-func RUN_Lobby_Server_Stewardship_Purger(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) error {
-	// Get label
-	label := strings.Split(pod.Name, "-")[1]
-	
+func RUN_Lobby_Server_Stewardship_Purger(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) error {	
 	// Delete Pod
-	k8.DeleteServerPod(label)
+	k8.DeleteServerPod(pod.Name)
 
 	// Delete Server
 	serverID := ""

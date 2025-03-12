@@ -126,7 +126,7 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 		Port:    int32(sPort),
 	}, lobby)
 	if err != nil {
-		// Delete the server pod if we failed to create the server entry
+		// Delete the server pod
 		k8.DeleteServerPod(label)
 
 		return fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
@@ -135,18 +135,16 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 	// Link Lobby & Server
 	err = repository.LinkLobbyServer(lobby, server)
 	if err != nil {
-		// Delete the server pod if we failed to create the server entry
+		// Delete the server pod 
 		k8.DeleteServerPod(label)
-		// Delete the server entry if we failed to create the server entry
+		// Delete the server entry
 		repository.DelServer(server.ID.String())
 	}
 
 	// Update Pod Labels
-	llabel := strings.Split(lobby.ID.String(), ":")[1]
-	slabel := strings.Split(server.ID.String(), ":")[1]
 	err = k8.AddServerPodLabel(label, map[string]string {
-		"lobby": llabel,
-		"server": slabel,
+		"lobby" : strings.Split(lobby.ID.String(),  ":")[1],
+		"server": strings.Split(server.ID.String(), ":")[1],
 	})
 	if err != nil {
 		fmt.Println( fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err))
