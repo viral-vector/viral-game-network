@@ -78,17 +78,25 @@ func Update[T Model](record *T) (*T, error) {
 	return surrealdb.Update[T](DBS, models.Table(table), record)
 }
 
-func Delete[T any](id string) (error) {
-	_, err := surrealdb.Delete[T, string](DBS, id)
+func Delete[T models.RecordID](id models.RecordID) (error) {
+	_, err := surrealdb.Query[T](DBS, "DELETE type::record($id);", map[string]interface{}{
+		"id": id.String(), 
+	})
+	if err != nil {
+		fmt.Println("Delete Error: ", err)
+	}
 	return err
 }
 
 func Select[T any](id string) (*T, error) {
-	record, err := surrealdb.Select[T, string](DBS, id)
+	result, err := surrealdb.Query[T](DBS, "SELECT * FROM ONLY type::record($id);", map[string]interface{}{
+		"id": id,
+	})
 	if err != nil {
+		fmt.Println("Select Error: ", err)
 		return nil, err
 	}
-	return record, nil
+	return &(*result)[0].Result, err
 }
 
 func Relate(in *models.RecordID, out *models.RecordID, table string, data map[string]interface{}) (error) {
@@ -100,5 +108,8 @@ func Relate(in *models.RecordID, out *models.RecordID, table string, data map[st
 		Data: data,
 	}
 	err := surrealdb.Relate(DBS, relationship)
+	if err != nil {
+		fmt.Println("Relate Error: ", err)
+	}
 	return err
 }

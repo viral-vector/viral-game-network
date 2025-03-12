@@ -12,31 +12,22 @@ func AllServer() ([]dbtype.Server, error) {
 		map[string]interface{}{
 			"tb": "Server",
 		})
-	if err != nil {
-		return nil, err
-	}
-	return servers, nil
+	
+		return servers, err
 }
 
 func GetServer(id string) (*dbtype.Server, error) {
 	server, err := database.Select[dbtype.Server](id)
-	if err != nil {
-		return nil, err
-	}
-	if server == nil {
-		return nil, fmt.Errorf("server not found")
-	}
-	return server, nil
+
+	return server, err
 }
 
 func SetServer(id string, body *dbtype.Server) (*dbtype.Server, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	body.Date_Updated = now
 	server, err := database.Update[dbtype.Server](body)
-	if err != nil {
-		return nil, err
-	}
-	return server, nil
+	
+	return server, err
 }
 
 func PutServer(body *dbtype.Server, lobby *dbtype.Lobby) (*dbtype.Server, error) {
@@ -44,17 +35,15 @@ func PutServer(body *dbtype.Server, lobby *dbtype.Lobby) (*dbtype.Server, error)
 	body.Date_Created = now
 	body.Date_Updated = now
 	server, err := database.Create[dbtype.Server](body)
-	if err != nil {
-		return nil, err
-	}
-	return server, nil
+
+	return server, err
 }
 
 func DelServer(id string) error {
-	err := database.Delete[dbtype.Lobby](id)
+	_, err := GetServer(id)
 	if err != nil {
-		return err
-	}
+		return fmt.Errorf("DelServer Error: %v", err)
+	} 
 	return nil
 }
 

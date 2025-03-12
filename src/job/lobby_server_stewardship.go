@@ -24,7 +24,10 @@ func Job_Lobby_Server_Stewardship() {
 	}
 
 	for _, pod := range pods {
-		node, lobpod, service, err := k8.LocateServerPod(pod.Pod.Name)
+		// Get the label for the lobby
+		label := strings.Split(pod.Pod.Name, "-")[1]
+
+		node, lobpod, service, err := k8.LocateServerPod(label)
 
 		if err != nil {
 			fmt.Errorf("Job_Lobby_Server_Stewardship:  %s", err)
@@ -36,8 +39,8 @@ func Job_Lobby_Server_Stewardship() {
 			continue
 		}
 
-		fmt.Println("Job_Lobby_Server_Stewardship: @ ", lobpod.Name)
-
+		fmt.Println("Job_Lobby_Server_Stewardship: @ ", label)
+		
 		// Get the lobby
 		lobby, err := repository.GetLobby(
 			strings.Replace(lobpod.Name, "server-", "Lobby:", -1),

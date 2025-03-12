@@ -108,7 +108,11 @@ func PutLobby(body *dbtype.Lobby, user *dbtype.User) (*dbtype.Lobby, error) {
 }
 
 func DelLobby(id string) error {
-	err := database.Delete[dbtype.Lobby](id)
+	lobby, err := GetLobby(id)
+	if err != nil || lobby == nil {
+		return fmt.Errorf("lobby not found")
+	}
+	err = database.Delete(*lobby.ID)
 	if err != nil {
 		return err
 	}

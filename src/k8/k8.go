@@ -20,7 +20,7 @@ var ctx = context.Background()
 var config *rest.Config
 var namespace = "viral-game-network"
 var clientset *kubernetes.Clientset
-var portRange = []int32{30000, 30005}
+var portRange = []int32{30000, 30025}
 
 type PodService struct {
 	Pod     v1.Pod
@@ -209,7 +209,6 @@ func FindOpenNodePort() (string, int32, error) {
 			serviceName := strings.Replace(pod.Name, "server-", "", -1)
 			service, err := LocateService(serviceName)
 			if err != nil {
-				log.Printf("Error locating service for pod %s: %s", pod.Name, err.Error())
 				continue
 			}
 			for _, port := range service.Spec.Ports {
@@ -278,15 +277,15 @@ func GetAllServerPodsAndServices() ([]PodService, error) {
 
 	var podServices []PodService
 	for _, pod := range pods.Items {
-		podName := strings.Replace(pod.Name, "server-", "", -1)
+		// podName := strings.Replace(pod.Name, "server-", "", -1)
 
-		service, err := LocateService(podName)
-		if err != nil {
-			log.Printf("Error locating service for pod %s: %s", podName, err.Error())
-		}
+		// service, err := LocateService(podName)
+		// if err != nil {
+		// 	log.Printf("Error locating service for pod %s: %s", podName, err.Error())
+		// }
 		podServices = append(podServices, PodService{
 			Pod:     pod,
-			Service: service,
+			Service: nil,
 		})
 	}
 
@@ -306,15 +305,15 @@ func LocateServerPod(label string) (*v1.Node, *v1.Pod, *v1.Service, error) {
 
 	node, err := clientset.CoreV1().Nodes().Get(ctx, pod.Spec.NodeName, metav1.GetOptions{})
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, pod, nil, err
 	}
 
 	service, err := LocateService(label)
 	if err != nil {
-		return nil, nil, nil, err
+		return node, pod, nil, err
 	}
 
-	return node, pod, service, nil
+	return node, pod, service, err
 }
 
 // Create Server Pod
@@ -355,10 +354,12 @@ func CreateServerPod(label string, node string, sPort int32, aPort int32, image 
 					Ports: []v1.ContainerPort{
 						{
 							ContainerPort: aPort,
+							HostPort: 	   sPort,
 							Protocol:      v1.ProtocolTCP,
 						},
 						{
 							ContainerPort: aPort,
+							HostPort: 	   sPort,
 							Protocol:      v1.ProtocolUDP,
 						},
 					},
@@ -374,14 +375,7 @@ func CreateServerPod(label string, node string, sPort int32, aPort int32, image 
 		return nil, nil, err
 	}
 
-	ser, err := CreateService(label, aPort, sPort)
-	if err != nil {
-		fmt.Println("Failed to create pod: ", err)
-		DeleteServerPod(label)
-		return nil, nil, err
-	}
-
-	return pod, ser, nil
+	return pod, nil, nil
 }
 
 // Delete Server Pod
@@ -390,18 +384,14 @@ func DeleteServerPod(label string) error {
 		return fmt.Errorf("Cluster Not Running")
 	}
 
-	err := clientset.CoreV1().Pods(namespace).Delete(
+	err := DeleteService(label)
+	err = clientset.CoreV1().Pods(namespace).Delete(
 		ctx,
 		"server-"+label,
 		metav1.DeleteOptions{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to delete pod: %v", err)
-	}
-
-	err = DeleteService(label)
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -411,12 +401,7 @@ func LocateService(label string) (*v1.Service, error) {
 	if clientset == nil {
 		return nil, fmt.Errorf("Cluster Not Running")
 	}
-
-	service, err := clientset.CoreV1().Services(namespace).Get(ctx, "service-"+label, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return service, nil
+	return clientset.CoreV1().Services(namespace).Get(ctx, "service-"+label, metav1.GetOptions{})
 }
 
 // Creates a Service
@@ -477,7 +462,6 @@ func DeleteService(label string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete service: %v", err)
 	}
-
 	return nil
 }
 
