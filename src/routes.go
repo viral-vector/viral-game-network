@@ -55,7 +55,6 @@ func serve_routes(app *fiber.App) {
 	admin.Get("/lobbies", handler_admin.Handle_Lobbies)
 	admin.Get("/servers", handler_admin.Handle_Servers)
 	admin.Get("/pods", handler_admin.Handle_Pods)
-	admin.Post("/pods", handler_admin.Handle_Pods_Create)
 	admin.Delete("/pods/:id", handler_admin.Handle_Pods_Delete)
 	admin.Get("/pods/:id", handler_admin.Handle_Pods_Edit)
 	admin.Get("/metrics", handler_admin.Handle_Dash)

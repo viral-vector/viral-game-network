@@ -11,6 +11,13 @@ p
                 .column #{.pod.Name}
             .columns
                 .column
+                    strong Labels:
+                .column 
+                    ul
+                    each lable in .pod.Labels
+                        li #{.}
+            .columns
+                .column
                     strong Status:
                 .column 
                     | #{.pod.Status.Phase}
@@ -34,34 +41,16 @@ p
                     ul
                         each address in .node.Status.Addresses
                             li #{.Address} #{.Type}
-            hr
-            h4.subtitle Service Information
+            hr 
+            h4.subtitle Pod Port Information
             .columns
                 .column
-                    strong Service Name:
-                .column #{.service.Name} (#{.service.Spec.Type}) (#{.service.Spec.ExternalTrafficPolicy})
-            .columns
-                .column
-                    strong Cluster IP:
-                .column #{.service.Spec.ClusterIP}
-            .columns
-                .column
-                    strong External IPs:
-                .column
-                    ul
-                        each ip in .service.Spec.ExternalIPs 
-                            li #{.}
-            .columns
-                .column
-                    strong Ports:
-                .column
-                    ul
-                        each port in .service.Spec.Ports
-                            li 
-                                | Name: #{.Name}  
-                                br
-                                | Type: #{.Protocol}
-                                br 
-                                | Port: #{.Port} 
-                                br
-                                | NodePort: #{.NodePort} 
+                    strong Port Info:
+                .column 
+                    each cts in .pod.Spec.Containers
+                        each port in .Ports
+                            ul
+                                li Name: #{.Name}
+                                li HostPort: #{.HostPort}
+                                li GamePort: #{.ContainerPort}
+                                li #{.Protocol}

@@ -1,7 +1,6 @@
 package handler_admin
 
 import (
-	"os"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -73,7 +72,7 @@ func Handle_Servers(c *fiber.Ctx) error {
 func Handle_Pods(c *fiber.Ctx) error {
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
-	pods, _ := k8.GetAllServerPodsAndServices()
+	pods, _ := k8.GetAllServerPods()
 	total := len(pods)
 
 	return c.Render("admin/pods", fiber.Map{
@@ -84,44 +83,8 @@ func Handle_Pods(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Pods_Create(c *fiber.Ctx) error {
-	node, port, err := k8.FindOpenNodePort()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-
-	// Prepare ENVS
-	env := map[string]string{
-		"GAME_NAME": os.Getenv("GAME_NAME"),
-		"GAME_HOST": os.Getenv("GAME_HOST"),
-		"GAME_PORT": os.Getenv("GAME_PORT"),
-		"VNET_HOST": os.Getenv("VNET_HOST"),
-		"VNET_PORT": os.Getenv("VNET_PORT"),
-		"VNET_KEY":  os.Getenv("VNET_KEY"),
-		"LOBBY_MAX_PLAYERS": os.Getenv("LOBBY_MAX_PLAYERS"),
-		"LOBBY_ID":   "0",
-		"LOBBY_NAME": "Lobby",
-	}
-
-	// Create the server pod
-	cmd := []string{}
-	pod, service, err := k8.CreateServerPod("nginx", node, int32(port), int32(80), "nginx", cmd, env)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-
-	return c.JSON(fiber.Map{
-		"pod":     pod,
-		"service": service,
-	})
-}
-
 func Handle_Pods_Edit(c *fiber.Ctx) error {
-	node, pod, service, err := k8.LocateServerPod(
+	node, pod, err := k8.LocateServerPod(
 		strings.Replace(c.Params("id"), "server-", "", -1))
 
 	if err != nil {
@@ -131,7 +94,6 @@ func Handle_Pods_Edit(c *fiber.Ctx) error {
 	return c.Render("admin/pods", fiber.Map{
 		"pod":     pod,
 		"node":    node,
-		"service": service,
 	})
 }
 

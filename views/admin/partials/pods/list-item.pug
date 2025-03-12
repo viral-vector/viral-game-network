@@ -1,19 +1,19 @@
 p 
     a.icon.has-text-danger.is-pulled-right
-        span.fas.fa-trash(data-action="click->crud#delete" data-id=.Pod.Name)
+        span.fas.fa-trash(data-action="click->crud#delete" data-id=.Name)
 .columns
     .column
-        a(href="/admin/pods/" .Pod.Name, title="Edit Pod " .Pod.Name)
+        a(href="/admin/pods/" .Name, title="Edit Pod " .Name)
             span.icon
                 span.fas.fa-pencil
-            | #{.Pod.Name}
+            | #{.Name}
     .column
         strong Phase:
-        | #{.Pod.Status.Phase}
+        | #{.Status.Phase}
     .column
         strong Node:
-        | #{.Pod.Spec.NodeName}
+        | #{.Spec.NodeName}
     .column
         strong IP:
-        | #{.Pod.Status.HostIP}
+        | #{.Status.HostIP}
                 
