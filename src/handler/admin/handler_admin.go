@@ -65,8 +65,16 @@ func Handle_Lobbies(c *fiber.Ctx) error {
 }
 
 func Handle_Servers(c *fiber.Ctx) error {
+	curPage, _ := strconv.Atoi(c.Query("page", "1"))
+	perPage := 15
+	servers, total, _ := repository.AllServer(perPage, curPage)
 
-	return c.Render("admin/servers", fiber.Map{})
+	return c.Render("admin/servers", fiber.Map{
+		"servers": servers,
+		"total":   total,
+		"pages":   int(math.Ceil(float64(total) / float64(perPage))),
+		"paged":   curPage,
+	})
 }
 
 func Handle_Pods(c *fiber.Ctx) error {

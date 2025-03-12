@@ -7,10 +7,42 @@ import (
 	dbtype "viral-game-network/src/database/type"
 )
 
-func AllServer() ([]dbtype.Server, error) {
-	return database.Query[dbtype.Server]("SELECT * FROM type::table(Server);",
+func AllServer(count int, pager int) ([]dbtype.Server, int, error) {
+	lQuery := `
+	SELECT *
+	,(IF count(SELECT id FROM <-Lobby_Server.in) > 0
+		{array::first(SELECT * FROM <-Lobby_Server.in)} ELSE {NULL}) AS lobby 
+	FROM type::table(Server)`
+
+	params := map[string]interface{}{
+		
+	}
+
+	if count > -1 {
+		lQuery = fmt.Sprintf("%s LIMIT $ct START $pg", lQuery)
+		params["ct"] = count
+		params["pg"] = (pager - 1) * count
+	}
+
+	servers, err := database.Query[dbtype.Server](fmt.Sprintf("%s;", lQuery), params)
+	if err != nil {
+		fmt.Println("AllServer: ", err)
+		return nil, 0, err
+	}
+
+	// Count all servers.
+	total, err := database.Query[dbtype.Total](
+		"SELECT count() AS total FROM type::table(Server) GROUP ALL;",
 		map[string]interface{}{
-		})
+			
+		},
+	)
+	if err != nil || len(total) == 0 {
+		return servers, 0, err
+	}
+
+	return servers, total[0].Total, nil
+
 }
 
 func GetServerByGuid(guid string) (*dbtype.Server, error) {

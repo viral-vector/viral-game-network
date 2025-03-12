@@ -14,6 +14,7 @@ type Server struct {
 	Address string `json:"address"`
 	Port int32 `json:"port"`
 	Configs string `json:"config"`
+	Lobby *Lobby `json:"lobby,omitempty"`
 }
 
 func (u Server) TableName() string {

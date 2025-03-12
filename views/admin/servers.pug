@@ -14,7 +14,7 @@ div#app.my-5.mx-3
                 p.notification.is-info 
                     | #{.total} servers found.
                     | Viewing #{.paged} of #{.pages} pages.
-                each user in .users
+                each server in .servers
                     .box
                         include partials/servers/list-item.pug
                 include partials/pager.pug

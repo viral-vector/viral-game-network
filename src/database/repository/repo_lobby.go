@@ -2,7 +2,6 @@ package repository
 
 import (
 	"fmt"
-	"os"
 	"time"
 	"viral-game-network/src/database"
 	dbtype "viral-game-network/src/database/type"
@@ -16,12 +15,11 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
     ,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
        {array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
     ,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
-	FROM type::table(Lobby) 
-	WHERE COUNT(lobby_users) < $mx
+	FROM type::table(Lobby)
 	ORDER BY date_created DESC
 	`
 	params := map[string]interface{}{
-		"mx": os.Getenv("LOBBY_MAX_PLAYERS"),
+		
 	}
 
 	if count > -1 {
@@ -53,8 +51,7 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 
 func GetLobby(id string) (*dbtype.Lobby, error) {
 	// Get lobby by ID.
-	lobbies, err := database.Query[dbtype.Lobby](
-		`
+	lobbies, err := database.Query[dbtype.Lobby](`
 	SELECT * 
     ,(IF count(SELECT id FROM ->Lobby_Host.out) > 0
        {array::first(SELECT id, name, guid FROM ->Lobby_Host.out)} ELSE {NULL}) AS lobby_host
