@@ -10,20 +10,15 @@ import (
 func GetSystemEvents(count int32) ([]dbtype.SystemEvent, error) {
 	lQuery := `
 	SELECT *
-	FROM type::table($tb) 
+	FROM type::table(System_Event) 
 	ORDER BY date_created DESC
 	LIMIT $ct
 	`
 	params := map[string]interface{}{
-		"tb": "System_Event",
 		"ct": count,
 	}
 
-	events, err := database.Query[dbtype.SystemEvent](fmt.Sprintf("%s%s", lQuery, `;`), params)
-	if err != nil {
-		return nil, err
-	}
-	return events, nil
+	return database.Query[dbtype.SystemEvent](fmt.Sprintf("%s%s", lQuery, `;`), params)
 }
 
 func GetSystemEventsInFrame(seconds int32) ([]dbtype.SystemEvent, error) {
@@ -31,30 +26,19 @@ func GetSystemEventsInFrame(seconds int32) ([]dbtype.SystemEvent, error) {
 
 	lQuery := `
 	SELECT *
-	FROM type::table($tb) 
+	FROM type::table(System_Event) 
 	WHERE date_created >= $dd
 	ORDER BY date_created DESC
 	`
 	params := map[string]interface{}{
-		"tb": "System_Event",
 		"dd": startTime,
 	}
 
-	events, err := database.Query[dbtype.SystemEvent](fmt.Sprintf("%s%s", lQuery, `;`), params)
-	if err != nil {
-		return nil, err
-	}
-	return events, nil
+	return database.Query[dbtype.SystemEvent](fmt.Sprintf("%s%s", lQuery, `;`), params)
 }
 
-func PutSystemEvent(body *dbtype.SystemEvent) (*dbtype.SystemEvent, error) {
-	var now = time.Now().UTC().Format(time.RFC3339)
-
-	body.Date_Created = now
-	event, err := database.Create[dbtype.SystemEvent](body)
-
-	if err != nil {
-		return nil, err
-	}
-	return event, nil
+func PutSystemEvent(event *dbtype.SystemEvent) (*dbtype.SystemEvent, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	event.Date_Created = now
+	return database.Create[dbtype.SystemEvent](event)
 }

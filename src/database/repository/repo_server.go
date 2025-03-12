@@ -8,42 +8,50 @@ import (
 )
 
 func AllServer() ([]dbtype.Server, error) {
-	servers, err := database.Query[dbtype.Server]("SELECT * FROM type::table($tb);",
+	return database.Query[dbtype.Server]("SELECT * FROM type::table(Server);",
 		map[string]interface{}{
-			"tb": "Server",
 		})
-	
-		return servers, err
+}
+
+func GetServerByGuid(guid string) (*dbtype.Server, error) {
+	results, err := database.Query[dbtype.Server]("SELECT * FROM type::table(Server) WHERE guid=$guid;",
+		map[string]interface{}{
+			"guid": guid,
+		})
+	if err != nil{
+		return nil, err
+	}
+	if(len(results) == 0){
+		return nil, nil
+	}
+	return &results[0], nil
 }
 
 func GetServer(id string) (*dbtype.Server, error) {
-	server, err := database.Select[dbtype.Server](id)
-
-	return server, err
+	return database.Select[dbtype.Server](id)
 }
 
-func SetServer(id string, body *dbtype.Server) (*dbtype.Server, error) {
+func SetServer(id string, server *dbtype.Server) (*dbtype.Server, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
-	body.Date_Updated = now
-	server, err := database.Update[dbtype.Server](body)
-	
-	return server, err
+	server.Date_Updated = now
+	return database.Update[dbtype.Server](*server.ID, server)
 }
 
-func PutServer(body *dbtype.Server, lobby *dbtype.Lobby) (*dbtype.Server, error) {
+func PutServer(server *dbtype.Server, lobby *dbtype.Lobby) (*dbtype.Server, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
-	body.Date_Created = now
-	body.Date_Updated = now
-	server, err := database.Create[dbtype.Server](body)
-
-	return server, err
+	server.Date_Created = now
+	return database.Create[dbtype.Server](server)
 }
 
 func DelServer(id string) error {
-	_, err := GetServer(id)
+	server, err := GetServer(id)
 	if err != nil {
 		return fmt.Errorf("DelServer Error: %v", err)
 	} 
+	err = database.Delete(*server.ID)
+	if err != nil {
+		return fmt.Errorf("DelServer error: %s", err)
+	}
 	return nil
 }
 
@@ -64,18 +72,13 @@ func GetServerPorts() []int32 {
 }
 
 func TickServer(id string) (*dbtype.Server, error) {
-	now := time.Now().UTC().Format(time.RFC3339)
 	server, err := GetServer(id)
-	if err != nil || server == nil {
-		return nil, err
+	if err != nil {
+		return nil, fmt.Errorf("TickServer Error: %v", err)
 	}
 
+	now := time.Now().UTC().Format(time.RFC3339)
 	server.Date_Updated = now
 	server.Status = "Online"
-	updated, err := database.Update[dbtype.Server](server)
-	if err != nil {
-		return nil, err
-	}
-
-	return updated, nil
+	return database.Update[dbtype.Server](*server.ID, server)
 }

@@ -24,12 +24,12 @@ func stack() []Entry {
 		},
 		{
 			Name: "lobby_server_stewardship",
-			Time: "@every 8s",
+			Time: "@every 5s",
 			Func: Job_Lobby_Server_Stewardship,
 		},
 		{
 			Name: "lobby_stewardship",
-			Time: "@every 15s",
+			Time: "@every 8s",
 			Func: Job_Lobby_Stewardship,
 		},
 	}

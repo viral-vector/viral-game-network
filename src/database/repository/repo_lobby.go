@@ -16,7 +16,7 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
     ,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
        {array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
     ,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
-	FROM Lobby 
+	FROM type::table(Lobby) 
 	WHERE COUNT(lobby_users) < $mx
 	ORDER BY date_created DESC
 	`
@@ -39,7 +39,7 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 
 	// Count all lobbies.
 	total, err := database.Query[dbtype.Total](
-		"SELECT count() AS total FROM Lobby GROUP ALL;",
+		"SELECT count() AS total FROM type::table(Lobby) GROUP ALL;",
 		map[string]interface{}{
 			
 		},
@@ -61,7 +61,7 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
     ,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
        {array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
     ,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
-	FROM Lobby WHERE id=$id;`,
+	FROM type::record($id);`,
 		map[string]interface{}{
 			"id": id,
 		})
@@ -69,61 +69,51 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
 		return nil, err
 	}
 	if len(lobbies) == 0 {
-		return nil, fmt.Errorf("lobby not found")
+		return nil, nil
 	}
 	return &lobbies[0], nil
 }
 
-func SetLobby(id string, body *dbtype.Lobby) (*dbtype.Lobby, error) {
-	body.Date_Updated = time.Now().UTC().Format(time.RFC3339)
-	// Update the lobby record.
-	lobby, err := database.Update[dbtype.Lobby](body)
-	if err != nil {
-		return nil, err
-	}
-	return lobby, nil
+func SetLobby(id string, lobby *dbtype.Lobby) (*dbtype.Lobby, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	lobby.Date_Updated = now
+	return database.Update[dbtype.Lobby](*lobby.ID, lobby)
 }
 
 func PutLobby(body *dbtype.Lobby, user *dbtype.User) (*dbtype.Lobby, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	body.Date_Created = now
-	body.Date_Updated = now
 
 	// Create the lobby.
 	lobby, err := database.Create[dbtype.Lobby](body)
 	if err != nil {
 		return nil, err
 	}
-	if lobby == nil{
-		return nil, fmt.Errorf("failed to create lobby")
-	}
-
 	// Link the host.
 	err = LinkLobbyHost(lobby, user)
 	if err != nil {
 		return nil, err
 	}
 	
-	return lobby, nil
+	return GetLobby(lobby.ID.String())
 }
 
 func DelLobby(id string) error {
 	lobby, err := GetLobby(id)
 	if err != nil || lobby == nil {
-		return fmt.Errorf("lobby not found")
+		return fmt.Errorf("DelLobby error: lobby not found %s", err)
 	}
 	err = database.Delete(*lobby.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("DelLobby error: lobby not found %s", err)
 	}
 	return UnlinkLobbyAllUsers(id)
 }
 
 func LinkLobbyHost(lobby *dbtype.Lobby, user *dbtype.User) error {
-	err := database.Relate(lobby.ID, user.ID, "Lobby_Host", map[string]interface{}{
+	return database.Relate(lobby.ID, user.ID, "Lobby_Host", map[string]interface{}{
 
 	})
-	return err
 }
 
 func LinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User) error {
@@ -138,10 +128,9 @@ func LinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User) error {
 		return err
 	}
 
-	err = database.Relate(lobby.ID, user.ID, "Lobby_Users", map[string]interface{}{
+	return database.Relate(lobby.ID, user.ID, "Lobby_Users", map[string]interface{}{
 		"date_created": time.Now().UTC().Format(time.RFC3339),
 	})
-	return err
 }
 
 func UnlinkLobbyAllUsers(id string) error {
@@ -155,8 +144,7 @@ func UnlinkLobbyAllUsers(id string) error {
 }
 
 func LinkLobbyServer(lobby *dbtype.Lobby, server *dbtype.Server) error {
-	err := database.Relate(lobby.ID, server.ID, "Lobby_Server", map[string]interface{}{
+	return database.Relate(lobby.ID, server.ID, "Lobby_Server", map[string]interface{}{
 		"date_created": time.Now().UTC().Format(time.RFC3339),
 	})
-	return err
 }

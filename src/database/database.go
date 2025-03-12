@@ -73,13 +73,12 @@ func Create[T Model](record *T) (*T, error) {
 	return surrealdb.Create[T](DBS, models.Table(table), record)
 }
 
-func Update[T Model](record *T) (*T, error) {
-	table := (*record).TableName()
-	return surrealdb.Update[T](DBS, models.Table(table), record)
+func Update[T Model](id models.RecordID, record *T) (*T, error) {
+	return surrealdb.Update[T](DBS, id, record)
 }
 
 func Delete[T models.RecordID](id models.RecordID) (error) {
-	_, err := surrealdb.Query[T](DBS, "DELETE type::record($id);", map[string]interface{}{
+	_, err := surrealdb.Query[any](DBS, "DELETE type::record($id);", map[string]interface{}{
 		"id": id.String(), 
 	})
 	if err != nil {

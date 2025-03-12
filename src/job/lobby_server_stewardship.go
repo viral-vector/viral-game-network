@@ -3,6 +3,8 @@ package job
 import (
 	"fmt"
 	"strings"
+	"time"
+	"viral-game-network/src/cache"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
 	"viral-game-network/src/k8"
@@ -12,107 +14,130 @@ import (
 )
 
 /**
- * Manages Server Lifecycle
+ * Manages Server/Pod Lifecycle
  */
 func Job_Lobby_Server_Stewardship() {
-	// fmt.Println("Job_Lobby_Server_Stewardship")
-
 	pods, err := k8.GetAllServerPods()
 	if err != nil {
-		fmt.Errorf("Job_Lobby_Server_Stewardship:  %s", err)
+		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: %s", err))
 		return
 	}
-
 	for _, pod := range pods {
-		// Get the label for the lobby
+		// Get the label for the pod
 		label := strings.Split(pod.Name, "-")[1]
-
-		node, lobpod, err := k8.LocateServerPod(label)
-
-		if err != nil {
-			fmt.Errorf("Job_Lobby_Server_Stewardship:  %s", err)
-			continue
-		}
-
-		if node == nil || lobpod == nil{
-			fmt.Errorf("Job_Lobby_Server_Stewardship:  %s", err)
-			continue
-		}
-
-		fmt.Println("Job_Lobby_Server_Stewardship: @ ", label)
 		
-		// Get the lobby
-		lobby, err := repository.GetLobby(
-			strings.Replace(lobpod.Name, "server-", "Lobby:", -1),
-		)
-		if err != nil {
-			fmt.Errorf("Job_Lobby_Server_Stewardship:  %s", err)
+		// Check if we have a lock on the pod
+		if cache_lock, _ := cache.Get("server-stewardship-lock-" + label); cache_lock != nil {
 			continue
 		}
-		if lobby == nil {
-			// Delete Pod
-			k8.DeleteServerPod(lobpod.Name)
+		go func(pod *v1.Pod, label string) {
+			// Lock the pod
+			cache.Set("server-stewardship-lock-"+label, "true", time.Second*30)
 
-			fmt.Errorf("Job_Lobby_Server_Stewardship:  %s", "Lobby not found")
-			continue
-		}
+			fmt.Println("RUN_Lobby_Server_Stewardship: @ Looking", pod.Name)
 
-		switch lobpod.Status.Phase {
-		// Check if the pod is running
-		case v1.PodRunning:
-			Job_Lobby_Server_Stewardship_Running(lobby, lobpod, node)
-		// Check if the pod is pending
-		case v1.PodPending:
-		// Check if the pod is failed
-		case v1.PodFailed:
-			// Delete Pod
-			k8.DeleteServerPod(lobpod.Name)
-
-			// Delete the server from the lobby
-			lobby.Lobby_Server = nil
-
-			// Update the lobby
-			_, err := repository.SetLobby(lobby.ID.String(), lobby)
-			if err != nil {
-				fmt.Println("Job_Lobby_Server_Stewardship:", err)
-				continue
-			}
-		}
-
-		if lobby.Lobby_Server == nil || lobby.Lobby_Server.Status == string(lobpod.Status.Phase) || lobby.Lobby_Server.Status == "Online" {
-			continue
-		}
-
-		lobby.Lobby_Server.Status = string(lobpod.Status.Phase)
-		// Update the server
-		_, err = repository.SetServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server)
-		if err != nil {
-			fmt.Println("Job_Lobby_Server_Stewardship:", err)
-			continue
-		}
-
-		// Notify Lobby Users
-		msg := "Server:" + lobby.Lobby_Server.Status
-		ministration.Service_Lobby_Notify(lobby.ID.String(), msg, "")
+			// RUN
+			RUN_Lobby_Server_Stewardship(pod)
+			// Unlock the pod
+			cache.Del("server-stewardship-lock-" + label)
+		}(pod, label)
 	}
 }
 
-// Job_Lobby_Server_Stewardship_Running
-func Job_Lobby_Server_Stewardship_Running(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) {
+func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
+	// Get the label for the pod
+	label := strings.Split(pod.Name, "-")[1]
 
-	// Find the external IP address
-	var external_address string = "https://localhost"
+	node, lobpod, err := k8.LocateServerPod(label)
 
-	for _, address := range node.Status.Addresses {
-		if address.Type == "ExternalIP" {
-			external_address = address.Address
-		}
-	}
-	if external_address == "" {
-		fmt.Println("Job_Lobby_Server_Stewardship: No ExternalIP", node.Name)
+	if err != nil {
+		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: %s", err))
 		return
 	}
 
+	if node == nil || lobpod == nil{
+		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: %s", err))
+		return
+	}
+	
+	// Get the lobby
+	lobby, err := repository.GetLobby(
+		strings.Replace(lobpod.Name, "server-", "Lobby:", -1),
+	)
+	if err != nil {
+		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: @ Lobby Fetch Error %s", err))
+		return
+	}
+
+	if pod.DeletionTimestamp != nil {
+		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: Terminating %s", lobpod.Name))
+		return
+	}
+
+	if (lobby == nil || lobby.Lobby_Server == nil) {
+		// Purge Pod & Server
+		RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, node)
+
+		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: Lobby/Server not found %s", lobpod.Name))
+		return
+	}
+
+	switch lobpod.Status.Phase {
+	// Check if the pod is running
+	case v1.PodRunning:
+		RUN_Lobby_Server_Stewardship_Running(lobby, lobpod, node)
+	// Check if the pod is pending
+	case v1.PodPending:
+	// Check if the pod is failed
+	case v1.PodFailed:
+		// Purge Pod & Server
+		RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, node)
+	}
+
+	if lobby.Lobby_Server == nil || lobby.Lobby_Server.Status == string(lobpod.Status.Phase) || lobby.Lobby_Server.Status == "Online" {
+		return
+	}
+
+	lobby.Lobby_Server.Status = string(lobpod.Status.Phase)
+	// Update the server
+	_, err = repository.SetServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server)
+	if err != nil {
+		fmt.Println("RUN_Lobby_Server_Stewardship: @ Error Updating", err)
+		return
+	}
+
+	// Notify Lobby Users
+	msg := "Server:" + lobby.Lobby_Server.Status
+	ministration.Service_Lobby_Notify(lobby.ID.String(), msg, "")
+}
+
+func RUN_Lobby_Server_Stewardship_Running(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) {
 	// Update the server address
-	lobby.Lobby_Server.Address = external_address
+	lobby.Lobby_Server.Port = k8.GetPodHostPort(pod)
+	lobby.Lobby_Server.Address = k8.GetNodeExternalIP(node)
+}
+
+// Purge a Server & Pod
+func RUN_Lobby_Server_Stewardship_Purger(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) error {
+	// Get label
+	label := strings.Split(pod.Name, "-")[1]
+	
+	// Delete Pod
+	k8.DeleteServerPod(label)
+
+	// Delete Server
+	serverID := ""
+	if lobby != nil && lobby.Lobby_Server != nil {
+		serverID = lobby.Lobby_Server.ID.String()
+		lobby.Lobby_Server = nil
+	}else {
+		server, _ := repository.GetServerByGuid(pod.Name)
+		if server != nil{
+			serverID = server.ID.String()
+		}
+	}
+	if len(serverID) > 0 {
+		repository.DelServer(serverID)
+	}
+	return nil
 }

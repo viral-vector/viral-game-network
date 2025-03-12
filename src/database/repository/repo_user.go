@@ -11,11 +11,10 @@ func AllUser(count int, pager int) ([]dbtype.User, int, error) {
 	// Get All Users
 	users, err := database.Query[dbtype.User](`
 	SELECT * 
-	FROM type::table($tb) 
+	FROM type::table(User) 
 	ORDER BY date_created DESC 
 	LIMIT $ct START $pg;`,
 		map[string]interface{}{
-			"tb": "User",
 			"ct": count,
 			"pg": (pager - 1) * count,
 		})
@@ -24,9 +23,8 @@ func AllUser(count int, pager int) ([]dbtype.User, int, error) {
 	}
 
 	// Count All Users
-	total, err := database.Query[dbtype.Total]("SELECT count() AS total FROM type::table($tb) GROUP ALL;",
+	total, err := database.Query[dbtype.Total]("SELECT count() AS total FROM type::table(User) GROUP ALL;",
 		map[string]interface{}{
-			"tb": "User",
 		})
 	if err != nil {
 		return users, 0, err
@@ -39,12 +37,11 @@ func GetUser(info *dbtype.User) (*dbtype.User, error) {
 	users, err := database.Query[dbtype.User](
 		`
 		SELECT * 
-		FROM type::table($tb) 
+		FROM type::table(User) 
 		WHERE 
 			(name = $name OR guid = $guid) 
 		LIMIT 1;`,
 		map[string]interface{}{
-			"tb":   "User",
 			"name": info.Name,
 			"guid": info.Guid,
 		},
@@ -60,27 +57,14 @@ func GetUser(info *dbtype.User) (*dbtype.User, error) {
 	return &users[0], nil
 }
 
-func SetUser(id string, body *dbtype.User) (*dbtype.User, error) {
-	var now = time.Now().UTC().Format(time.RFC3339)
-
-	body.Date_Updated = now
-	user, err := database.Update[dbtype.User](body)
-
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
+func SetUser(id string, user *dbtype.User) (*dbtype.User, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	user.Date_Updated = now
+	return database.Update[dbtype.User](*user.ID, user)
 }
 
-func PutUser(body *dbtype.User) (*dbtype.User, error) {
-	var now = time.Now().UTC().Format(time.RFC3339)
-
-	body.Date_Created = now
-	body.Date_Updated = now
-	user, err := database.Create[dbtype.User](body)
-
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
+func PutUser(user *dbtype.User) (*dbtype.User, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	user.Date_Created = now
+	return database.Create[dbtype.User](user)
 }

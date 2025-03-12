@@ -20,11 +20,10 @@ var ctx = context.Background()
 var config *rest.Config
 var namespace = "viral-game-network"
 var clientset *kubernetes.Clientset
-var portRange = []int32{30000, 30025}
+var portRange = []int32{30000, 30030}
+var kubeconfig = "/root/.config/k3d/kubeconfig-viral-game-network.yaml"
 
 func init() {
-	var err error
-
 	kinit, err := k8_k3d.CheckCluster()
 	if err != nil {
 		log.Println("k8 init error: ", err)
@@ -39,11 +38,9 @@ func init() {
 }
 
 func LoadConfiguration() error {
-	var err error
-
 	// Create the clientset from the config
 	k8_k3d.WrtiteKubeConfig()
-	config, err = clientcmd.BuildConfigFromFlags("", "/root/.config/k3d/kubeconfig-viral-game-network.yaml")
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		log.Println("k8 config error: ", err)
 		return err
@@ -58,21 +55,17 @@ func LoadConfiguration() error {
 }
 
 func CheckCreateCluster() error {
-	var err error
-
 	kinit, err := k8_k3d.CheckCluster()
 	if err != nil {
 		log.Println("k8 init error: ", err)
 		return err
 	}
 	if !kinit {
-		erro := k8_k3d.CreateCluster(portRange[0], portRange[1])
-		if erro != nil {
-			return fmt.Errorf("k8 error creating cluster: " + erro.Error())
+		err = k8_k3d.CreateCluster(portRange[0], portRange[1])
+		if err != nil {
+			return fmt.Errorf("k8 error creating cluster: " + err.Error())
 		}
-		// Load the configuration
 		LoadConfiguration()
-		// Namespace
 		CreateNameSpace()
 		// Print versrion
 		version, err := clientset.Discovery().ServerVersion()
@@ -85,9 +78,9 @@ func CheckCreateCluster() error {
 }
 
 func CheckDeleteCluster() error {
-	erro := k8_k3d.DeleteCluster()
-	if erro != nil {
-		return fmt.Errorf("k8 error creating cluster: " + erro.Error())
+	err := k8_k3d.DeleteCluster()
+	if err != nil {
+		return fmt.Errorf("k8 error creating cluster: " + err.Error())
 	}
 	return nil
 }
@@ -174,12 +167,7 @@ func GetNode(name string) (*v1.Node, error) {
 	if clientset == nil {
 		return nil, fmt.Errorf("Cluster Not Running")
 	}
-
-	node, err := clientset.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("error getting node: %s", err.Error())
-	}
-	return node, nil
+	return clientset.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
 }
 
 func FindOpenNodePort() (*v1.Node, int32, error) {
@@ -206,7 +194,7 @@ func FindOpenNodePort() (*v1.Node, int32, error) {
 			FieldSelector: "spec.nodeName=" + node.Name,
 		})
 		if err != nil {
-			log.Printf("error listing pods on node %s: %s", node.Name, err.Error())
+			log.Printf("FindOpenNodePort: @ Error %s: %s", node.Name, err.Error())
 			continue
 		}
 
@@ -244,7 +232,7 @@ func FindOpenNodePort() (*v1.Node, int32, error) {
 	// Get the node
 	nodeFinal, err := GetNode(nodeIndex)
 	if err != nil {
-		return nil, portFinal, fmt.Errorf("error getting node: %s", err.Error())
+		return nil, -1, fmt.Errorf("error getting node: %s", err.Error())
 	}
 
 	return nodeFinal, portFinal, nil
@@ -374,14 +362,13 @@ func DeleteServerPod(label string) error {
 	if clientset == nil {
 		return fmt.Errorf("Cluster Not Running")
 	}
-
 	err := clientset.CoreV1().Pods(namespace).Delete(
 		ctx,
 		"server-"+label,
 		metav1.DeleteOptions{},
 	)
 	if err != nil {
-		return fmt.Errorf("failed to delete pod: %v", err)
+		return fmt.Errorf("DeleteServerPod Erorr: Failed to delete pod: %v", err)
 	}
 	return nil
 }
@@ -400,4 +387,14 @@ func GetNodeExternalIP(node *v1.Node) string {
 		}
 	}
 	return ""
+}
+
+// Helper function to get the pods hostport
+func GetPodHostPort(pod *v1.Pod) int32 {
+	for _, cnt := range pod.Spec.Containers {
+		for _, port := range cnt.Ports {
+			return port.HostPort
+		}
+	}
+	return int32(0)
 }
