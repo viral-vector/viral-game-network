@@ -141,7 +141,16 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 		repository.DelServer(server.ID.String())
 	}
 
+	// Update Pod Labels
+	llabel := strings.Split(lobby.ID.String(), ":")[1]
+	slabel := strings.Split(server.ID.String(), ":")[1]
+	err = k8.AddServerPodLabel(label, map[string]string {
+		"lobby": llabel,
+		"server": slabel,
+	})
+	if err != nil {
+		fmt.Println( fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err))
+	}
 	fmt.Println("Job_Lobby_Server_Provisioner: Server/Pod Created ", lobpod.Status.Phase)
-
 	return nil
 }

@@ -59,7 +59,7 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
     ,(IF count(SELECT id FROM ->Lobby_Host.out) > 0
        {array::first(SELECT id, name, guid FROM ->Lobby_Host.out)} ELSE {NULL}) AS lobby_host
     ,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
-       {array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
+       {array::first(SELECT * FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
     ,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
 	FROM type::record($id);`,
 		map[string]interface{}{

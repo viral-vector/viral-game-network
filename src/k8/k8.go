@@ -7,9 +7,10 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"encoding/json"
 	k8_k3d "viral-game-network/src/k8/k3d"
-
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -314,7 +315,7 @@ func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, imag
 			Namespace: namespace,
 			Labels: map[string]string{
 				"app": "server-" + label,
-				"loc": strconv.Itoa(int(sPort)),
+				"hostport": strconv.Itoa(int(sPort)),
 			},
 		},
 		Spec: v1.PodSpec{
@@ -357,6 +358,32 @@ func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, imag
 	return pod, nil
 }
 
+func AddServerPodLabel(label string, labels map[string]string) error {
+	// Create a JSON patch to add/update the label.
+	patchDMap := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"labels": labels,
+		},
+	}
+
+	patchData, err := json.Marshal(patchDMap)
+	if err != nil {
+		return fmt.Errorf("AddServerPodLabel Error: %w", err)
+	}
+	
+	_, err = clientset.CoreV1().Pods(namespace).Patch(
+		ctx,
+		"server-"+label,
+		types.MergePatchType,
+		patchData,
+		metav1.PatchOptions{},
+	)
+	if err != nil {
+		return fmt.Errorf("AddServerPodLabel Error: %v", err)
+	}
+	return nil
+}
+
 // Delete Server Pod
 func DeleteServerPod(label string) error {
 	if clientset == nil {
@@ -368,7 +395,7 @@ func DeleteServerPod(label string) error {
 		metav1.DeleteOptions{},
 	)
 	if err != nil {
-		return fmt.Errorf("DeleteServerPod Erorr: Failed to delete pod: %v", err)
+		return fmt.Errorf("DeleteServerPod Erorr: %v", err)
 	}
 	return nil
 }
