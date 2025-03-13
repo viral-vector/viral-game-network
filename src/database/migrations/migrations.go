@@ -12,8 +12,13 @@ import (
 // AllMigrations aggregates all migration steps.
 var AllMigrations = []dbtype.Migration{}
 
+
+func Migrations_Add(m dbtype.Migration) {
+	AllMigrations = append(AllMigrations, m)
+}
+
 // Run All(pending) Migrations
-func Migrate(DBS *surrealdb.DB) error {
+func Migrations_Run(DBS *surrealdb.DB) error {
 	log.Println("Checking Migrations")
 
 	// Ensure that the Migrations table exists

@@ -15,6 +15,6 @@ Viral-Network (Viral Games Network Backend) is a game backend server written in 
     * docker push localhost:5000/viral-game-network/bbserver:1.0.0
         * Push your image to the local registry
 2. Gen New Migration files
-    * New-Item -Path "$(Get-Date -Format 'yyyyMMdd-HHmmss').go" -ItemType File
+    * New-Item -Path "$(Get-Date -Format 'ddMMyyyy').go" -ItemType File
         * Run this command from the migrations folder
 

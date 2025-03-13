@@ -1,13 +1,15 @@
 package migrations
 
 import (
+	"strconv"
 	dbtype "viral-game-network/src/database/type"
 )
+var versionset = 0
+var identifier = "10032025"
 
-func init() {
-	// Append the migration to the AllMigrations slice.
-	AllMigrations = append(AllMigrations, dbtype.Migration{
-		Name:  "20250312-192559-1",
+var migrations = []dbtype.Migration{
+	// System Event 
+	dbtype.Migration{
 		SQL: `
 		DEFINE TABLE System_Event SCHEMAFULL;
 		DEFINE FIELD id ON TABLE System_Event TYPE string;
@@ -16,10 +18,9 @@ func init() {
 		DEFINE FIELD severity ON TABLE System_Event TYPE string;
 		DEFINE INDEX idx_system_event_id ON TABLE System_Event COLUMNS id UNIQUE;
 		`,
-	})
-
-	AllMigrations = append(AllMigrations, dbtype.Migration{
-		Name:  "20250312-192559-2",
+	},
+	// User 
+	dbtype.Migration{
 		SQL: `
 		DEFINE TABLE User SCHEMAFULL;
 		DEFINE FIELD id ON TABLE User TYPE string;
@@ -33,10 +34,9 @@ func init() {
 		DEFINE INDEX idx_user_guid ON TABLE User COLUMNS guid UNIQUE;
 		DEFINE INDEX idx_user_name ON TABLE User COLUMNS name UNIQUE;
 		`,
-	})
-
-	AllMigrations = append(AllMigrations, dbtype.Migration{
-		Name:  "20250312-192559-3",
+	},
+	// Lobby 
+	dbtype.Migration{
 		SQL: `
 		DEFINE TABLE Lobby SCHEMAFULL;
 		DEFINE FIELD id ON TABLE Lobby TYPE string;
@@ -49,10 +49,9 @@ func init() {
 		DEFINE INDEX idx_lobby_id ON TABLE Lobby COLUMNS id UNIQUE;
 		DEFINE INDEX idx_lobby_name ON TABLE Lobby COLUMNS name;
 		`,
-	})
-
-	AllMigrations = append(AllMigrations, dbtype.Migration{
-		Name:  "20250312-192559-4",
+	},
+	// Server
+	dbtype.Migration{
 		SQL: `
 		DEFINE TABLE Server SCHEMAFULL;
 		DEFINE FIELD id ON TABLE Server TYPE string;
@@ -65,7 +64,39 @@ func init() {
 		DEFINE FIELD port ON TABLE Server TYPE option<number>;
 		DEFINE FIELD configs ON TABLE Server TYPE option<string>;
 		DEFINE INDEX idx_server_id ON TABLE Server COLUMNS id UNIQUE;
-		DEFINE INDEX idx_server_guid ON TABLE Server COLUMNS UNIQUE;
+		DEFINE INDEX idx_server_guid ON TABLE Server COLUMNS guid UNIQUE;
 		`,
-	})
+	},
+	// Lobby_Host
+	dbtype.Migration{
+		SQL: `
+		DEFINE TABLE Lobby_Host SCHEMAFULL TYPE RELATION IN Lobby OUT User ENFORCED ;
+		DEFINE INDEX idx_lobby_host_in ON TABLE Lobby_Host COLUMNS in UNIQUE;
+		DEFINE INDEX idx_lobby_host_out ON TABLE Lobby_Host COLUMNS out UNIQUE;
+		`,
+	},
+	// Lobby_Server
+	dbtype.Migration{
+		SQL: `
+		DEFINE TABLE Lobby_Server SCHEMAFULL TYPE RELATION IN Lobby OUT Server ENFORCED;
+		DEFINE INDEX idx_lobby_server_in ON TABLE Lobby_Server COLUMNS in UNIQUE;
+		DEFINE INDEX idx_lobby_server_out ON TABLE Lobby_Server COLUMNS out UNIQUE;
+		`,
+	},
+	// Lobby_Users
+	dbtype.Migration{
+		SQL: `
+		DEFINE TABLE Lobby_Users SCHEMAFULL TYPE RELATION IN Lobby OUT User ENFORCED;
+		DEFINE INDEX idx_lobby_users_host_in ON TABLE Lobby_Users COLUMNS in UNIQUE;
+		DEFINE INDEX idx_lobby_users_host_out ON TABLE Lobby_Users COLUMNS out UNIQUE;
+		`,
+	},
+}
+
+func init() {
+	for _, migration := range migrations {
+		versionset += 1
+		migration.Name = identifier + "-" + strconv.Itoa(versionset)
+		Migrations_Add(migration)
+	}
 }

@@ -42,9 +42,9 @@ func init() {
 	go func() {
 		time.Sleep(3 * time.Second)
 
-		err := migrations.Migrate(DBS)
+		err := migrations.Migrations_Run(DBS)
 		if err != nil{
-			log.Println("Migrate Error!", err)
+			log.Println("Migrations_Run Error!", err)
 		}
 	}()
 	
