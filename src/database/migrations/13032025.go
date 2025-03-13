@@ -17,6 +17,8 @@ var migrations = []dbtype.Migration{
 		DEFINE FIELD message ON TABLE System_Event TYPE string;
 		DEFINE FIELD severity ON TABLE System_Event TYPE string;
 		DEFINE INDEX idx_system_event_id ON TABLE System_Event COLUMNS id UNIQUE;
+		DEFINE ANALYZER idx_system_event_analyzer TOKENIZERS class FILTERS ascii;
+		DEFINE INDEX idx_system_event_message_analyzer ON TABLE Lobby COLUMNS message SEARCH ANALYZER idx_system_event_analyzer BM25 HIGHLIGHTS;
 		`,
 	},
 	// User 
@@ -48,6 +50,9 @@ var migrations = []dbtype.Migration{
 		DEFINE FIELD code ON TABLE Lobby TYPE option<string>;
 		DEFINE INDEX idx_lobby_id ON TABLE Lobby COLUMNS id UNIQUE;
 		DEFINE INDEX idx_lobby_name ON TABLE Lobby COLUMNS name;
+		DEFINE ANALYZER idx_lobby_analyzer TOKENIZERS class FILTERS ascii;
+		DEFINE INDEX idx_lobby_name_analyzer ON TABLE Lobby COLUMNS name SEARCH ANALYZER idx_lobby_analyzer BM25 HIGHLIGHTS;
+
 		`,
 	},
 	// Server
