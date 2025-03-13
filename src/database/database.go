@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	migrations "viral-game-network/src/database/migrations"
     "github.com/surrealdb/surrealdb.go"
 	"github.com/surrealdb/surrealdb.go/pkg/models"
 )
@@ -35,6 +36,9 @@ func init() {
 	if _, err := DBS.SignIn(authData); err != nil {
 		log.Fatal(err)
 	}
+
+	// Run Migration
+	go migrations.Migrate(DBS)
 	
 	log.Println("Database Connected!")
 }
