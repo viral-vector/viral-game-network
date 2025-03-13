@@ -69,6 +69,9 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 
 	// Pick Open Node/Port
 	node, sPort, err := k8.FindOpenNodePort()
+	if err != nil{
+		return fmt.Errorf("Job_Lobby_Server_Provisioner: @ Error With NodePort -> %s", err)
+	}
 	external_address := k8.GetNodeExternalIP(node)
 
 	aPort, err := strconv.ParseInt(os.Getenv("GAME_PORT"), 10, 32)
