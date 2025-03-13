@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"time"
 	"viral-game-network/src/auth"
 	"viral-game-network/src/database/repository"
@@ -37,7 +36,6 @@ func Handle_ValidateToken(c *fiber.Ctx) error {
 	user, err := auth.ValidateToken(token)
 
 	if err != nil {
-		fmt.Println(err, token)
 		c.Status(fiber.StatusForbidden)
 		return c.JSON(fiber.Map{
 			"status":  "error",

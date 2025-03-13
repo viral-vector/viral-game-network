@@ -29,7 +29,7 @@ func GenerateToken(user *dbtype.User) (string, error) {
 		UserName: user.Name,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(l * time.Minute)),
-			Issuer: "viral-game-network",
+			Issuer: os.Getenv("APP_NAME"),
 		},
 	}
 	access_token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -50,10 +50,10 @@ func ValidateToken(tokenString string) (*dbtype.User, error) {
 		return nil, fmt.Errorf("Invalid Token")
 	}
 
-	userdb := new(dbtype.User)
-	userdb.Name = claims.UserName
+	user := new(dbtype.User)
+	user.Name = claims.UserName
 	  
-	return userdb, err
+	return user, err
 }
 
 func ValidateAppKey(key string) (bool, error) {

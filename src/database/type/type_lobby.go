@@ -9,7 +9,7 @@ type Lobby struct {
 	Name  string `json:"name"`
 	Date_Created string `json:"date_created"`
 	Date_Updated string `json:"date_updated"`
-	Configs string `json:"config"`
+	Configs string `json:"configs"`
 	Private bool `json:"private"`
 	Code string `json:"code"`
 	Lobby_Host *User `json:"lobby_host,omitempty"`

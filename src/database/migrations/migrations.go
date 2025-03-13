@@ -17,14 +17,16 @@ func Migrate(DBS *surrealdb.DB) error {
 	log.Println("Checking Migrations")
 
 	// Ensure that the Migrations table exists
-	MigrationsTableScaffold := []string{
-		"DEFINE TABLE Migrations SCHEMAFULL;",
-		"DEFINE FIELD id ON TABLE Migrations TYPE string;",
-		"DEFINE FIELD name ON TABLE Migrations TYPE string;",
-		"DEFINE FIELD date_created ON TABLE Migrations TYPE string;",
-		"DEFINE FIELD sql ON TABLE Migrations TYPE string;",
-		"DEFINE INDEX idx_migrations_id ON TABLE Migrations COLUMNS id UNIQUE;",
-		"DEFINE INDEX idx_migrations_name ON TABLE Migrations COLUMNS name UNIQUE;",
+	MigrationsTableScaffold := []string {
+		`
+		DEFINE TABLE Migrations SCHEMAFULL;
+		DEFINE FIELD id ON TABLE Migrations TYPE string;
+		DEFINE FIELD name ON TABLE Migrations TYPE string;
+		DEFINE FIELD date_created ON TABLE Migrations TYPE string;
+		DEFINE FIELD sql ON TABLE Migrations TYPE string;
+		DEFINE INDEX idx_migrations_id ON TABLE Migrations COLUMNS id UNIQUE;
+		DEFINE INDEX idx_migrations_name ON TABLE Migrations COLUMNS name UNIQUE;
+		`,
 	}
 
 	for _, mig := range MigrationsTableScaffold {
@@ -61,7 +63,7 @@ func Migrate(DBS *surrealdb.DB) error {
 			fmt.Println("Skipping Migration:", mig.Name)
 			continue
 		}
-		fmt.Println("Applying migration %s", mig.Name)
+		fmt.Println("Applying migration", mig.Name)
 		_, err := surrealdb.Query[any](DBS, mig.SQL, nil)
 		if err != nil {
 			return fmt.Errorf("Migrate error: %s: %w", mig.Name, err)
