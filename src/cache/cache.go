@@ -1,10 +1,12 @@
 package cache
 
 import (
-	"os"
-	"log"
-	"time"
 	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"time"
+
 	"github.com/redis/go-redis/v9"
 )
 
@@ -12,76 +14,57 @@ var ctx = context.Background()
 var rdb *redis.Client
 
 func init() {
-	log.Println("Cache Initialize!")
-
+	// Initialize Redis client
 	rdb = redis.NewClient(&redis.Options{
-        Addr:     os.Getenv("CACHE_ENDPOINT"),
-        Password: os.Getenv("CACHE_PASSWORD"),
-        DB:       0,
-    })
-    
-	log.Println("Cache Connected!")
+		Addr:     os.Getenv("CACHE_ENDPOINT"),
+		Password: os.Getenv("CACHE_PASSWORD"),
+		DB:       0,
+	})
 }
 
-func Get(key string) (interface{}, error) {
-	dtype, err_o := rdb.Type(ctx, key).Result()
-	if err_o != nil {
-		return nil, err_o
+// Get retrieves a value from Redis for the given key and attempts to convert it into type T.
+// If T is a string, it returns the raw string. Otherwise, it tries to unmarshal the string as JSON.
+func Get[T any](key string) (T, error) {
+	var result T
+
+	// For simplicity, we'll assume the value is stored as a string.
+	val, err := rdb.Get(ctx, key).Result()
+	if err != nil {
+		return result, err
 	}
 
-	var (
-		val interface{}
-		err error
-	)
-	switch dtype {
-		case "list":
-			length := int64(0)
-			length, err = rdb.LLen(ctx, key).Result()
-			if err != nil {
-				return nil, err
-			}
-			val, err = rdb.LRange(ctx, key,  0, length-1).Result()
-			if err != nil {
-				return nil, err
-			}
-		default:
-			val, err = rdb.Get(ctx, key).Result()
-			if err != nil {
-				return nil, err
-			}
+	// Check if T is a string type.
+	// One way to do this is to create a dummy variable of type T and use a type switch.
+	var dummy T
+	switch any(dummy).(type) {
+	case string:
+		// Directly return the string value.
+		return any(val).(T), nil
+	default:
+		// Assume the string is JSON and unmarshal it.
+		if err := json.Unmarshal([]byte(val), &result); err != nil {
+			return result, fmt.Errorf("failed to unmarshal value for key %s: %w", key, err)
+		}
+		return result, nil
 	}
-	
-	return val, nil
 }
 
+// Set stores a string value in Redis with an expiration duration.
 func Set(key string, val string, dur time.Duration) error {
-	err := rdb.Set(ctx, key, val, dur).Err()
-    if err != nil {
-		return err
-    }
-	return nil 
+	return rdb.Set(ctx, key, val, dur).Err()
 }
 
+// Add pushes a string value into a Redis list.
 func Add(key string, val string) error {
-	err := rdb.RPush(ctx, key, val).Err()
-    if err != nil {
-		return err
-    }
-	return nil 
+	return rdb.RPush(ctx, key, val).Err()
 }
 
-func Exp(guid string, dur time.Duration) error{
-	err := rdb.Expire(ctx, guid, dur).Err()
-	if err != nil {
-		return err
-	}
-	return nil
+// Exp sets the expiration for a given key.
+func Exp(key string, dur time.Duration) error {
+	return rdb.Expire(ctx, key, dur).Err()
 }
 
-func Del(guid string) error{
-	err := rdb.Del(ctx, guid).Err()
-	if err != nil {
-		return err
-	}
-	return nil
+// Del deletes the specified key from Redis.
+func Del(key string) error {
+	return rdb.Del(ctx, key).Err()
 }

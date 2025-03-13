@@ -18,6 +18,11 @@ func stack() []Entry {
 	 */
 	return []Entry{
 		{
+			Name: "monitoring",
+			Time: "@every 1s",
+			Func: Job_Monitoring,
+		},
+		{
 			Name: "lobby_server_provisioner",
 			Time: "@every 3s",
 			Func: Job_Lobby_Server_Provisioner,

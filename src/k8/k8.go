@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"bufio"
 	"math/rand"
+	"sort"
 	"strconv"
 	"encoding/json"
 	k8_k3d "viral-game-network/src/k8/k3d"
@@ -422,4 +424,53 @@ func GetPodHostPort(pod *v1.Pod) int32 {
 		}
 	}
 	return int32(0)
+}
+
+func GetPodLogParts(pod *v1.Pod, tailLines *int64) ([]string, error) {
+	if clientset == nil {
+		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
+	}
+
+	result := clientset.CoreV1().Pods(namespace).GetLogs(pod.Name, &v1.PodLogOptions{
+		TailLines: tailLines,
+	})
+
+	stream, err := result.Stream(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("GetPodLogParts Error: %q: %v", pod.Name, err)
+	}
+	defer stream.Close()
+    
+	var builder []string
+	scanner := bufio.NewScanner(stream)
+	for scanner.Scan() {
+		builder = append(builder, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("GetPodLogParts Error: %q: %w", pod.Name, err)
+	}
+	return builder, nil
+}
+
+func GetLogsCluster(tailLines *int64) ([]v1.Event, error) {
+	if clientset == nil {
+		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
+	}
+
+	result, err := clientset.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		log.Fatalf("GetLogsCluster Error: %v", err)
+	}
+	// Sort events by EventTime (most recent first).
+	events := result.Items
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].EventTime.Time.After(events[j].EventTime.Time)
+	})
+
+	// Return only the first 'tail' events.
+	if int64(len(events)) > *tailLines {
+		events = events[:*tailLines]
+	}
+
+	return events, nil
 }

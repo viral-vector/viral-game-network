@@ -23,7 +23,7 @@ func Job_Lobby_Server_Stewardship() {
 	}
 	for _, pod := range pods {		
 		// Check if we have a lock on the pod
-		if cache_lock, _ := cache.Get("server-stewardship-lock-" + pod.Name); cache_lock != nil {
+		if cache_lock, _ := cache.Get[string]("server-stewardship-lock-" + pod.Name); cache_lock != "" {
 			continue
 		}
 		go func(pod *v1.Pod, podName string) {

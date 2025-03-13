@@ -54,3 +54,10 @@ p
                                 li HostPort: #{.HostPort}
                                 li GamePort: #{.ContainerPort}
                                 li #{.Protocol}
+    .container
+        .content
+            h4.subtitle Pod Logs
+            hr
+            div
+                each log in .logs
+                    p #{.}

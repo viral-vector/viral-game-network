@@ -6,6 +6,9 @@ import (
 
 type SystemEvent struct {
 	ID           *models.RecordID `json:"id,omitempty"`
+	Ref_ID       string `json:"ref_id,omitempty"`
+	Ref_Source   string `json:"ref_source,omitempty"`
+	Ref_Target   string `json:"ref_target,omitempty"`
 	Date_Created string `json:"date_created"`
 	Message      string `json:"message"`
 	Severity     string `json:"severity"`

@@ -201,7 +201,7 @@ func Handle_SocketLobby(c *websocket.Conn) {
 	)
 
 	// Sync
-	channel_cache, _ := cache.Get(guid)
+	channel_cache, _ := cache.Get[interface{}](guid)
 	if channel_cache != nil {
 		go func(c *websocket.Conn) {
 			for _, element := range channel_cache.([]string) {

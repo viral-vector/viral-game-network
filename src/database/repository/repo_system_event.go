@@ -7,7 +7,7 @@ import (
 	dbtype "viral-game-network/src/database/type"
 )
 
-func GetSystemEvents(count int32) ([]dbtype.SystemEvent, error) {
+func GetSystemEvents(count int64) ([]dbtype.SystemEvent, error) {
 	lQuery := `
 	SELECT *
 	FROM type::table(System_Event) 

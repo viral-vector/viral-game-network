@@ -27,7 +27,7 @@ func Job_Lobby_Server_Provisioner() {
 		label := strings.Split(lobby.ID.String(), ":")[1]
 
 		// Check if we have a lock on the lobby
-		if cache_lock, _ := cache.Get("provisioner-lock-" + label); cache_lock != nil {
+		if cache_lock, _ := cache.Get[string]("provisioner-lock-" + label); cache_lock != "" {
 			continue
 		}
 		go func(lobby *dbtype.Lobby, label string) {

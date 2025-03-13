@@ -18,22 +18,25 @@ import (
 
 func Handle_Dash(c *fiber.Ctx) error {
 	// Get the cluster status
-	cluster, cluster_err := k8.GetClusterStatus()
-
-	cluster_error_string := "Cluster is not running"
-	if cluster_err != nil {
-		cluster_error_string = cluster_err.Error()
+	cluster, err := k8.GetClusterStatus()
+	cluster_error := "Cluster is not running"
+	if err != nil {
+		cluster_error = err.Error()
 	}
+	// Get cluster logs
+	ctlines := int64(100)
+	cevents, _ := k8.GetLogsCluster(&ctlines)
 
 	// Get SystemEvent
-	sevents, _ := repository.GetSystemEvents(10)
+	sevents, _ := repository.GetSystemEvents(ctlines)
 
 	return c.Render("admin/index", fiber.Map{
 		"cluster": map[string]interface{}{
 			"version": cluster["version"],
 			"nodes":   cluster["nodes"],
-			"error":   cluster_error_string,
+			"error":   cluster_error,
 		},
+		"cevents": cevents,
 		"sevents": sevents,
 	})
 }
@@ -99,10 +102,14 @@ func Handle_Pods_Edit(c *fiber.Ctx) error {
 		return c.Redirect("/admin/pods")
 	}
 
+	tailLines := int64(100)
+	logs, _ := k8.GetPodLogParts(pod, &tailLines)
+
 	return c.Render("admin/pods", fiber.Map{
-		"pod":     pod,
-		"node":    node,
-	})
+		"pod":   pod,
+		"node":  node,
+		"logs":  logs,
+	}) 
 }
 
 func Handle_Pods_Delete(c *fiber.Ctx) error {
@@ -169,6 +176,7 @@ func Handle_Cluster_Start(c *fiber.Ctx) error {
 		systemEvent := dbtype.SystemEvent{
 			Severity: "info",
 			Message:  "Cluster Start: Success",
+			Ref_Source: "system",
 		}
 		if err != nil {
 			systemEvent.Message = "Cluster Start: Error @ " + err.Error()
@@ -187,6 +195,7 @@ func Handle_Cluster_Stop(c *fiber.Ctx) error {
 		systemEvent := dbtype.SystemEvent{
 			Severity: "info",
 			Message:  "Cluster Stop: Success",
+			Ref_Source: "system",
 		}
 		if err != nil {
 			systemEvent.Message = "Cluster Stop: Error @ " + err.Error()
@@ -205,6 +214,7 @@ func Handle_Cluster_Pods_Stop(c *fiber.Ctx) error {
 		systemEvent := dbtype.SystemEvent{
 			Severity: "info",
 			Message:  "Pods Stop: Success",
+			Ref_Source: "system",
 		}
 		if err != nil {
 			systemEvent.Message = "Pods Stop: Error @ " + err.Error()

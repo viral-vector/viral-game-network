@@ -13,10 +13,15 @@ var migrations = []dbtype.Migration{
 		SQL: `
 		DEFINE TABLE System_Event SCHEMAFULL;
 		DEFINE FIELD id ON TABLE System_Event TYPE string;
+		DEFINE FIELD ref_id ON TABLE System_Event TYPE string;
+		DEFINE FIELD ref_source ON TABLE System_Event TYPE string;
+		DEFINE FIELD ref_target ON TABLE System_Event TYPE string;
 		DEFINE FIELD date_created ON TABLE System_Event TYPE string;
 		DEFINE FIELD message ON TABLE System_Event TYPE string;
 		DEFINE FIELD severity ON TABLE System_Event TYPE string;
 		DEFINE INDEX idx_system_event_id ON TABLE System_Event COLUMNS id UNIQUE;
+		DEFINE INDEX idx_system_event_ref_id ON TABLE System_Event COLUMNS ref_id UNIQUE;
+		DEFINE INDEX idx_system_event_ref_source ON TABLE System_Event COLUMNS ref_source;
 		DEFINE ANALYZER idx_system_event_analyzer TOKENIZERS class FILTERS ascii;
 		DEFINE INDEX idx_system_event_message_analyzer ON TABLE Lobby COLUMNS message SEARCH ANALYZER idx_system_event_analyzer BM25 HIGHLIGHTS;
 		`,

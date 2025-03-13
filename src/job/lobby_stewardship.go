@@ -33,7 +33,7 @@ func Job_Lobby_Stewardship() {
 		label := strings.Split(lobby.ID.String(), ":")[1]
 		
 		// Check if we have a lock on the pod
-		if cache_lock, _ := cache.Get("lobby-stewardship-lock-" + label); cache_lock != nil {
+		if cache_lock, _ := cache.Get[string]("lobby-stewardship-lock-" + label); cache_lock != "" {
 			continue
 		}
 		go func(lobby *dbtype.Lobby, label string, lobby_max_persist float64) {
