@@ -27,7 +27,7 @@ func Job_Monitoring() {
 // Monitor the cluster
 func RUN_Monitoring_ClusterEvents() {
 	fmt.Println("RUN_Monitoring: @ Cluster Events")
-	
+
 	cachedLastEventStr, err := cache.Get[string]("monitoring-cluster:last_event")
 	var cachedLastEvent time.Time
 	if cachedLastEventStr != "" {
@@ -60,7 +60,7 @@ func RUN_Monitoring_ClusterEvents() {
 				Severity: eventType,
 				Message:  event.Message,
 			}
-			repository.PutSystemEvent(&systemEvent)
+			repository.PopSystemevent(&systemEvent)
 
 			// Track the most recent event time.
 			if event.FirstTimestamp.Time.After(latestEventTime) {

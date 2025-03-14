@@ -42,3 +42,7 @@ func PutSystemEvent(event *dbtype.SystemEvent) (*dbtype.SystemEvent, error) {
 	event.Date_Created = now
 	return database.Create[dbtype.SystemEvent](event)
 }
+
+func PopSystemevent(event *dbtype.SystemEvent) (*dbtype.SystemEvent, error) {
+	return database.Upsert(event)
+}
