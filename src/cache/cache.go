@@ -50,13 +50,41 @@ func Get[T any](key string) (T, error) {
 }
 
 // Set stores a string value in Redis with an expiration duration.
-func Set(key string, val string, dur time.Duration) error {
-	return rdb.Set(ctx, key, val, dur).Err()
+func Set[T any](key string, val T, dur time.Duration) error {
+	var storeVal interface{}
+	var dummy T
+
+	switch any(dummy).(type) {
+	case string:
+		// If T is string, store the raw value.
+		storeVal = val
+	default:
+		// Otherwise, marshal the value to JSON.
+		bytes, err := json.Marshal(val)
+		if err != nil {
+			return fmt.Errorf("failed to marshal value for key %s: %w", key, err)
+		}
+		storeVal = string(bytes)
+	}
+	return rdb.Set(ctx, key, storeVal, dur).Err()
 }
 
 // Add pushes a string value into a Redis list.
-func Add(key string, val string) error {
-	return rdb.RPush(ctx, key, val).Err()
+func Add[T any](key string, val T) error {
+	var storeVal interface{}
+	var dummy T
+
+	switch any(dummy).(type) {
+	case string:
+		storeVal = val
+	default:
+		bytes, err := json.Marshal(val)
+		if err != nil {
+			return fmt.Errorf("failed to marshal value for key %s: %w", key, err)
+		}
+		storeVal = string(bytes)
+	}
+	return rdb.RPush(ctx, key, storeVal).Err()
 }
 
 // Exp sets the expiration for a given key.
