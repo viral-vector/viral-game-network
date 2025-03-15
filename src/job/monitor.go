@@ -17,7 +17,7 @@ func Job_Monitoring() {
 	if cache_lock, _ := cache.Get[string]("monitoring-cluster-events"); cache_lock == "" {
 		go func() {
 			// Lock monitoring
-			cache.Set("monitoring-cluster-events", "true", time.Second * 3)
+			cache.Set[string]("monitoring-cluster-events", "true", time.Second * 3)
 			// RUN
 			RUN_Monitoring_ClusterEvents()
 		}()

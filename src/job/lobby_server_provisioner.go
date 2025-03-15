@@ -32,7 +32,7 @@ func Job_Lobby_Server_Provisioner() {
 		}
 		go func(lobby *dbtype.Lobby, label string) {
 			// Lock the lobby
-			cache.Set("provisioner-lock-" + label, "true", time.Second*30)
+			cache.Set[string]("provisioner-lock-" + label, "true", time.Second*30)
 
 			fmt.Println("RUN_Lobby_Server_Provisioner: @ Looking", label)
 

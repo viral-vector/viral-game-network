@@ -28,7 +28,7 @@ func Job_Lobby_Server_Stewardship() {
 		}
 		go func(pod *v1.Pod, podName string) {
 			// Lock the pod
-			cache.Set("server-stewardship-lock-" + podName, "true", time.Second*30)
+			cache.Set[string]("server-stewardship-lock-" + podName, "true", time.Second*30)
 
 			fmt.Println("RUN_Lobby_Server_Stewardship: @ Looking", pod.Name)
 

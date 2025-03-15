@@ -14,100 +14,48 @@ type SystemConfig struct {
 	Version   	 string `json:"version"`
 	Date_Created string `json:"date_created"`
 	Date_Updated string `json:"date_updated,omitempty"`
-	Options  	[]map[string]string `json:"options,omitempty"`
-	ReadOnly  	bool `json:"readonly,omitempty"`
+	Options  	 []map[string]string `json:"options,omitempty"`
+	ReadOnly  	 bool `json:"readonly,omitempty"`
+	SortOrder    int32 `json:"readonly,omitempty"`
 }
 
 func (u SystemConfig) TableName() string {
 	return "System_Config"
 }
 
-
 func (u SystemConfig) KeyValMap() map[string]SystemConfig {
 	return map[string]SystemConfig{
-		// "APP_KEY": {
-		// 	Key:  "APP_KEY",
-		// 	Val:  os.Getenv("APP_KEY"),
-		// 	Name: "Application Key",
-		// 	Type: "string",
-		//	ReadOnly: false,
-		// },
-		"APP_ENV": {
+		 "APP_ENV": {
 			Key:  "APP_ENV",
 			Val:  os.Getenv("APP_ENV"),
-			Name: "Application Environment",
+			Name: "VNetwork Client Environment",
 			Type: "string",
 			ReadOnly: false,
+			SortOrder: 0,
 		},
 		"APP_NAME": {
 			Key:  "APP_NAME",
 			Val:  os.Getenv("APP_NAME"),
-			Name: "Application Name",
+			Name: "VNetwork Client Name",
 			Type: "string",
 			ReadOnly: true,
+			SortOrder: 1,
 		},
-		// "APP_PREFORK": {
-		// 	Key:  "APP_PREFORK",
-		// 	Val:  os.Getenv("APP_PREFORK"),
-		// 	Name: "Application Prefork",
-		// 	Type: "bool",
-		//	ReadOnly: false,
-		// },
 		"APP_TOKEN_EXPIRE": {
 			Key:  "APP_TOKEN_EXPIRE",
 			Val:  os.Getenv("APP_TOKEN_EXPIRE"),
-			Name: "Token Expiration (minutes)",
+			Name: "VNetwork Client Token Expiration",
 			Type: "number",
 			ReadOnly: false,
+			SortOrder: 2,
 		},
-		// "CACHE_ENDPOINT": {
-		// 	Key:  "CACHE_ENDPOINT",
-		// 	Val:  os.Getenv("CACHE_ENDPOINT"),
-		// 	Name: "Cache Endpoint",
-		// 	Type: "string",
-		//	ReadOnly: false,
-		// },
-		// "CACHE_USERNAME": {
-		// 	Key:  "CACHE_USERNAME",
-		// 	Val:  os.Getenv("CACHE_USERNAME"),
-		// 	Name: "Cache Username",
-		// 	Type: "string",
-		//	ReadOnly: false,
-		// },
-		// "CACHE_PASSWORD": {
-		// 	Key:  "CACHE_PASSWORD",
-		// 	Val:  os.Getenv("CACHE_PASSWORD"),
-		// 	Name: "Cache Password",
-		// 	Type: "string",
-		//	ReadOnly: false,
-		// },
-		// "STORE_ENDPOINT": {
-		// 	Key:  "STORE_ENDPOINT",
-		// 	Val:  os.Getenv("STORE_ENDPOINT"),
-		// 	Name: "Store Endpoint",
-		// 	Type: "string",
-		//	ReadOnly: false,
-		// },
-		// "STORE_USERNAME": {
-		// 	Key:  "STORE_USERNAME",
-		// 	Val:  os.Getenv("STORE_USERNAME"),
-		// 	Name: "Store Username",
-		// 	Type: "string",
-		//	ReadOnly: false,
-		// },
-		// "STORE_PASSWORD": {
-		// 	Key:  "STORE_PASSWORD",
-		// 	Val:  os.Getenv("STORE_PASSWORD"),
-		// 	Name: "Store Password",
-		// 	Type: "string",
-		//	ReadOnly: false,
-		// },
 		"LOBBY_MAX_PLAYERS": {
 			Key:  "LOBBY_MAX_PLAYERS",
 			Val:  os.Getenv("LOBBY_MAX_PLAYERS"),
 			Name: "Maximum Lobby Players",
 			Type: "number",
 			ReadOnly: false,
+			SortOrder: 3,
 		},
 		"LOBBY_MAX_PERSIST": {
 			Key:  "LOBBY_MAX_PERSIST",
@@ -115,57 +63,16 @@ func (u SystemConfig) KeyValMap() map[string]SystemConfig {
 			Name: "Lobby Max Persist (minutes)",
 			Type: "number",
 			ReadOnly: false,
-		},
-		// "GAME_NAME": {
-		// 	Key:  "GAME_NAME",
-		// 	Val:  os.Getenv("GAME_NAME"),
-		// 	Name: "Game Name",
-		// 	Type: "string",
-		//	ReadOnly: false,
-		// },
-		"GAME_PORT": {
-			Key:  "GAME_PORT",
-			Val:  os.Getenv("GAME_PORT"),
-			Name: "Game Port",
-			Type: "number",
-			ReadOnly: false,
-		},
-		// "VNET_HOST": {
-		// 	Key:  "VNET_HOST",
-		// 	Val:  os.Getenv("VNET_HOST"),
-		// 	Name: "Virtual Network Host",
-		// 	Type: "string",
-		//	ReadOnly: false,
-		// },
-		// "VNET_PORT": {
-		// 	Key:  "VNET_PORT",
-		// 	Val:  os.Getenv("VNET_PORT"),
-		// 	Name: "Virtual Network Port",
-		// 	Type: "number",
-		//	ReadOnly: false,
-		// },
-		"VNET_KEY": {
-			Key:  "VNET_KEY",
-			Val:  os.Getenv("VNET_KEY"),
-			Name: "VNetwork Key",
-			Type: "string",
-			ReadOnly: false,
-		},
-		"GAME_DOKIMAGE": {
-			Key:  "GAME_DOKIMAGE",
-			Val:  os.Getenv("GAME_DOKIMAGE"),
-			Name: "Game Image",
-			Type: "string",
-			ReadOnly: false,
-		},
-		"GAME_COMMANDS": {
-			Key:  "GAME_COMMANDS",
-			Val:  os.Getenv("GAME_COMMANDS"),
-			Name: "Game Commands",
-			Type: "string",
-			ReadOnly: false,
+			SortOrder: 4,
 		},
 
+		// "TEST_TEXT": {
+		// 	Key:  "TEST_TEXT",
+		// 	Val:  "Hello World",
+		// 	Name: "TEST_TEXT",
+		// 	Type: "string/number",
+		// 	ReadOnly: false,
+		// },
 		// "TEST_BOOL": {
 		// 	Key:  "TEST_BOOL",
 		// 	Val:  "true",

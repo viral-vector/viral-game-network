@@ -38,7 +38,7 @@ func Job_Lobby_Stewardship() {
 		}
 		go func(lobby *dbtype.Lobby, label string, lobby_max_persist float64) {
 			// Lock the Lobby
-			cache.Set("lobby-stewardship-lock-"+label, "true", time.Second*30)
+			cache.Set[string]("lobby-stewardship-lock-"+label, "true", time.Second*30)
 
 			fmt.Println("RUN_Lobby_Stewardship: @ Looking", label)
 			// RUN

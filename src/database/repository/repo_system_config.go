@@ -4,11 +4,17 @@ import (
 	"fmt"
 	"time"
 	"sort"
+	"viral-game-network/src/cache"
 	"viral-game-network/src/database"
 	dbtype "viral-game-network/src/database/type"
 )
 
 func GetSystemConfigs() ([]dbtype.SystemConfig, error) {
+	// Check if we have a lock on the lobby
+	if cached, _ := cache.Get[[]dbtype.SystemConfig]("system-configs"); cached != nil {
+		return cached, nil
+	}
+
 	lQuery := `
 	SELECT *
 	FROM type::table(System_Config);
@@ -43,13 +49,15 @@ func GetSystemConfigs() ([]dbtype.SystemConfig, error) {
 	}
 
 	sort.Slice(finalMap, func(i, j int) bool {
-		return finalMap[i].Key > finalMap[j].Key
+		return finalMap[i].Key < finalMap[j].Key
 	})
+	
+	cache.Set[[]dbtype.SystemConfig]("system-configs", finalMap, time.Minute*30)
 	
 	return finalMap, nil
 }
 
-func PopSystemConfigs(configs *[]dbtype.SystemConfig) ([]dbtype.SystemConfig, error) {
+func PopSystemConfigs(configs *[]dbtype.SystemConfig) ([]dbtype.SystemConfig, error) {	
 	datetime := time.Now().UTC().Format(time.RFC3339)
 
 	var err error
@@ -65,5 +73,20 @@ func PopSystemConfigs(configs *[]dbtype.SystemConfig) ([]dbtype.SystemConfig, er
 			fmt.Println(fmt.Errorf("PopSystemConfigs Error: %s", err))
 		}
 	}
+
+	cache.Del("system-configs")
+
 	return GetSystemConfigs()
+}
+
+func GetConfig(key string) (*dbtype.SystemConfig, error) {
+	configs, err := GetSystemConfigs() 
+	if configs != nil {
+		for _, config := range configs {
+			if config.Key == key {
+				return &config, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("GetConfig: %s Not Found (%w)", key, err)
 }
