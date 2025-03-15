@@ -3,7 +3,6 @@ import Chart from 'chart.js/auto';
 
 export default class extends Controller {
     connect() {
-        this.buildAForms()
         this.buildCharts()
     }
 
@@ -58,45 +57,5 @@ export default class extends Controller {
                 }]
             }
         });
-    }
-
-    buildAForms() {
-        document.querySelectorAll('form').forEach(element => {
-            element.addEventListener('submit', async event => {
-                event.preventDefault();
-
-                let execute = true;
-                if (event.target.dataset.confirmMessage) {
-                    try {
-                        let prompt = {
-                            title: event.target.dataset.confirmTitle,
-                            message: event.target.dataset.confirmMessage,
-                            accept: event.target.dataset.confirmAccept,
-                            reject: event.target.dataset.confirmReject
-                        };
-                        await window.showPrompt(prompt);
-                    } catch (error) {
-                        execute = false;
-                    }
-                }
-                if (!execute) {
-                    return;
-                }
-
-                fetch(event.target.getAttribute('action'), {
-                    method: event.target.getAttribute('method'),
-                    body: new FormData(event.target)
-                }).then(response => {
-                    if(!response.ok) {
-                        throw new Error(`Error ${response.status} - ${response.statusText}`);
-                    }
-                    return response.json();
-                }).then(data => {
-                    console.info(data);
-                }).catch(error => {
-                    console.error(error);
-                })
-            })
-        })
     }
 }

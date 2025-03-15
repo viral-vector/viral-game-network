@@ -4,13 +4,11 @@ div#app.my-5.mx-3
         .columns
             .column.is-one-quarter
                 include partials/aside.pug
-            .column(data-controller="dashboard")
+            .column(data-controller="dashboard form")
                 include partials/modal_prompt.pug
                 include partials/notification.pug
                 section.content
-                    h2.title Dashboard
-                    h3.subtitle
-                        | Viral Game Network Dashboard
+                    h3.subtitle App Name Dashboard
                     hr
                 include partials/index/cluster.pug
                 include partials/index/sevents.pug

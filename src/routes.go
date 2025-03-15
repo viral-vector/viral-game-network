@@ -58,7 +58,8 @@ func serve_routes(app *fiber.App) {
 	admin.Delete("/pods/:id", handler_admin.Handle_Pods_Delete)
 	admin.Get("/pods/:id", handler_admin.Handle_Pods_Edit)
 	admin.Get("/metrics", handler_admin.Handle_Dash)
-	admin.Get("/configs", handler_admin.Handle_Dash)
+	admin.Get("/configs", handler_admin.Handle_Configs)
+	admin.Post("/configs", handler_admin.Handle_Configs_Put)
 	admin.Get("/ssevents", handler_admin.Handle_SSEvents)
 
 	admin.Post("/cluster/start", handler_admin.Handle_Cluster_Start)

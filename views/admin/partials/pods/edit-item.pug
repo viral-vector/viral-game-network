@@ -58,6 +58,6 @@ p
         .content
             h4.subtitle Pod Logs
             hr
-            div
+            div(style="max-height: 300px; overflow-y: auto; overflow-x: hidden;")
                 each log in .logs
                     p #{.}

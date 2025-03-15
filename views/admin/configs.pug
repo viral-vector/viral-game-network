@@ -1,0 +1,14 @@
+div#app.my-5.mx-3
+    include partials/header.pug
+    #admin.container.is-fullhd.px-1.py-6
+        .columns
+            .column.is-one-quarter
+                include partials/aside.pug
+            .column(data-controller="form")
+                include partials/modal_prompt.pug
+                include partials/notification.pug
+                section.content
+                    h3.subtitle Configurations
+                    hr
+                    include partials/configs/edit_configs.pug
+script(src="/admin.js")

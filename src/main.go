@@ -18,6 +18,9 @@ func ServeApp() {
 	// Create a new engine
 	engine := pug.New("./views", ".pug")
 	engine.Reload(true)
+	engine.AddFunc("equals", func(a any, b any) bool {
+		return a == b
+	})
 
 	// Create a new Fiber app
 	app := fiber.New(fiber.Config{

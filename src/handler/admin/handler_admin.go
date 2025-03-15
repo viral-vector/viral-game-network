@@ -16,6 +16,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+// ##> Admin HTTP
 func Handle_Dash(c *fiber.Ctx) error {
 	// Get the cluster status
 	cluster, err := k8.GetClusterStatus()
@@ -38,6 +39,14 @@ func Handle_Dash(c *fiber.Ctx) error {
 		},
 		"cevents": cevents,
 		"sevents": sevents,
+	})
+}
+
+func Handle_Configs(c *fiber.Ctx) error {
+	configs, _ := repository.GetSystemConfigs()
+
+	return c.Render("admin/configs", fiber.Map{
+		"configs": configs,
 	})
 }
 
@@ -112,23 +121,28 @@ func Handle_Pods_Edit(c *fiber.Ctx) error {
 	}) 
 }
 
-func Handle_Pods_Delete(c *fiber.Ctx) error {
-	err := k8.DeleteServerPod(
-		strings.Replace(c.Params("id"), "server-", "", -1))
 
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+// ##> Admin JSON
+func Handle_Configs_Put(c *fiber.Ctx) error {
+	configs, _ := repository.GetSystemConfigs()
+	for i := range configs {
+		configs[i].Val = c.FormValue(configs[i].Key)
 	}
 
+	repository.PopSystemConfigs(&configs)
+
+	systemEvent := dbtype.SystemEvent{
+		Severity: "info",
+		Message:  "Settings Save: Success",
+		Ref_Source: "system",
+	}
+	repository.PutSystemEvent(&systemEvent)
+
 	return c.JSON(fiber.Map{
-		"redirect": "/admin/pods",
-		"message":  "Deleted " + c.Params("id"),
+		"message": "Settings Saved",
 	})
 }
 
-// ##> Admin API
 func Handle_SSEvents(c *fiber.Ctx) error {
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
@@ -224,5 +238,21 @@ func Handle_Cluster_Pods_Stop(c *fiber.Ctx) error {
 	}()
 	return c.JSON(fiber.Map{
 		"message": "Stopping all pods",
+	})
+}
+
+func Handle_Pods_Delete(c *fiber.Ctx) error {
+	err := k8.DeleteServerPod(
+		strings.Replace(c.Params("id"), "server-", "", -1))
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"redirect": "/admin/pods",
+		"message":  "Deleted " + c.Params("id"),
 	})
 }
