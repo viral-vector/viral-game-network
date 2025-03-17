@@ -6,12 +6,22 @@ export default class extends Controller {
     }
 
     connect() {
-        for (const item of this.element.querySelectorAll("a.menu-item")) {
+        const menu = this.element.querySelectorAll("a.menu-item");
+        const kmap = {};
+        for (const item of menu) {
             let href = item.getAttribute("href");
-            if (href.startsWith(this.routeValue)) {
-                item.classList.add("is-active");
+            kmap[href] = {
+                "absolute": item.getAttribute("is-absolute")
             }
-
+        }
+        for (const item of menu) {
+            let href = item.getAttribute("href");
+            let active = href.startsWith(this.routeValue);
+            if(this.routeValue in kmap && kmap[this.routeValue].absolute){
+                active = href === this.routeValue;
+            }
+            if (active)
+                item.classList.add("is-active");
         }
 
         [...document.querySelectorAll('.navbar-burger')].forEach(el => {
