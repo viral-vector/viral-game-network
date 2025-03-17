@@ -5,7 +5,7 @@
     "scripts": {
         "serve": "webpack serve --open",
         "build": "webpack --mode production",
-        "watch": "webpack --mode production --watch"
+        "watch": "webpack --mode development --watch"
     },
     "devDependencies": {
         "@babel/core": "^7.24.4",

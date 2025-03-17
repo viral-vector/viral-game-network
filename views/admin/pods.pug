@@ -14,7 +14,7 @@ div#app.my-5.mx-3
                 if .pod 
                     p.notification.is-info
                         | Viewing #{.pod.Name}
-                    include partials/pods/edit-item.pug
+                    include partials/pods/edit_item.pug
                 else
                     p.notification.is-info 
                         | #{.total} pods found.
@@ -26,6 +26,6 @@ div#app.my-5.mx-3
                         | Add Pod
                     each pod in .pods
                         .box
-                            include partials/pods/list-item.pug
+                            include partials/pods/list_item.pug
                     include partials/pager.pug
 script(src="/admin.js")

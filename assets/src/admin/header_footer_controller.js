@@ -7,10 +7,11 @@ export default class extends Controller {
 
     connect() {
         for (const item of this.element.querySelectorAll("a.menu-item")) {
-            if (item.getAttribute("href") != this.routeValue) {
-                continue;
+            let href = item.getAttribute("href");
+            if (href.startsWith(this.routeValue)) {
+                item.classList.add("is-active");
             }
-            item.classList.add("is-active");
+
         }
 
         [...document.querySelectorAll('.navbar-burger')].forEach(el => {

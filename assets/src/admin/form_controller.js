@@ -2,19 +2,19 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
     connect() {
-        this.buildAForms()
         console.log('Form Controller Connected!')
+        this.buildAForms()
     }
 
     buildAForms() {
-        document.querySelectorAll('form').forEach(element => {
+        this.element.querySelectorAll('form').forEach(element => {
             element.querySelectorAll('input[is-checked="true"]').forEach(item => {
                 item.click()
                 item.setAttribute('checked', true)
             })
             element.querySelectorAll('select').forEach(item => {
-                for (let opt of item.querySelectorAll('option')){
-                    if(opt.getAttribute('value') == item.getAttribute('value')){
+                for (let opt of item.querySelectorAll('option')) {
+                    if (opt.getAttribute('value') == item.getAttribute('value')) {
                         opt.click()
                         opt.setAttribute('selected', true)
                     }
@@ -28,7 +28,7 @@ export default class extends Controller {
                 inp.setAttribute('type', 'hidden')
                 inp.setAttribute('name', item.getAttribute('name'))
                 inp.setAttribute('value', item.getAttribute('value'))
-                
+
                 item.parentNode.appendChild(inp)
                 item.setAttribute('disabled', true)
                 item.removeAttribute('name')
@@ -55,19 +55,35 @@ export default class extends Controller {
                     return;
                 }
 
-                fetch(event.target.getAttribute('action'), {
-                    method: event.target.getAttribute('method'),
-                    body: new FormData(event.target)
-                }).then(response => {
-                    if(!response.ok) {
-                        throw new Error(`Error ${response.status} - ${response.statusText}`);
+                try {
+                    const action = event.target.getAttribute('action');
+                    const method = event.target.getAttribute('method');
+                    const formData = new FormData(event.target);
+                    const response = await fetch(action, {
+                        method: method,
+                        body: formData,
+                    });
+
+                    // Parse response JSON
+                    const data = await response.json();
+                    if (!response.ok) {
+                        data.status = response.status;
+                        throw new Error(`${response.status}: ${JSON.stringify(data) || ''}`);
                     }
-                    return response.json();
-                }).then(data => {
-                    console.info(data);
-                }).catch(error => {
-                    console.error(error);
-                })
+                    window.pushNotification({
+                        "type": "info",
+                        "message": data.message,
+                        "priority": 0
+                    })
+                } catch (error) {
+                    console.error(error.message);
+                    // Show an error toast
+                    window.pushNotification({
+                        "type": "danger",
+                        "message": error.message,
+                        "priority": 1
+                    })
+                }
             })
         })
     }

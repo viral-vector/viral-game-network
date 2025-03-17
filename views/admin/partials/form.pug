@@ -1,0 +1,24 @@
+.container
+    h4.subtitle #{.form.Title}
+    form(method=.form.Method action=.form.Action name=.form.Title)
+        each field in .form.Fields
+            .field
+                label.label(for=.Name) #{.Label}
+                .control
+                    if equals .Type "bool"
+                        if .Required
+                            input(type="checkbox", name=.Name, checked, disabled)
+                        else
+                            input(type="checkbox", name=.Name)
+                    else if equals .Type "choice"
+                        select.input(name=.Name)
+                            option(value="option1") Option 1
+                            option(value="option2") Option 2
+                    else
+                        input.input(type=.Type,name=.Name,placeholder=.Label,required=.Required)
+        hr
+        .field.is-grouped
+            .control
+                button.button.is-link(type="submit") Save
+            .control
+                button.button.is-light(type="reset") Reset
