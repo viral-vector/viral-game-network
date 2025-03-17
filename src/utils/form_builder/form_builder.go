@@ -6,14 +6,19 @@ import (
 )
 
 type FormField struct {
-	Name string 
-	Label     string 
-	Type      string // input type: "text", "password", "checkbox", etc.
-	Required  bool
+	Name 		string `json:"name,omitempty"`
+	Label     	string `json:"label,omitempty"`
+	Value  		string `json:"value,omitempty"`
+	Type      	string `json:"type,omitempty"`// input type: "text", "password", "checkbox", etc.
+	Required  	bool `json:"required,omitempty"`
+	Options  	[]map[string]string `json:"options,omitempty"`
+	ReadOnly  	bool `json:"readonly,omitempty"`
+	SortOrder   int32 `json:"readonly,omitempty"`
 }
 
 type Form struct {
 	Title  string
+	Confirm string
 	Action string
 	Method string
 	Fields []FormField

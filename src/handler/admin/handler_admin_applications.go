@@ -32,6 +32,7 @@ func Handle_Applications_Create_View(c *fiber.Ctx) error {
 		dbtype.Application{},
 		"Create Application",
 	)
+	form.Confirm = "Save Application Config?"
 
 	return c.Render("admin/applications", fiber.Map{
 		"form" : form,

@@ -3716,7 +3716,7 @@ a.box:active {
   box-shadow: none;
 }
 
-.button.is-danger {
+.button.is-danger, .button.notification.is-error {
   --bulma-button-h:var(--bulma-danger-h);
   --bulma-button-s:var(--bulma-danger-s);
   --bulma-button-l:var(--bulma-danger-l);
@@ -3727,31 +3727,31 @@ a.box:active {
   --bulma-button-outer-shadow-a:0;
 }
 
-.button.is-danger.is-focused, .button.is-danger:focus-visible {
+.button.is-danger.is-focused, .button.is-focused.notification.is-error, .button.is-danger:focus-visible, .button.notification.is-error:focus-visible {
   --bulma-button-border-width:1px;
 }
 
-.button.is-danger.is-light {
+.button.is-danger.is-light, .button.is-light.notification.is-error {
   --bulma-button-background-l:var(--bulma-light-l);
   --bulma-button-color-l:var(--bulma-danger-light-invert-l);
 }
 
-.button.is-danger.is-dark {
+.button.is-danger.is-dark, .button.is-dark.notification.is-error {
   --bulma-button-background-l:var(--bulma-dark-l);
   --bulma-button-color-l:var(--bulma-danger-dark-invert-l);
 }
 
-.button.is-danger.is-soft {
+.button.is-danger.is-soft, .button.is-soft.notification.is-error {
   --bulma-button-background-l:var(--bulma-soft-l);
   --bulma-button-color-l:var(--bulma-soft-invert-l);
 }
 
-.button.is-danger.is-bold {
+.button.is-danger.is-bold, .button.is-bold.notification.is-error {
   --bulma-button-background-l:var(--bulma-bold-l);
   --bulma-button-color-l:var(--bulma-bold-invert-l);
 }
 
-.button.is-danger[disabled], fieldset[disabled] .button.is-danger {
+.button.is-danger[disabled], .button[disabled].notification.is-error, fieldset[disabled] .button.is-danger, fieldset[disabled] .button.notification.is-error {
   background-color: var(--bulma-danger);
   border-color: var(--bulma-danger);
   box-shadow: none;
@@ -4787,19 +4787,19 @@ div.icon-text {
   --bulma-notification-color-l:var(--bulma-warning-dark-invert-l);
 }
 
-.notification.is-danger {
+.notification.is-danger, .notification.is-error {
   --bulma-notification-h:var(--bulma-danger-h);
   --bulma-notification-s:var(--bulma-danger-s);
   --bulma-notification-background-l:var(--bulma-danger-l);
   --bulma-notification-color-l:var(--bulma-danger-invert-l);
 }
 
-.notification.is-danger.is-light {
+.notification.is-danger.is-light, .notification.is-light.is-error {
   --bulma-notification-background-l:90%;
   --bulma-notification-color-l:var(--bulma-danger-light-invert-l);
 }
 
-.notification.is-danger.is-dark {
+.notification.is-danger.is-dark, .notification.is-dark.is-error {
   --bulma-notification-background-l:20%;
   --bulma-notification-color-l:var(--bulma-danger-dark-invert-l);
 }
@@ -4876,7 +4876,7 @@ div.icon-text {
   --bulma-progress-value-background-color:var(--bulma-warning);
 }
 
-.progress.is-danger {
+.progress.is-danger, .progress.notification.is-error {
   --bulma-progress-value-background-color:var(--bulma-danger);
 }
 
@@ -5031,7 +5031,7 @@ div.icon-text {
   --bulma-table-cell-border-color:var(--bulma-warning);
 }
 
-.table td.is-danger, .table th.is-danger {
+.table td.is-danger, .table td.notification.is-error, .table th.is-danger, .table th.notification.is-error {
   --bulma-table-color:var(--bulma-danger-invert);
   --bulma-table-cell-heading-color:var(--bulma-danger-invert);
   --bulma-table-cell-background-color:var(--bulma-danger);
@@ -5148,7 +5148,7 @@ div.icon-text {
   --bulma-table-cell-border-color:var(--bulma-warning);
 }
 
-.table tr.is-danger {
+.table tr.is-danger, .table tr.notification.is-error {
   --bulma-table-color:var(--bulma-danger-invert);
   --bulma-table-cell-heading-color:var(--bulma-danger-invert);
   --bulma-table-cell-background-color:var(--bulma-danger);
@@ -5405,14 +5405,14 @@ div.icon-text {
   --bulma-tag-color-l:var(--bulma-warning-light-invert-l);
 }
 
-.tag.is-danger {
+.tag.is-danger, .tag.notification.is-error {
   --bulma-tag-h:var(--bulma-danger-h);
   --bulma-tag-s:var(--bulma-danger-s);
   --bulma-tag-background-l:var(--bulma-danger-l);
   --bulma-tag-color-l:var(--bulma-danger-invert-l);
 }
 
-.tag.is-danger.is-light {
+.tag.is-danger.is-light, .tag.is-light.notification.is-error {
   --bulma-tag-background-l:var(--bulma-light-l);
   --bulma-tag-color-l:var(--bulma-danger-light-invert-l);
 }
@@ -5816,7 +5816,7 @@ div.icon-text {
   --bulma-input-border-l:var(--bulma-warning-l);
 }
 
-.is-danger.input, .is-danger.textarea {
+.is-danger.input, .input.notification.is-error, .is-danger.textarea, .textarea.notification.is-error {
   --bulma-input-h:var(--bulma-danger-h);
   --bulma-input-s:var(--bulma-danger-s);
   --bulma-input-l:var(--bulma-danger-l);
@@ -6072,7 +6072,7 @@ div.icon-text {
   --bulma-arrow-color:var(--bulma-warning);
 }
 
-.select.is-danger {
+.select.is-danger, .select.notification.is-error {
   --bulma-input-h:var(--bulma-danger-h);
   --bulma-input-s:var(--bulma-danger-s);
   --bulma-input-l:var(--bulma-danger-l);
@@ -6242,7 +6242,7 @@ div.icon-text {
   --bulma-file-name-color-l:var(--bulma-warning-on-scheme-l);
 }
 
-.file.is-danger {
+.file.is-danger, .file.notification.is-error {
   --bulma-file-h:var(--bulma-danger-h);
   --bulma-file-s:var(--bulma-danger-s);
   --bulma-file-background-l:var(--bulma-danger-l);
@@ -6509,7 +6509,7 @@ div.icon-text {
   color: hsl(var(--bulma-warning-h), var(--bulma-warning-s), var(--bulma-warning-on-scheme-l));
 }
 
-.help.is-danger {
+.help.is-danger, .help.notification.is-error {
   color: hsl(var(--bulma-danger-h), var(--bulma-danger-s), var(--bulma-danger-on-scheme-l));
 }
 
@@ -7271,7 +7271,7 @@ a.dropdown-item.is-active, a.dropdown-item.is-selected, button.dropdown-item.is-
   --bulma-message-header-color-l:var(--bulma-warning-invert-l);
 }
 
-.message.is-danger {
+.message.is-danger, .message.notification.is-error {
   --bulma-message-h:var(--bulma-danger-h);
   --bulma-message-s:var(--bulma-danger-s);
   --bulma-message-border-l:calc(var(--bulma-danger-l) + var(--bulma-message-border-l-delta));
@@ -7703,7 +7703,7 @@ a.dropdown-item.is-active, a.dropdown-item.is-selected, button.dropdown-item.is-
   --bulma-navbar-dropdown-item-s:var(--bulma-warning-s);
 }
 
-.navbar.is-danger {
+.navbar.is-danger, .navbar.notification.is-error {
   --bulma-navbar-h:var(--bulma-danger-h);
   --bulma-navbar-s:var(--bulma-danger-s);
   --bulma-navbar-l:var(--bulma-danger-l);
@@ -8467,7 +8467,7 @@ body.has-navbar-fixed-bottom, html.has-navbar-fixed-bottom {
   --bulma-panel-heading-color-l:var(--bulma-warning-invert-l);
 }
 
-.panel.is-danger {
+.panel.is-danger, .panel.notification.is-error {
   --bulma-panel-h:var(--bulma-danger-h);
   --bulma-panel-s:var(--bulma-danger-s);
   --bulma-panel-color-l:var(--bulma-danger-l);
@@ -13581,7 +13581,7 @@ a.panel-block:hover, label.panel-block:hover {
     background-image: linear-gradient(141deg, hsl(calc(var(--bulma-hero-h) - 5deg), calc(var(--bulma-hero-s) + 10%), calc(var(--bulma-hero-background-l) + 5%)) 0, hsl(var(--bulma-hero-h), var(--bulma-hero-s), var(--bulma-hero-color-l)) 71%, hsl(calc(var(--bulma-hero-h) + 5deg), calc(var(--bulma-hero-s) - 10%), calc(var(--bulma-hero-background-l) - 5%)) 100%);
   }
 }
-.hero.is-danger {
+.hero.is-danger, .hero.notification.is-error {
   --bulma-hero-h:var(--bulma-danger-h);
   --bulma-hero-s:var(--bulma-danger-s);
   --bulma-hero-background-l:var(--bulma-danger-l);
@@ -13590,7 +13590,7 @@ a.panel-block:hover, label.panel-block:hover {
   color: hsl(var(--bulma-hero-h), var(--bulma-hero-s), var(--bulma-hero-color-l));
 }
 
-.hero.is-danger .navbar {
+.hero.is-danger .navbar, .hero.notification.is-error .navbar {
   --bulma-navbar-item-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-color-l));
   --bulma-navbar-item-hover-background-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-color-l));
   --bulma-navbar-item-hover-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-background-l));
@@ -13598,29 +13598,29 @@ a.panel-block:hover, label.panel-block:hover {
   --bulma-navbar-item-active-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-background-l));
 }
 
-.hero.is-danger .tabs {
+.hero.is-danger .tabs, .hero.notification.is-error .tabs {
   --bulma-tabs-link-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-color-l));
   --bulma-tabs-boxed-link-active-background-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-color-l));
   --bulma-tabs-boxed-link-active-border-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-background-l));
   --bulma-tabs-link-active-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-background-l));
 }
 
-.hero.is-danger .subtitle {
+.hero.is-danger .subtitle, .hero.notification.is-error .subtitle {
   --bulma-subtitle-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-color-l));
   --bulma-subtitle-strong-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-color-l));
 }
 
-.hero.is-danger .title {
+.hero.is-danger .title, .hero.notification.is-error .title {
   --bulma-title-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-color-l));
   --bulma-title-strong-color:hsl(var(--bulma-hero-h),var(--bulma-hero-s),var(--bulma-hero-color-l));
 }
 
-.hero.is-danger.is-bold {
+.hero.is-danger.is-bold, .hero.is-bold.notification.is-error {
   background-image: linear-gradient(141deg, hsl(calc(var(--bulma-hero-h) - 5deg), calc(var(--bulma-hero-s) + 10%), calc(var(--bulma-hero-background-l) + 5%)) 0, hsl(var(--bulma-hero-h), var(--bulma-hero-s), var(--bulma-hero-background-l)) 71%, hsl(calc(var(--bulma-hero-h) + 5deg), calc(var(--bulma-hero-s) - 10%), calc(var(--bulma-hero-background-l) - 5%)) 100%);
 }
 
 @media screen and (max-width: 768px) {
-  .hero.is-danger.is-bold .navbar-menu {
+  .hero.is-danger.is-bold .navbar-menu, .hero.is-bold.notification.is-error .navbar-menu {
     background-image: linear-gradient(141deg, hsl(calc(var(--bulma-hero-h) - 5deg), calc(var(--bulma-hero-s) + 10%), calc(var(--bulma-hero-background-l) + 5%)) 0, hsl(var(--bulma-hero-h), var(--bulma-hero-s), var(--bulma-hero-color-l)) 71%, hsl(calc(var(--bulma-hero-h) + 5deg), calc(var(--bulma-hero-s) - 10%), calc(var(--bulma-hero-background-l) - 5%)) 100%);
   }
 }

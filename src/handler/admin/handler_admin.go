@@ -10,6 +10,7 @@ import (
 	"time"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
+	form_builder "viral-game-network/src/utils/form_builder"
 	"viral-game-network/src/k8"
 
 	"github.com/gofiber/fiber/v2"
@@ -134,8 +135,29 @@ func Handle_Pods_Delete_Crud(c *fiber.Ctx) error {
 func Handle_Configs(c *fiber.Ctx) error {
 	configs, _ := repository.GetSystemConfigs()
 
+	fields := []form_builder.FormField{}
+	for _, cnfg := range configs {
+		fields = append(fields, form_builder.FormField{
+			Name: 		cnfg.Key,
+			Label:     	cnfg.Name,
+			Type:      	cnfg.Type,
+			Value: 		cnfg.Val,
+			Options:    cnfg.Options,
+			SortOrder:  cnfg.SortOrder,
+			ReadOnly:   cnfg.ReadOnly,
+			Required:  	true,
+		})
+	}
+
+	form := form_builder.Form{
+		Action: "/admin/configs",
+		Method: "POST",
+		Fields: fields,
+		Confirm: "Save Configurations?",
+	}
+
 	return c.Render("admin/configs", fiber.Map{
-		"configs": configs,
+		"form": form,
 	})
 }
 
