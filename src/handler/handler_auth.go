@@ -9,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// Field names should start with an uppercase letter
 type AuthRequestDTO struct {
 	Name string `json:"name" xml:"name" form:"name"`
 	Guid string `json:"guid" xml:"guid" form:"guid"`

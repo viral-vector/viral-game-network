@@ -10,6 +10,7 @@ import (
 func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 	lQuery := `
 	SELECT *
+	,array::first(SELECT id, name, guid, group, image, version FROM ->Lobby_Application.out) AS lobby_application
     ,(IF count(SELECT id FROM ->Lobby_Host.out) > 0
        {array::first(SELECT id, name, guid FROM ->Lobby_Host.out)} ELSE {NULL}) AS lobby_host
     ,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
@@ -53,6 +54,7 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
 	// Get lobby by ID.
 	lobbies, err := database.Query[dbtype.Lobby](`
 	SELECT * 
+	,array::first(SELECT * FROM ->Lobby_Application.out) AS lobby_application
     ,(IF count(SELECT id FROM ->Lobby_Host.out) > 0
        {array::first(SELECT id, name, guid FROM ->Lobby_Host.out)} ELSE {NULL}) AS lobby_host
     ,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
@@ -77,12 +79,17 @@ func SetLobby(id string, lobby *dbtype.Lobby) (*dbtype.Lobby, error) {
 	return database.Update[dbtype.Lobby](*lobby.ID, lobby)
 }
 
-func PutLobby(body *dbtype.Lobby, user *dbtype.User) (*dbtype.Lobby, error) {
+func PutLobby(body *dbtype.Lobby, app *dbtype.Application, user *dbtype.User) (*dbtype.Lobby, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	body.Date_Created = now
 
 	// Create the lobby.
 	lobby, err := database.Create[dbtype.Lobby](body)
+	if err != nil {
+		return nil, err
+	}
+	// Link the app.
+	err = LinkLobbyApplication(lobby, app)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +111,13 @@ func DelLobby(id string) error {
 	if err != nil {
 		return fmt.Errorf("DelLobby error: lobby not found %s", err)
 	}
-	return UnlinkLobbyAllUsers(id)
+	return nil
+}
+
+func LinkLobbyApplication(lobby *dbtype.Lobby, app *dbtype.Application) error {
+	return database.Relate(lobby.ID, app.ID, "Lobby_Application", map[string]interface{}{
+
+	})
 }
 
 func LinkLobbyHost(lobby *dbtype.Lobby, user *dbtype.User) error {

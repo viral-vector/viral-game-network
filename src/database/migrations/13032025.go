@@ -41,6 +41,25 @@ var migrations = []dbtype.Migration{
 		DEFINE INDEX idx_system_event_message_analyzer ON TABLE System_Event COLUMNS message SEARCH ANALYZER idx_system_event_analyzer BM25 HIGHLIGHTS;
 		`,
 	},
+	// Application 
+	dbtype.Migration{
+		SQL: `
+		DEFINE TABLE Application SCHEMAFULL;
+		DEFINE FIELD id ON TABLE Application TYPE string;
+		DEFINE FIELD guid ON TABLE Application TYPE string;
+		DEFINE FIELD name ON TABLE Application TYPE string;
+		DEFINE FIELD date_created ON TABLE Application TYPE string;
+		DEFINE FIELD date_updated ON TABLE Application TYPE option<string>;
+		DEFINE FIELD group ON TABLE Application TYPE option<string>;
+		DEFINE FIELD image ON TABLE Application TYPE string;
+		DEFINE FIELD version ON TABLE Application TYPE string;
+		DEFINE FIELD command ON TABLE Application TYPE string;
+		DEFINE INDEX idx_application_id ON TABLE Application COLUMNS id UNIQUE;
+		DEFINE INDEX idx_application_guid ON TABLE Application COLUMNS guid UNIQUE;
+		DEFINE INDEX idx_application_name ON TABLE Application COLUMNS name;
+		DEFINE INDEX idx_application_group ON TABLE Application COLUMNS group;
+		`,
+	},
 	// User 
 	dbtype.Migration{
 		SQL: `
@@ -90,6 +109,14 @@ var migrations = []dbtype.Migration{
 		DEFINE FIELD configs ON TABLE Server TYPE option<string>;
 		DEFINE INDEX idx_server_id ON TABLE Server COLUMNS id UNIQUE;
 		DEFINE INDEX idx_server_guid ON TABLE Server COLUMNS guid UNIQUE;
+		`,
+	},
+	// Lobby_Application
+	dbtype.Migration{
+		SQL: `
+		DEFINE TABLE Lobby_Application SCHEMAFULL TYPE RELATION IN Lobby OUT Application ENFORCED ;
+		DEFINE INDEX idx_lobby_application_in ON TABLE Lobby_Application COLUMNS in UNIQUE;
+		DEFINE INDEX idx_lobby_application_out ON TABLE Lobby_Application COLUMNS out UNIQUE;
 		`,
 	},
 	// Lobby_Host

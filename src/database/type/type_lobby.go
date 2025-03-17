@@ -12,6 +12,7 @@ type Lobby struct {
 	Configs string `json:"configs"`
 	Private bool `json:"private"`
 	Code string `json:"code"`
+	Lobby_Application *Application `json:"lobby_application,omitempty"`
 	Lobby_Host *User `json:"lobby_host,omitempty"`
 	Lobby_Users []*User `json:"lobby_users,omitempty"`
 	Lobby_Server *Server `json:"lobby_server,omitempty"` 

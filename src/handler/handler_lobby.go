@@ -15,6 +15,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+type HostLobbyRequestDTO struct {
+	Name string `json:"name" xml:"name" form:"name"`
+	Guid string `json:"guid" xml:"guid" form:"guid"`
+	App string  `json:"app" xml:"guid" form:"guid"`
+}
+
 // Handle_AllLobby
 func Handle_AllLobby(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "lobby/all")
@@ -163,8 +169,8 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 func Handle_HostLobby(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "lobby/host")
 
-	record := new(dbtype.Lobby)
-	if err := c.BodyParser(record); err != nil {
+	dto := new(HostLobbyRequestDTO)
+	if err := c.BodyParser(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -174,7 +180,23 @@ func Handle_HostLobby(c *fiber.Ctx) error {
 
 	user := c.Locals("user").(*dbtype.User)
 
-	lobby, err := repository.PutLobby(record, user)
+	// Fetch the app
+	app, err := repository.GetApplication(&dbtype.Application{
+		Guid: dto.App,
+		Name: dto.App,
+	})
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": "Error hosting lobby: " + err.Error(),
+		})
+	}
+
+	// Insert Lobby
+	lobby, err := repository.PutLobby(&dbtype.Lobby{
+		Name: dto.Name,
+	}, app, user)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)

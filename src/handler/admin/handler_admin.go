@@ -16,7 +16,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// ##> Admin HTTP
+// ##> 
 func Handle_Dash(c *fiber.Ctx) error {
 	// Get the cluster status
 	cluster, err := k8.GetClusterStatus()
@@ -39,14 +39,6 @@ func Handle_Dash(c *fiber.Ctx) error {
 		},
 		"cevents": cevents,
 		"sevents": sevents,
-	})
-}
-
-func Handle_Configs(c *fiber.Ctx) error {
-	configs, _ := repository.GetSystemConfigs()
-
-	return c.Render("admin/configs", fiber.Map{
-		"configs": configs,
 	})
 }
 
@@ -89,6 +81,7 @@ func Handle_Servers(c *fiber.Ctx) error {
 	})
 }
 
+// ##> Pods
 func Handle_Pods(c *fiber.Ctx) error {
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
@@ -103,7 +96,7 @@ func Handle_Pods(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Pods_Edit(c *fiber.Ctx) error {
+func Handle_Pods_Update_View(c *fiber.Ctx) error {
 	node, pod, err := k8.LocateServerPod(
 		strings.Replace(c.Params("id"), "server-", "", -1))
 
@@ -121,9 +114,32 @@ func Handle_Pods_Edit(c *fiber.Ctx) error {
 	}) 
 }
 
+func Handle_Pods_Delete_Crud(c *fiber.Ctx) error {
+	err := k8.DeleteServerPod(
+		strings.Replace(c.Params("id"), "server-", "", -1))
 
-// ##> Admin JSON
-func Handle_Configs_Put(c *fiber.Ctx) error {
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"redirect": "/admin/pods",
+		"message":  "Deleted " + c.Params("id"),
+	})
+}
+
+// ##> Configs
+func Handle_Configs(c *fiber.Ctx) error {
+	configs, _ := repository.GetSystemConfigs()
+
+	return c.Render("admin/configs", fiber.Map{
+		"configs": configs,
+	})
+}
+
+func Handle_Configs_Update_Crud(c *fiber.Ctx) error {
 	configs, _ := repository.GetSystemConfigs()
 	for i := range configs {
 		configs[i].Val = c.FormValue(configs[i].Key)
@@ -143,6 +159,7 @@ func Handle_Configs_Put(c *fiber.Ctx) error {
 	})
 }
 
+// ##> Admin JSON
 func Handle_SSEvents(c *fiber.Ctx) error {
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
@@ -184,6 +201,7 @@ func Handle_SSEvents(c *fiber.Ctx) error {
 	return nil
 }
 
+// ##> Cluster
 func Handle_Cluster_Start(c *fiber.Ctx) error {
 	go func() {
 		err := k8.CheckCreateCluster()
@@ -238,21 +256,5 @@ func Handle_Cluster_Pods_Stop(c *fiber.Ctx) error {
 	}()
 	return c.JSON(fiber.Map{
 		"message": "Stopping all pods",
-	})
-}
-
-func Handle_Pods_Delete(c *fiber.Ctx) error {
-	err := k8.DeleteServerPod(
-		strings.Replace(c.Params("id"), "server-", "", -1))
-
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-
-	return c.JSON(fiber.Map{
-		"redirect": "/admin/pods",
-		"message":  "Deleted " + c.Params("id"),
 	})
 }

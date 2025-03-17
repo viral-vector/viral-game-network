@@ -51,15 +51,29 @@ func serve_routes(app *fiber.App) {
 	// admin.Use(handler.Handle_ValidateAppKey)
 	// User Authentication
 	admin.Get("/", handler_admin.Handle_Dash)
+
+	admin.Get("/applications", handler_admin.Handle_Applications)
+	admin.Get("/application", handler_admin.Handle_Applications_Create_View)
+	admin.Post("/application", handler_admin.Handle_Applications_Create_Crud)
+	admin.Get("/application/:id", handler_admin.Handle_Applications_Update_View)
+	admin.Post("/application/:id", handler_admin.Handle_Applications_Update_Crud)
+	admin.Delete("/application/:id", handler_admin.Handle_Applications_Delete_Crud)
+
 	admin.Get("/users", handler_admin.Handle_Users)
+
 	admin.Get("/lobbies", handler_admin.Handle_Lobbies)
+	
 	admin.Get("/servers", handler_admin.Handle_Servers)
+	
 	admin.Get("/pods", handler_admin.Handle_Pods)
-	admin.Delete("/pods/:id", handler_admin.Handle_Pods_Delete)
-	admin.Get("/pods/:id", handler_admin.Handle_Pods_Edit)
+	admin.Get("/pod/:id", handler_admin.Handle_Pods_Update_View)
+	admin.Delete("/pod/:id", handler_admin.Handle_Pods_Delete_Crud)
+	
 	admin.Get("/metrics", handler_admin.Handle_Dash)
+
 	admin.Get("/configs", handler_admin.Handle_Configs)
-	admin.Post("/configs", handler_admin.Handle_Configs_Put)
+	admin.Post("/configs", handler_admin.Handle_Configs_Update_Crud)
+
 	admin.Get("/ssevents", handler_admin.Handle_SSEvents)
 
 	admin.Post("/cluster/start", handler_admin.Handle_Cluster_Start)
