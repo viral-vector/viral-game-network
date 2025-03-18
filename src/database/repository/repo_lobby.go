@@ -10,7 +10,7 @@ import (
 func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 	lQuery := `
 	SELECT *
-	,array::first(SELECT id, name, guid, group, image, version FROM ->Lobby_Application.out) AS lobby_application
+	,array::first(SELECT * FROM ->Lobby_Application.out) AS lobby_application
     ,(IF count(SELECT id FROM ->Lobby_Host.out) > 0
        {array::first(SELECT id, name, guid FROM ->Lobby_Host.out)} ELSE {NULL}) AS lobby_host
     ,(IF count(SELECT id FROM ->Lobby_Server.out) > 0

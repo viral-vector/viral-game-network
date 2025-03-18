@@ -79,7 +79,7 @@ COPY . .
 RUN chown -R appuser:appgroup /app
 
 # Switch to non-root user
-USER appuser
+# USER appuser
 
 # Expose application port
 EXPOSE 3000

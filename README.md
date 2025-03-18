@@ -7,7 +7,6 @@ Viral-Network (Viral Games Network Backend) is a game backend server written in 
 * Game Network Backend Server with WebRTC written in Golang 
 * 1.0.0
 
-
 ## Commands
 1. Image to registry
     * docker build -t localhost:5000/viral-game-network/bbserver:1.0.0 .

@@ -4,7 +4,7 @@ div#app.my-5.mx-3
         .columns
             .column.is-one-quarter
                 include partials/aside.pug
-            .column(data-controller="crud" data-crud-list-value="/admin/pods" data-crud-create-value="/admin/pods" data-crud-edit-value="/admin/pods/:id" data-crud-delete-value="/admin/pods/:id")
+            .column(data-controller="crud" data-crud-list-value="/admin/pods" data-crud-create-value="/admin/pods" data-crud-edit-value="/admin/pod/:id" data-crud-delete-value="/admin/pod/:id")
                 include partials/modal_prompt.pug
                 include partials/notification.pug
                 section.content

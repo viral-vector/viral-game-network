@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"os"
 	"strconv"
 	"time"
 	"viral-game-network/src/cache"
@@ -109,7 +108,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 		})
 	}
 
-	max_players, err := strconv.ParseInt(os.Getenv("LOBBY_MAX_PLAYERS"), 0, 0)
+	max_players, err := strconv.ParseInt(lobby.Lobby_Application.Lobby_Max_Players, 0, 0)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{

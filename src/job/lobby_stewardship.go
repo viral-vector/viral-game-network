@@ -2,7 +2,6 @@ package job
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"strconv"
 	"time"
@@ -22,12 +21,6 @@ func Job_Lobby_Stewardship() {
 		return
 	}
 
-	// Parse the string into a float64
-	lobby_max_persist, err := strconv.ParseFloat(os.Getenv("LOBBY_MAX_PERSIST"), 64)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
 	for _, lobby := range lobbies {
 		// Get the label for the pod
 		label := strings.Split(lobby.ID.String(), ":")[1]
@@ -36,21 +29,27 @@ func Job_Lobby_Stewardship() {
 		if cache_lock, _ := cache.Get[string]("lobby-stewardship-lock-" + label); cache_lock != "" {
 			continue
 		}
-		go func(lobby *dbtype.Lobby, label string, lobby_max_persist float64) {
+		go func(lobby *dbtype.Lobby, label string) {
 			// Lock the Lobby
 			cache.Set[string]("lobby-stewardship-lock-"+label, "true", time.Second*30)
 
 			fmt.Println("RUN_Lobby_Stewardship: @ Looking", label)
 			// RUN
-			RUN_Lobby_Stewardship(lobby, lobby_max_persist)
+			RUN_Lobby_Stewardship(lobby)
 			// Unlock the Lobby
 			cache.Del("lobby-stewardship-lock-" + label)
-		}(&lobby, label, lobby_max_persist)
+		}(&lobby, label)
 	}
 }
 
-func RUN_Lobby_Stewardship(lobby *dbtype.Lobby, lobby_max_persist float64) {
+func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
 	fmt.Println("Job_Lobby_Stewardship: @ Looking", lobby.ID.String())
+
+	lobby_max_persist, err := strconv.ParseFloat(lobby.Lobby_Application.Lobby_Max_Persist, 64)
+	if err != nil {
+		fmt.Println("Job_Lobby_Stewardship Error:", err)
+		return
+	}
 
 	date_now := time.Now().UTC()
 

@@ -30,7 +30,7 @@ func (u SystemConfig) KeyValMap() map[string]SystemConfig {
 			Val:  os.Getenv("APP_ENV"),
 			Name: "VNetwork Client Environment",
 			Type: "string",
-			ReadOnly: false,
+			ReadOnly: true,
 			SortOrder: 0,
 		},
 		"APP_NAME": {
@@ -48,22 +48,6 @@ func (u SystemConfig) KeyValMap() map[string]SystemConfig {
 			Type: "number",
 			ReadOnly: false,
 			SortOrder: 2,
-		},
-		"LOBBY_MAX_PLAYERS": {
-			Key:  "LOBBY_MAX_PLAYERS",
-			Val:  os.Getenv("LOBBY_MAX_PLAYERS"),
-			Name: "Maximum Lobby Players",
-			Type: "number",
-			ReadOnly: false,
-			SortOrder: 3,
-		},
-		"LOBBY_MAX_PERSIST": {
-			Key:  "LOBBY_MAX_PERSIST",
-			Val:  os.Getenv("LOBBY_MAX_PERSIST"),
-			Name: "Lobby Max Persist (minutes)",
-			Type: "number",
-			ReadOnly: false,
-			SortOrder: 4,
 		},
 
 		// "TEST_TEXT": {

@@ -52,8 +52,11 @@ var migrations = []dbtype.Migration{
 		DEFINE FIELD date_updated ON TABLE Application TYPE option<string>;
 		DEFINE FIELD group ON TABLE Application TYPE option<string>;
 		DEFINE FIELD image ON TABLE Application TYPE string;
+		DEFINE FIELD port ON TABLE Application TYPE string;
 		DEFINE FIELD version ON TABLE Application TYPE string;
 		DEFINE FIELD command ON TABLE Application TYPE string;
+		DEFINE FIELD lobby_max_players ON TABLE Application TYPE string;
+		DEFINE FIELD lobby_max_persist ON TABLE Application TYPE string;
 		DEFINE INDEX idx_application_id ON TABLE Application COLUMNS id UNIQUE;
 		DEFINE INDEX idx_application_guid ON TABLE Application COLUMNS guid UNIQUE;
 		DEFINE INDEX idx_application_name ON TABLE Application COLUMNS name;

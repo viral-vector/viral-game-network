@@ -74,16 +74,15 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 	}
 	external_address := k8.GetNodeExternalIP(node)
 
-	aPort, err := strconv.ParseInt(os.Getenv("GAME_PORT"), 10, 32)
+	aPort, err := strconv.ParseInt(lobby.Lobby_Application.Port, 10, 32)
 	if err != nil {
 		return fmt.Errorf("Job_Lobby_Server_Provisioner: @ Errors  %s", err)
 	}
 
 	// Format the command
-	gmd := os.Getenv("GAME_COMMANDS")
+	gmd := lobby.Lobby_Application.Command
 	cmd := []string{}
-	for _, str := range strings.Split(gmd, " ") {
-		str = strings.Replace(str, "${GAME_NAME}", os.Getenv("GAME_NAME"), -1)		
+	for _, str := range strings.Split(gmd, " ") {	
 		str = strings.Replace(str, "${GAME_PORT}", strconv.Itoa(int(aPort)), -1)
 
 		str = strings.Replace(str, "${NODE_HOST}", external_address, -1)
@@ -93,7 +92,7 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 		str = strings.Replace(str, "${VNET_PORT}", os.Getenv("VNET_PORT"), -1)
 		str = strings.Replace(str, "${VNET_KEY}", os.Getenv("VNET_KEY"), -1)
 
-		str = strings.Replace(str, "${LOBBY_MAX_PLAYERS}", os.Getenv("LOBBY_MAX_PLAYERS"), -1)
+		str = strings.Replace(str, "${LOBBY_MAX_PLAYERS}", lobby.Lobby_Application.Lobby_Max_Players, -1)
 		str = strings.Replace(str, "${LOBBY_ID}", lobby.ID.String(), -1)
 		str = strings.Replace(str, "${LOBBY_NAME}", lobby.Name, -1)
 		cmd = append(cmd, str)
@@ -101,20 +100,22 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 
 	// Prepare ENVS
 	env := map[string]string{
-		"GAME_NAME": os.Getenv("GAME_NAME"),
 		"GAME_PORT": strconv.Itoa(int(aPort)),
 		"NODE_HOST": external_address,
 		"NODE_PORT": strconv.Itoa(int(sPort)),
 		"VNET_HOST": os.Getenv("VNET_HOST"),
 		"VNET_PORT": os.Getenv("VNET_PORT"),
 		"VNET_KEY":  os.Getenv("VNET_KEY"),
-		"LOBBY_MAX_PLAYERS": os.Getenv("LOBBY_MAX_PLAYERS"),
+		"LOBBY_MAX_PLAYERS": lobby.Lobby_Application.Lobby_Max_Players,
 		"LOBBY_ID":   lobby.ID.String(),
 		"LOBBY_NAME": lobby.Name,
 	}
 
 	// Create the server pod
-	image := os.Getenv("GAME_DOKIMAGE")
+	image := lobby.Lobby_Application.Image
+	if lobby.Lobby_Application.Version != "" {
+		image += ":" + lobby.Lobby_Application.Version
+	}
 	lobpod, err = k8.CreateServerPod(label, node, int32(sPort), int32(aPort), image, cmd, env)
 	if err != nil {
 		return fmt.Errorf("Job_Lobby_Server_Provisioner:  %s", err)
