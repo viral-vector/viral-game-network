@@ -11,7 +11,6 @@ import (
 
 func main() {
 	ServeApp()
-	Commands()
 }
 
 func ServeApp() {
@@ -21,14 +20,13 @@ func ServeApp() {
 	engine.AddFunc("equals", func(a any, b any) bool {
 		return a == b
 	})
-
 	// Create a new Fiber app
 	app := fiber.New(fiber.Config{
 		Prefork:           os.Getenv("APP_PREFORK") == "true",
 		CaseSensitive:     true,
 		StrictRouting:     false,
 		ServerHeader:      "VGN",
-		AppName:           os.Getenv("APP_NAME"),
+		AppName:           os.Getenv("VNET_NAME"),
 		Views:             engine,
 		ViewsLayout:       "base",
 		PassLocalsToViews: true,
@@ -40,9 +38,5 @@ func ServeApp() {
 	// Start the job scheduler
 	job.Start()
 	// Log Errors
-	log.Fatal(app.Listen(":3000"))
-}
-
-func Commands() {
-
+	log.Fatal(app.Listen(":" + os.Getenv("VNET_PORT")))
 }

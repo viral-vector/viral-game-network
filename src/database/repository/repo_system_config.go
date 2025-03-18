@@ -79,14 +79,14 @@ func PopSystemConfigs(configs *[]dbtype.SystemConfig) ([]dbtype.SystemConfig, er
 	return GetSystemConfigs()
 }
 
-func GetConfig(key string) (*dbtype.SystemConfig, error) {
-	configs, err := GetSystemConfigs() 
+func GetConfigValue(key string) *string {
+	configs, _ := GetSystemConfigs() 
 	if configs != nil {
 		for _, config := range configs {
 			if config.Key == key {
-				return &config, nil
+				return &config.Val
 			}
 		}
 	}
-	return nil, fmt.Errorf("GetConfig: %s Not Found (%w)", key, err)
+	return nil
 }

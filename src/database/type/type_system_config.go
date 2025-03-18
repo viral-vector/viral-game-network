@@ -28,53 +28,26 @@ func (u SystemConfig) KeyValMap() map[string]SystemConfig {
 		 "APP_ENV": {
 			Key:  "APP_ENV",
 			Val:  os.Getenv("APP_ENV"),
-			Name: "VNetwork Client Environment",
+			Name: "VNetwork Environment",
 			Type: "string",
 			ReadOnly: true,
 			SortOrder: 0,
 		},
-		"APP_NAME": {
-			Key:  "APP_NAME",
-			Val:  os.Getenv("APP_NAME"),
-			Name: "VNetwork Client Name",
+		"VNET_NAME": {
+			Key:  "VNET_NAME",
+			Val:  "",
+			Name: "VNetwork Name",
 			Type: "string",
-			ReadOnly: true,
+			ReadOnly: false,
 			SortOrder: 1,
 		},
 		"APP_TOKEN_EXPIRE": {
 			Key:  "APP_TOKEN_EXPIRE",
-			Val:  os.Getenv("APP_TOKEN_EXPIRE"),
-			Name: "VNetwork Client Token Expiration",
+			Val:  "",
+			Name: "VNetwork Token Life",
 			Type: "number",
 			ReadOnly: false,
 			SortOrder: 2,
 		},
-
-		// "TEST_TEXT": {
-		// 	Key:  "TEST_TEXT",
-		// 	Val:  "Hello World",
-		// 	Name: "TEST_TEXT",
-		// 	Type: "string/number",
-		// 	ReadOnly: false,
-		// },
-		// "TEST_BOOL": {
-		// 	Key:  "TEST_BOOL",
-		// 	Val:  "true",
-		// 	Name: "TEST_BOOL",
-		// 	Type: "bool",
-		// 	ReadOnly: true,
-		// },
-		// "TEST_CHOICE": {
-		// 	Key:  "TEST_CHOICE",
-		// 	Val:  "b",
-		// 	Name: "TEST_CHOICE",
-		// 	Type: "choice",
-		// 	ReadOnly: false,
-		// 	Options: []map[string]string {
-		// 		map[string]string{"value": "a", "label": "Angora"},
-		// 		map[string]string{"value": "b", "label": "Bngora"},
-		// 		map[string]string{"value": "c", "label": "Cngora"},
-		// 	},
-		// },
 	}
 }

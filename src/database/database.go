@@ -25,7 +25,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	if err = DBS.Use(os.Getenv("APP_NAME"), "vgn"); err != nil {
+	if err = DBS.Use(os.Getenv("STORE_DATABASE"), "vgn"); err != nil {
 		log.Fatal(err)
 	}
 

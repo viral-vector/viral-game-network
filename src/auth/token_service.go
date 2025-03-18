@@ -9,6 +9,7 @@ import (
     "crypto/subtle"
 	"github.com/golang-jwt/jwt/v5"
 	"viral-game-network/src/database/type"
+	"viral-game-network/src/database/repository"
 )
 
 type Claims struct {
@@ -16,12 +17,19 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-var app_key = []byte(os.Getenv("APP_KEY"))
+var vnet_key = []byte(os.Getenv("VNET_KEY"))
 
 func GenerateToken(user *dbtype.User) (string, error) {
-	i, err := strconv.ParseInt(os.Getenv("APP_TOKEN_EXPIRE"), 10, 64)
+	app_name := repository.GetConfigValue("VNET_NAME")
+	exp_time := repository.GetConfigValue("VNET_TOKEN_EXPIRE")
+
+	if app_name == nil || exp_time == nil{
+		return "", fmt.Errorf("System not configured")
+	}
+
+	i, err := strconv.ParseInt(*exp_time, 10, 64)
 	if err != nil {
-  		return "", fmt.Errorf("Server Error Parsing Expire Time")
+  		return "", fmt.Errorf("Parsing Expire Time")
 	}
 	l := time.Duration(+int(i))
 
@@ -29,17 +37,17 @@ func GenerateToken(user *dbtype.User) (string, error) {
 		UserName: user.Name,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(l * time.Minute)),
-			Issuer: os.Getenv("APP_NAME"),
+			Issuer: *app_name,
 		},
 	}
 	access_token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
- 	return access_token.SignedString(app_key)
+ 	return access_token.SignedString(vnet_key)
 }
 
 func ValidateToken(tokenString string) (*dbtype.User, error) {
 	access_token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return app_key, nil
+		return vnet_key, nil
 	})
 	if err != nil {
 		return nil, err
@@ -57,7 +65,7 @@ func ValidateToken(tokenString string) (*dbtype.User, error) {
 }
 
 func ValidateAppKey(key string) (bool, error) {
-	hashedAppKey := sha256.Sum256(app_key)
+	hashedAppKey := sha256.Sum256(vnet_key)
     hashedExtKey := sha256.Sum256([]byte(key))
 
     if subtle.ConstantTimeCompare(hashedAppKey[:], hashedExtKey[:]) == 1 {
