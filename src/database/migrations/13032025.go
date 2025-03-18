@@ -84,6 +84,7 @@ var migrations = []dbtype.Migration{
 		SQL: `
 		DEFINE TABLE Lobby SCHEMAFULL;
 		DEFINE FIELD id ON TABLE Lobby TYPE string;
+		DEFINE FIELD guid ON TABLE Lobby TYPE string;
 		DEFINE FIELD name ON TABLE Lobby TYPE string;
 		DEFINE FIELD date_created ON TABLE Lobby TYPE string;
 		DEFINE FIELD date_updated ON TABLE Lobby TYPE option<string>;
@@ -91,6 +92,7 @@ var migrations = []dbtype.Migration{
 		DEFINE FIELD private ON TABLE Lobby TYPE bool DEFAULT false;
 		DEFINE FIELD code ON TABLE Lobby TYPE option<string>;
 		DEFINE INDEX idx_lobby_id ON TABLE Lobby COLUMNS id UNIQUE;
+		DEFINE INDEX idx_lobby_guid ON TABLE Lobby COLUMNS guid UNIQUE;
 		DEFINE INDEX idx_lobby_name ON TABLE Lobby COLUMNS name;
 		DEFINE ANALYZER idx_lobby_analyzer TOKENIZERS class FILTERS ascii;
 		DEFINE INDEX idx_lobby_name_analyzer ON TABLE Lobby COLUMNS name SEARCH ANALYZER idx_lobby_analyzer BM25 HIGHLIGHTS;

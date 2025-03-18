@@ -16,8 +16,7 @@ import (
 
 type HostLobbyRequestDTO struct {
 	Name string `json:"name" xml:"name" form:"name"`
-	Guid string `json:"guid" xml:"guid" form:"guid"`
-	App string  `json:"app" xml:"guid" form:"guid"`
+	App string  `json:"app" xml:"guid" form:"app"`
 }
 
 // Handle_AllLobby

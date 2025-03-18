@@ -82,6 +82,7 @@ func SetLobby(id string, lobby *dbtype.Lobby) (*dbtype.Lobby, error) {
 func PutLobby(body *dbtype.Lobby, app *dbtype.Application, user *dbtype.User) (*dbtype.Lobby, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	body.Date_Created = now
+	body.Guid = database.GetUUID()
 
 	// Create the lobby.
 	lobby, err := database.Create[dbtype.Lobby](body)

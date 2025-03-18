@@ -135,6 +135,11 @@ func Handle_Pods_Delete_Crud(c *fiber.Ctx) error {
 func Handle_Configs(c *fiber.Ctx) error {
 	configs, _ := repository.GetSystemConfigs()
 
+	// Clear cache on view
+	if repository.DelSystemConfigsCache() != nil {
+		
+	}
+
 	fields := []form_builder.FormField{}
 	for _, cnfg := range configs {
 		fields = append(fields, form_builder.FormField{

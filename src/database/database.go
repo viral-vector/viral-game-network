@@ -8,6 +8,7 @@ import (
 	migrations "viral-game-network/src/database/migrations"
     "github.com/surrealdb/surrealdb.go"
 	"github.com/surrealdb/surrealdb.go/pkg/models"
+	"github.com/google/uuid"
 )
 
 var DBS *surrealdb.DB
@@ -133,4 +134,8 @@ func Relate(in *models.RecordID, out *models.RecordID, table string, data map[st
 		fmt.Println("Relate Error: ", err)
 	}
 	return err
+}
+
+func GetUUID() string {
+	return uuid.New().String()
 }

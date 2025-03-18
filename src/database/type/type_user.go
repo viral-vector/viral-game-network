@@ -17,3 +17,7 @@ type User struct {
 func (u User) TableName() string {
 	return "User"
 }
+
+func (u User) SetGUID(guid string) {
+	u.Guid = guid
+}

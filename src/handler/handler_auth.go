@@ -11,7 +11,6 @@ import (
 
 type AuthRequestDTO struct {
 	Name string `json:"name" xml:"name" form:"name"`
-	Guid string `json:"guid" xml:"guid" form:"guid"`
 }
 
 func Handle_ValidateAppKey(c *fiber.Ctx) error {
@@ -64,7 +63,6 @@ func Handle_AuthLobby(c *fiber.Ctx) error {
 	}
 	user := dbtype.User{
 		Name: dto.Name,
-		Guid: dto.Guid,
 	}
 
 	access_token, err := auth.GenerateToken(&user)
@@ -93,7 +91,6 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 	}
 	utmp := dbtype.User{
 		Name: dto.Name,
-		Guid: dto.Guid,
 	}
 
 	user, err := repository.GetUser(&utmp)

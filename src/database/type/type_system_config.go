@@ -34,15 +34,15 @@ func (u SystemConfig) KeyValMap() map[string]SystemConfig {
 			SortOrder: 0,
 		},
 		"VNET_NAME": {
-			Key:  "VNET_NAME",
+			Key:  "VNET_NAME", 
 			Val:  "",
 			Name: "VNetwork Name",
 			Type: "string",
 			ReadOnly: false,
 			SortOrder: 1,
 		},
-		"APP_TOKEN_EXPIRE": {
-			Key:  "APP_TOKEN_EXPIRE",
+		"VNET_TOKEN_EXPIRE": {
+			Key:  "VNET_TOKEN_EXPIRE",
 			Val:  "",
 			Name: "VNetwork Token Life",
 			Type: "number",

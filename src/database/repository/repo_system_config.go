@@ -9,6 +9,11 @@ import (
 	dbtype "viral-game-network/src/database/type"
 )
 
+func DelSystemConfigsCache() error {
+	cache.Del("system-configs")
+	return nil
+}
+
 func GetSystemConfigs() ([]dbtype.SystemConfig, error) {
 	// Check if we have a lock on the lobby
 	if cached, _ := cache.Get[[]dbtype.SystemConfig]("system-configs"); cached != nil {

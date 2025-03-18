@@ -66,5 +66,6 @@ func SetUser(id string, user *dbtype.User) (*dbtype.User, error) {
 func PutUser(user *dbtype.User) (*dbtype.User, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	user.Date_Created = now
+	user.Guid = database.GetUUID()
 	return database.Create[dbtype.User](user)
 }

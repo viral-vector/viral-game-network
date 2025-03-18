@@ -7,6 +7,7 @@ import (
 type Lobby struct {
 	ID    *models.RecordID `json:"id,omitempty"`
 	Name  string `json:"name"`
+	Guid  string `json:"guid,omitempty"`
 	Date_Created string `json:"date_created"`
 	Date_Updated string `json:"date_updated"`
 	Configs string `json:"configs"`
