@@ -8,10 +8,12 @@ require (
 	github.com/gofiber/storage/redis/v3 v3.1.0
 	github.com/gofiber/template/pug/v2 v2.1.6
 	github.com/golang-jwt/jwt/v5 v5.2.0
+	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.4.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/surrealdb/surrealdb.go v0.3.2
 	github.com/valyala/fasthttp v1.51.0
+	golang.org/x/crypto v0.16.0
 	k8s.io/api v0.29.2
 	k8s.io/apimachinery v0.29.2
 	k8s.io/client-go v0.29.2
@@ -38,7 +40,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/josharian/intern v1.0.0 // indirect

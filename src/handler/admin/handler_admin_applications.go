@@ -49,8 +49,6 @@ func Handle_Applications_Create_Crud(c *fiber.Ctx) error {
 		})
 	}
 
-	fmt.Println(dto)
-
 	app, err := repository.PutApplication(dto)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)

@@ -1,0 +1,30 @@
+div#app.my-5.mx-3
+    include partials/header.pug
+    #admin.container.is-fullhd.px-1.py-6
+        .columns
+            .column.is-one-quarter
+                include partials/aside.pug
+            .column(data-controller="form")
+                include partials/modal_prompt.pug
+                include partials/notification.pug
+                section.content
+                    h3.subtitle
+                        | Manage Admins
+                hr
+                if .form
+                    include partials/form.pug
+                else
+                    p.notification.is-info 
+                        | #{.total} admins found.
+                        | Viewing #{.paged} of #{.pages} pages.
+                    p.p-3
+                       a.has-text-primary(href="/admin/admin")
+                        span.icon
+                            span.fas.fa-plus-circle 
+                        | Add Admin
+                    each admin in .admins
+                        .box
+                            include partials/admins/list_item.pug
+                    include partials/pager.pug
+                
+script(src="/admin.js")

@@ -47,40 +47,44 @@ func serve_routes(app *fiber.App) {
 	auth.Post("/admin", handler.Handle_AuthAdmin)
 
 	/**
-	 * 	Admin Routes
+	 * 	Admin Routes -----------------------------------------------------------------  
 	 */
 	admin := app.Group("/admin")
 	// Token Validation
 	admin.Use(handler.Handle_ValidateTokenAdmin)
 	
 	admin.Get("/", handler_admin.Handle_Dash).Name("admin")
+	// Admins
+	admin.Get("/admins", handler_admin.Handle_Admins)
+	admin.Get("/admin", handler_admin.Handle_Admins_Create_View)
+	admin.Post("/admin", handler_admin.Handle_Admins_Create_Crud)
+	admin.Get("/admin/:id", handler_admin.Handle_Admins_Update_View)
+	admin.Post("/admin/:id", handler_admin.Handle_Admins_Update_Crud)
+	admin.Delete("/admin/:id", handler_admin.Handle_Admins_Delete_Crud)
+	// Aplications
 	admin.Get("/applications", handler_admin.Handle_Applications)
 	admin.Get("/application", handler_admin.Handle_Applications_Create_View)
 	admin.Post("/application", handler_admin.Handle_Applications_Create_Crud)
 	admin.Get("/application/:id", handler_admin.Handle_Applications_Update_View)
 	admin.Post("/application/:id", handler_admin.Handle_Applications_Update_Crud)
 	admin.Delete("/application/:id", handler_admin.Handle_Applications_Delete_Crud)
-
+	// Users Lobbies & Servers
 	admin.Get("/users", handler_admin.Handle_Users)
-
 	admin.Get("/lobbies", handler_admin.Handle_Lobbies)
-	
 	admin.Get("/servers", handler_admin.Handle_Servers)
-	
-	admin.Get("/pods", handler_admin.Handle_Pods)
-	admin.Get("/pod/:id", handler_admin.Handle_Pods_Update_View)
-	admin.Delete("/pod/:id", handler_admin.Handle_Pods_Delete_Crud)
-	
-	admin.Get("/metrics", handler_admin.Handle_Dash)
-
-	admin.Get("/configs", handler_admin.Handle_Configs)
-	admin.Post("/configs", handler_admin.Handle_Configs_Update_Crud)
-
-	admin.Get("/ssevents", handler_admin.Handle_SSEvents)
-
+	//  Cluster & Pods
 	admin.Post("/cluster/start", handler_admin.Handle_Cluster_Start)
 	admin.Post("/cluster/stop", handler_admin.Handle_Cluster_Stop)
 	admin.Post("/cluster/pods/stop", handler_admin.Handle_Cluster_Pods_Stop)
+	admin.Get("/pods", handler_admin.Handle_Pods)
+	admin.Get("/pod/:id", handler_admin.Handle_Pods_Update_View)
+	admin.Delete("/pod/:id", handler_admin.Handle_Pods_Delete_Crud)
+	// Metrics Configs Etc
+	admin.Get("/metrics", handler_admin.Handle_Dash)
+	admin.Get("/configs", handler_admin.Handle_Configs)
+	admin.Post("/configs", handler_admin.Handle_Configs_Update_Crud)
+	admin.Get("/ssevents", handler_admin.Handle_SSEvents)
+	// -------------------------------------------------------------------------------
 
 	/**
 	 * 	API Routes

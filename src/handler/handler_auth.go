@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"time"
 	"strings"
 	"viral-game-network/src/auth"
@@ -189,17 +188,38 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 		})
 	}
 	
-	
 	// Post - Gen token
 	dto := new(AuthAdminRequestDTO)
-
 	if err := c.BodyParser(dto); err != nil {
 		return err
 	}
 
-	fmt.Println(dto)
-	access_token, err := auth.GenerateToken(dto.Username)
+	// Fetch admin
+	admin, err := repository.GetAdmin(&dbtype.Admin {
+		Name: dto.Username,
+		Email: dto.Username,
+		Phone: dto.Username,
+	})
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": "Admin fetch failed: " + err.Error(),
+		})
+	}
 
+	// Validate Password 
+	valid, err := auth.HashValidate(dto.Password, admin.Password)
+	if valid == false {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": "Password check failed: " + err.Error(),
+		})
+	}
+
+	// Gen Token
+	access_token, err := auth.GenerateToken(admin.Name)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -207,6 +227,11 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 			"message": "Token generation failed: " + err.Error(),
 		})
 	}
+
+	// Update last login
+	admin.Date_LastLogin = time.Now().UTC().Format(time.RFC3339)
+	// Update admin
+	repository.SetAdmin(admin.ID.String(), admin)
 
 	// Create cookie
 	cookie := new(fiber.Cookie)
