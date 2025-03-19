@@ -70,9 +70,16 @@ export default class extends Controller {
                         data.status = response.status;
                         throw new Error(`${response.status}: ${JSON.stringify(data) || ''}`);
                     }
+
+                    if (data.redirect) {
+                        setTimeout(() => {
+                            window.location.href = data.redirect
+                        }, 1000);
+                    }
+
                     window.pushNotification({
                         "type": "info",
-                        "message": data.message,
+                        "message": data.message || "success",
                         "priority": 0
                     })
                 } catch (error) {

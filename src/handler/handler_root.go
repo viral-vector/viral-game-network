@@ -12,6 +12,6 @@ func Handle_Health(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "root/health")
 
 	return c.JSON(fiber.Map{
-		"status": "ok",
+		"status": "success",
 	})
 }

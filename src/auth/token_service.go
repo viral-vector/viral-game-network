@@ -8,18 +8,17 @@ import (
 	"crypto/sha256"
     "crypto/subtle"
 	"github.com/golang-jwt/jwt/v5"
-	"viral-game-network/src/database/type"
 	"viral-game-network/src/database/repository"
 )
 
 type Claims struct {
-	UserName string `json:"username"`
+	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
 
 var vnet_key = []byte(os.Getenv("VNET_KEY"))
 
-func GenerateToken(user *dbtype.User) (string, error) {
+func GenerateToken(username string) (string, error) {
 	app_name := repository.GetConfigValue("VNET_NAME")
 	exp_time := repository.GetConfigValue("VNET_TOKEN_EXPIRE")
 
@@ -34,7 +33,7 @@ func GenerateToken(user *dbtype.User) (string, error) {
 	l := time.Duration(+int(i))
 
 	claims := Claims{
-		UserName: user.Name,
+		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(l * time.Minute)),
 			Issuer: *app_name,
@@ -45,7 +44,7 @@ func GenerateToken(user *dbtype.User) (string, error) {
  	return access_token.SignedString(vnet_key)
 }
 
-func ValidateToken(tokenString string) (*dbtype.User, error) {
+func ValidateToken(tokenString string) (*Claims, error) {
 	access_token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return vnet_key, nil
 	})
@@ -57,11 +56,8 @@ func ValidateToken(tokenString string) (*dbtype.User, error) {
 	if !access_token.Valid || !ok{
 		return nil, fmt.Errorf("Invalid Token")
 	}
-
-	user := new(dbtype.User)
-	user.Name = claims.UserName
 	  
-	return user, err
+	return claims, err
 }
 
 func ValidateAppKey(key string) (bool, error) {

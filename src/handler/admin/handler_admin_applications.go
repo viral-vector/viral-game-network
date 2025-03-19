@@ -67,7 +67,7 @@ func Handle_Applications_Create_Crud(c *fiber.Ctx) error {
 	})
 
 	return c.JSON(fiber.Map{
-		"status":  "error",
+		"status":  "success",
 		"message": fmt.Sprintf("Application Create: Success %s", app.Guid),
 	})
 }

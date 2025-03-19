@@ -31,10 +31,10 @@ func ServeApp() {
 		ViewsLayout:       "base",
 		PassLocalsToViews: true,
 	})
-	// Register routes
-	serve_routes(app)
 	// Serve static files from the public folder
 	app.Static("/", "./public")
+	// Register routes
+	serve_routes(app)
 	// Start the job scheduler
 	job.Start()
 	// Log Errors

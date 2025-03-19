@@ -38,7 +38,7 @@ func Handle_TickHost(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "ok",
+		"status": "success",
 		"data":   server,
 	})
 }

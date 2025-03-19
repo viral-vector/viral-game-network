@@ -80,23 +80,7 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 	}
 
 	// Format the command
-	gmd := lobby.Lobby_Application.Command
-	cmd := []string{}
-	for _, str := range strings.Split(gmd, " ") {	
-		str = strings.Replace(str, "${GAME_PORT}", strconv.Itoa(int(aPort)), -1)
-
-		str = strings.Replace(str, "${NODE_HOST}", external_address, -1)
-		str = strings.Replace(str, "${NODE_PORT}", strconv.Itoa(int(sPort)), -1)
-
-		str = strings.Replace(str, "${VNET_HOST}", os.Getenv("VNET_HOST"), -1)
-		str = strings.Replace(str, "${VNET_PORT}", os.Getenv("VNET_PORT"), -1)
-		str = strings.Replace(str, "${VNET_KEY}", os.Getenv("VNET_KEY"), -1)
-
-		str = strings.Replace(str, "${LOBBY_MAX_PLAYERS}", lobby.Lobby_Application.Lobby_Max_Players, -1)
-		str = strings.Replace(str, "${LOBBY_ID}", lobby.ID.String(), -1)
-		str = strings.Replace(str, "${LOBBY_NAME}", lobby.Name, -1)
-		cmd = append(cmd, str)
-	}
+	cmd := strings.Split(lobby.Lobby_Application.Command, " ") 
 
 	// Prepare ENVS
 	env := map[string]string{

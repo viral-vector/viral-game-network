@@ -37,21 +37,23 @@ func serve_routes(app *fiber.App) {
 	 * 	Auth Routes
 	 */
 	auth := app.Group("/auth")
-	// App Key Validation
-	auth.Use(handler.Handle_ValidateAppKey)
 	// User Authentication
+	auth.Use([]string{"/lobby", "/guest"}, handler.Handle_ValidateAppKey)
 	auth.Post("/lobby", handler.Handle_AuthLobby)
 	auth.Post("/guest", handler.Handle_AuthGuest)
+	// Admin Authentication
+	auth.Use([]string{"/admin"}, handler.Handle_RedirectAdmin)
+	auth.Get("/admin", handler.Handle_AuthAdmin).Name("auth/admin")
+	auth.Post("/admin", handler.Handle_AuthAdmin)
 
 	/**
 	 * 	Admin Routes
 	 */
 	admin := app.Group("/admin")
-	// App Key Validation
-	// admin.Use(handler.Handle_ValidateAppKey)
-	// User Authentication
-	admin.Get("/", handler_admin.Handle_Dash)
-
+	// Token Validation
+	admin.Use(handler.Handle_ValidateTokenAdmin)
+	
+	admin.Get("/", handler_admin.Handle_Dash).Name("admin")
 	admin.Get("/applications", handler_admin.Handle_Applications)
 	admin.Get("/application", handler_admin.Handle_Applications_Create_View)
 	admin.Post("/application", handler_admin.Handle_Applications_Create_Crud)
@@ -86,7 +88,7 @@ func serve_routes(app *fiber.App) {
 	gapi := app.Group("/api")
 
 	// Token Validation
-	gapi.Use(handler.Handle_ValidateToken)
+	gapi.Use(handler.Handle_ValidateTokenUsers)
 
 	// Rate Limit
 	gapi.Use(limiter.New(limiter.Config{

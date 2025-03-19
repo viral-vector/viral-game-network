@@ -36,7 +36,7 @@ func Handle_AllLobby(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "ok",
+		"status": "success",
 		"data":   data,
 		"total":  total,
 	})
@@ -68,7 +68,7 @@ func Handle_SetLobby(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "ok",
+		"status": "success",
 		"data":   lobby,
 	})
 }
@@ -88,7 +88,7 @@ func Handle_GetLobby(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "ok",
+		"status": "success",
 		"data":   lobby,
 	})
 }
@@ -158,7 +158,7 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 	lobby, _ = repository.GetLobby(lobby.ID.String())
 
 	return c.JSON(fiber.Map{
-		"status": "ok",
+		"status": "success",
 		"data":   lobby,
 	})
 }
@@ -205,7 +205,7 @@ func Handle_HostLobby(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "ok",
+		"status": "success",
 		"data":   lobby,
 	})
 }

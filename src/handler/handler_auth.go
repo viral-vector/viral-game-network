@@ -1,17 +1,26 @@
 package handler
 
 import (
+	"fmt"
 	"time"
+	"strings"
 	"viral-game-network/src/auth"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
-
+	form_builder "viral-game-network/src/utils/form_builder"
 	"github.com/gofiber/fiber/v2"
 )
 
-type AuthRequestDTO struct {
+type AuthUserRequestDTO struct {
 	Name string `json:"name" xml:"name" form:"name"`
 }
+
+type AuthAdminRequestDTO struct {
+	Username string `json:"username,omitempty" form:"username,label:Username,type:string"`
+	Password string `json:"password,omitempty" form:"password,label:Password,type:password"`
+}
+
+var NVET_COOKIE_KEY string = "VNET_SESSION"
 
 func Handle_ValidateAppKey(c *fiber.Ctx) error {
 	app_key := c.Get("Viral-Game-Network-AppKey")
@@ -28,10 +37,42 @@ func Handle_ValidateAppKey(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func Handle_ValidateToken(c *fiber.Ctx) error {
+func Handle_ValidateTokenAdmin(c *fiber.Ctx) error {
+	token := c.Cookies(NVET_COOKIE_KEY)
+
+	_, err := auth.ValidateToken(token)
+
+	if err != nil {
+		c.Status(fiber.StatusForbidden)
+		return c.RedirectToRoute("auth/admin", fiber.Map{
+			"status":  "error",
+			"message": "Unauthorized: Bad Token @ " + err.Error(),
+		})
+	}
+
+	return c.Next()
+}
+
+func Handle_RedirectAdmin(c *fiber.Ctx) error {
+	token := c.Cookies(NVET_COOKIE_KEY)
+
+	_, err := auth.ValidateToken(token)
+
+	if err == nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.RedirectToRoute("admin", fiber.Map{
+			"status":  "success",
+			"message": "Authorized",
+		})
+	}
+	
+	return c.Next()
+}
+
+func Handle_ValidateTokenUsers(c *fiber.Ctx) error {
 	token := c.Get("Viral-Game-Network-Token")
 
-	user, err := auth.ValidateToken(token)
+	claims, err := auth.ValidateToken(token)
 
 	if err != nil {
 		c.Status(fiber.StatusForbidden)
@@ -42,10 +83,10 @@ func Handle_ValidateToken(c *fiber.Ctx) error {
 	}
 
 	record := dbtype.User{
-		Name: user.Name,
+		Name: claims.Username,
 	}
 
-	user, err = repository.GetUser(&record)
+	user, err := repository.GetUser(&record)
 	if err == nil {
 		c.Locals("user", user)
 	}
@@ -56,16 +97,18 @@ func Handle_ValidateToken(c *fiber.Ctx) error {
 func Handle_AuthLobby(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "auth/lobby")
 
-	dto := new(AuthRequestDTO)
+	dto := new(AuthUserRequestDTO)
 
 	if err := c.BodyParser(dto); err != nil {
 		return err
 	}
+
+	// TODO: Get User from repo first  
 	user := dbtype.User{
 		Name: dto.Name,
 	}
 
-	access_token, err := auth.GenerateToken(&user)
+	access_token, err := auth.GenerateToken(user.Name)
 
 	if err != nil {
 		c.Status(fiber.StatusForbidden)
@@ -76,7 +119,7 @@ func Handle_AuthLobby(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status":       "ok",
+		"status":       "success",
 		"access_token": access_token,
 	})
 }
@@ -84,7 +127,7 @@ func Handle_AuthLobby(c *fiber.Ctx) error {
 func Handle_AuthGuest(c *fiber.Ctx) error {
 	c.Set("Viral-Game-Network-Action", "auth/guest")
 
-	dto := new(AuthRequestDTO)
+	dto := new(AuthUserRequestDTO)
 
 	if err := c.BodyParser(dto); err != nil {
 		return err
@@ -106,7 +149,7 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 		})
 	}
 
-	access_token, err := auth.GenerateToken(user)
+	access_token, err := auth.GenerateToken(user.Name)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -123,7 +166,61 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 	repository.SetUser(user.ID.String(), user)
 
 	return c.JSON(fiber.Map{
-		"status":       "ok",
+		"status":       "success",
 		"access_token": access_token,
+	})
+}
+
+func Handle_AuthAdmin(c *fiber.Ctx) error {
+	c.Set("Viral-Game-Network-Action", "auth/admin")
+
+	post := strings.ToLower(c.Method()) == "post"
+
+	// Get - show form
+	if post == false {
+		form, _ := form_builder.GenerateForm(
+			"POST", 
+			"/auth/admin",  
+			AuthAdminRequestDTO{},
+			"",
+		)
+		return c.Render("admin/login", fiber.Map{
+			"form" : form,
+		})
+	}
+	
+	
+	// Post - Gen token
+	dto := new(AuthAdminRequestDTO)
+
+	if err := c.BodyParser(dto); err != nil {
+		return err
+	}
+
+	fmt.Println(dto)
+	access_token, err := auth.GenerateToken(dto.Username)
+
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": "Token generation failed: " + err.Error(),
+		})
+	}
+
+	// Create cookie
+	cookie := new(fiber.Cookie)
+	cookie.Name = NVET_COOKIE_KEY
+	cookie.Value = access_token
+	cookie.Expires = time.Now().Add(24 * time.Hour)
+
+	// Set cookie
+	c.Cookie(cookie)
+
+	return c.JSON(fiber.Map{
+		"message" 		: "Login Success",
+		"redirect"		: "/admin",
+		"status"		: "success",
+		"access_token"	: access_token,
 	})
 }
