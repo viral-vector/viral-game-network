@@ -98,10 +98,9 @@ func Handle_Pods(c *fiber.Ctx) error {
 }
 
 func Handle_Pods_Update_View(c *fiber.Ctx) error {
-	node, pod, err := k8.LocateServerPod(
-		strings.Replace(c.Params("id"), "server-", "", -1))
+	node, pod, err := k8.LocateServerPod(c.Params("id"))
 
-	if err != nil {
+	if err != nil || pod == nil {
 		return c.Redirect("/admin/pods")
 	}
 

@@ -50,8 +50,18 @@ func serve_routes(app *fiber.App) {
 	 * 	Admin Routes -----------------------------------------------------------------  
 	 */
 	admin := app.Group("/admin")
+	// Rate Limit
+	admin.Use(limiter.New(limiter.Config{
+		Max:               30,
+		Expiration:        1 * time.Second,
+		LimiterMiddleware: limiter.SlidingWindow{},
+		Storage: redis.New(redis.Config{
+			URL: "redis://root:@" + os.Getenv("CACHE_ENDPOINT") + "/0",
+		}),
+	}))
+	
 	// Token Validation
-	admin.Use(handler.Handle_ValidateTokenAdmin)
+	// admin.Use(handler.Handle_ValidateTokenAdmin)
 	
 	admin.Get("/", handler_admin.Handle_Dash).Name("admin")
 	// Admins
@@ -96,8 +106,8 @@ func serve_routes(app *fiber.App) {
 
 	// Rate Limit
 	gapi.Use(limiter.New(limiter.Config{
-		Max:               15,
-		Expiration:        3 * time.Second,
+		Max:               100,
+		Expiration:        1 * time.Second,
 		LimiterMiddleware: limiter.SlidingWindow{},
 		Storage: redis.New(redis.Config{
 			URL: "redis://root:@" + os.Getenv("CACHE_ENDPOINT") + "/0",

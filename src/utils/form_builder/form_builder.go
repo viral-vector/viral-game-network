@@ -1,6 +1,7 @@
 package form_builder
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -43,7 +44,7 @@ func parseJsonTag(tag string) []string {
 	return props
 }
 
-func generateFormFields(input interface{}) ([]FormField, error) {
+func generateFormFields(input interface{}, mode string) ([]FormField, error) {
 	v := reflect.ValueOf(input)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -53,6 +54,14 @@ func generateFormFields(input interface{}) ([]FormField, error) {
 	var fields []FormField
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
+		// Get The value
+		value, ok := v.Field(i).Interface().(string)
+		if !ok {
+			// Option 2: Convert it to a string using fmt.Sprintf, if appropriate:
+			value = fmt.Sprintf("%v", value)
+		}
+
+		// Get Tags
 		tagForm := field.Tag.Get("form")
 		if tagForm == "" {
 			continue
@@ -61,17 +70,21 @@ func generateFormFields(input interface{}) ([]FormField, error) {
 		if tagJson == "" {
 			continue
 		}
-
 		jprops := parseJsonTag(tagJson)
 		fprops := parseFormTag(tagForm)
 
+		// Check Req
 		req := false
 		if r, ok := fprops["required"]; ok && r == "true" {
+			req = true
+		}
+		if r, ok := fprops["required-create"]; ok && r == "true" && mode == "create" {
 			req = true
 		}
 
 		fields = append(fields, FormField{
 			Name:      jprops[0],
+			Value:     value,
 			Label:     fprops["label"],
 			Type:      fprops["type"],
 			Required:  req,
@@ -80,8 +93,8 @@ func generateFormFields(input interface{}) ([]FormField, error) {
 	return fields, nil
 }
 
-func GenerateForm(method string, action string, input interface{}, title string) (Form, error) {
-	fields, err := generateFormFields(input)
+func GenerateForm(method string, action string, mode string, input interface{}, title string) (Form, error) {
+	fields, err := generateFormFields(input, mode)
 	return Form{
 		Title : title,
 		Action: action,

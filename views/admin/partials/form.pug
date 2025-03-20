@@ -7,7 +7,7 @@
                 .control
                     if equals .Type "bool"
                         label.checkbox
-                            input(type="checkbox", name=.Name, value=.Value is-checked=(equals .Value true), is-disabled=(equals .ReadOnly true)) 
+                            input(type="checkbox", name=.Name, value=.Value, is-checked=(equals .Value true), is-disabled=(equals .ReadOnly true)) 
                                 | #{.Name}
                     else if equals .Type "number"
                         input.input(type="number", name=.Name, value=.Value, is-disabled=.ReadOnly)
@@ -17,7 +17,7 @@
                             each opt in .Options
                                 option(value=.value)= .label
                     else
-                        input.input(type=.Type, name=.Name, value=.Value, placeholder=.Label, required=.Required, is-disabled=.ReadOnly)
+                        input.input(type=.Type, name=.Name, value=.Value, placeholder=.Label, is-required=.Required, is-disabled=.ReadOnly)
         hr
         .field.is-grouped
             .control

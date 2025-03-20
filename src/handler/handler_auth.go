@@ -179,7 +179,8 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 	if post == false {
 		form, _ := form_builder.GenerateForm(
 			"POST", 
-			"/auth/admin",  
+			"/auth/admin",
+			"",
 			AuthAdminRequestDTO{},
 			"",
 		)

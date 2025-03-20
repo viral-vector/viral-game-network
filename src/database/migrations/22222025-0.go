@@ -55,8 +55,10 @@ func init() {
 			DEFINE FIELD date_created ON TABLE Admin TYPE string;
 			DEFINE FIELD date_updated ON TABLE Admin TYPE option<string>;
 			DEFINE FIELD date_last_login ON TABLE Admin TYPE option<string>;
-			DEFINE INDEX idx_user_id ON TABLE Admin COLUMNS id UNIQUE;
-			DEFINE INDEX idx_admin_username ON TABLE Admin COLUMNS username UNIQUE;
+			DEFINE INDEX idx_admin_id ON TABLE Admin COLUMNS id UNIQUE;
+			DEFINE INDEX idx_admin_name ON TABLE Admin COLUMNS name UNIQUE;
+			DEFINE INDEX idx_admin_email ON TABLE Admin COLUMNS email UNIQUE;
+			DEFINE INDEX idx_admin_phone ON TABLE Admin COLUMNS phone UNIQUE;
 			`,
 		},
 	}

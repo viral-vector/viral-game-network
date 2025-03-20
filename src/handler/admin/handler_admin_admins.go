@@ -8,6 +8,7 @@ import (
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
 	form_builder "viral-game-network/src/utils/form_builder"
+	struct_merge "viral-game-network/src/utils/struct_merge"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -29,7 +30,8 @@ func Handle_Admins(c *fiber.Ctx) error {
 func Handle_Admins_Create_View(c *fiber.Ctx) error {
 	form, _ := form_builder.GenerateForm(
 		"POST", 
-		"/admin/admin",  
+		"/admin/admin",
+		"create",  
 		dbtype.Admin{},
 		"Create Admin",
 	)
@@ -78,18 +80,107 @@ func Handle_Admins_Create_Crud(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"status":  "success",
+		"redirect": "/admin/admins",
 		"message": fmt.Sprintf("Admin Create: Success %s", admin.Name),
 	})
 }
 
 func Handle_Admins_Update_View(c *fiber.Ctx) error {
-	return nil
+	admin, err := repository.GetAdmin(&dbtype.Admin{
+		Name: 	c.Params("id"),
+		Email: 	c.Params("id"),
+	})
+	if err != nil || admin == nil {
+		return c.Redirect("/admin/admins")
+	}
+
+	admin.Password = ""
+
+	form, _ := form_builder.GenerateForm(
+		"POST", 
+		"/admin/admin/" + admin.ID.String(),
+		"update", 
+		admin,
+		"Update Admin",
+	)
+	form.Confirm = "Save Admin Config?"
+
+	return c.Render("admin/admins", fiber.Map{
+		"form" : form,
+	})
 }
 
 func Handle_Admins_Update_Crud(c *fiber.Ctx) error {
-	return nil
+	dto := new(dbtype.Admin)
+	if err := c.BodyParser(dto); err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Admin Update: Failed %s", err),
+		})
+	}
+
+	// Fetch admin
+	admin, err := repository.GetAdmin(dto)
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Admin Update: Failed %s", err),
+		})
+	}
+
+	// Password & Prop Merge
+	dto.ID = admin.ID
+	dto.Date_Created = admin.Date_Created
+	dto.Date_LastLogin = admin.Date_LastLogin
+
+	if dto.Password != "" {
+		password, err := auth.HashGenerate(dto.Password)
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"status":  "error",
+				"message": fmt.Sprintf("Admin Update: Failed %s", err),
+			})
+		}
+		dto.Password = password
+	}else{
+		dto.Password = admin.Password
+	} 
+	if err := struct_merge.Merge[dbtype.Admin](admin, dto); err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Admin Update: Failed %s", err),
+		})
+	}
+	// Set
+	_, err = repository.SetAdmin(admin.ID.String(), dto)
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Admin Update: Failed %s", err),
+		})
+	}
+
+	repository.PutSystemEvent(&dbtype.SystemEvent{
+		Severity: "info",
+		Message:  fmt.Sprintf("Admin Update: Success %s", admin.Name) ,
+		Ref_Source: "system",
+	})
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": fmt.Sprintf("Admin Update: Success %s", admin.Name),
+	})
 }
 
 func Handle_Admins_Delete_Crud(c *fiber.Ctx) error {
-	return nil
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"redirect": "/admin/admins",
+		"message": fmt.Sprintf("Admin Delete: Success"),
+	})
 }

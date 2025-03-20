@@ -28,7 +28,8 @@ func Handle_Applications(c *fiber.Ctx) error {
 func Handle_Applications_Create_View(c *fiber.Ctx) error {
 	form, _ := form_builder.GenerateForm(
 		"POST", 
-		"/admin/application",  
+		"/admin/application",
+		"create",
 		dbtype.Application{},
 		"Create Application",
 	)

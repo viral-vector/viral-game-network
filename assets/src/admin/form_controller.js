@@ -23,6 +23,9 @@ export default class extends Controller {
             element.querySelectorAll('input[type="text"][is-disabled="true"]').forEach(item => {
                 item.setAttribute('readonly', true)
             })
+            element.querySelectorAll('input[is-required="true"]').forEach(item => {
+                item.setAttribute('required', true)
+            })
             element.querySelectorAll('input[type="checkbox"][is-disabled="true"]').forEach(item => {
                 let inp = document.createElement("input");
                 inp.setAttribute('type', 'hidden')
