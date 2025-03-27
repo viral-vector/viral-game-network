@@ -1,19 +1,21 @@
-p 
-    a.icon.has-text-danger.is-pulled-right
-        span.fas.fa-trash(data-action="click->crud#delete" data-id=.Name)
-.columns
-    .column
-        a(href="/admin/pod/" .Name, title="Edit Pod " .Name)
-            span.icon
-                span.fas.fa-pencil
-            | #{.Name}
-    .column
-        strong Phase:
-        | #{.Status.Phase}
-    .column
-        strong Node:
-        | #{.Spec.NodeName}
-    .column
-        strong IP:
-        | #{.Status.HostIP}
-                
+.container
+    form(method="DELETE", action="/admin/pod/" .Name, name="", data-confirm-message="Are you sure you want to delete")
+        button.button.is-rounded.has-text-danger(type="submit") 
+            span.fas.fa-trash Delete
+    br
+    .columns
+        .column
+            a(href="/admin/pod/" .Name, title="Edit Pod " .Name)
+                span.icon
+                    span.fas.fa-pencil
+                | #{.Name}
+        .column
+            strong Phase:
+            | #{.Status.Phase}
+        .column
+            strong Node:
+            | #{.Spec.NodeName}
+        .column
+            strong IP:
+            | #{.Status.HostIP}
+                    

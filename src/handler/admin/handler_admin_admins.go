@@ -13,7 +13,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// ##> Admin
 func Handle_Admins(c *fiber.Ctx) error {
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
@@ -86,10 +85,9 @@ func Handle_Admins_Create_Crud(c *fiber.Ctx) error {
 }
 
 func Handle_Admins_Update_View(c *fiber.Ctx) error {
-	admin, err := repository.GetAdmin(&dbtype.Admin{
-		Name: 	c.Params("id"),
-		Email: 	c.Params("id"),
-	})
+	id := c.Params("id")
+
+	admin, err := repository.GetAdmin(id)
 	if err != nil || admin == nil {
 		return c.Redirect("/admin/admins")
 	}
@@ -111,6 +109,8 @@ func Handle_Admins_Update_View(c *fiber.Ctx) error {
 }
 
 func Handle_Admins_Update_Crud(c *fiber.Ctx) error {
+	id := c.Params("id")
+
 	dto := new(dbtype.Admin)
 	if err := c.BodyParser(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -121,7 +121,7 @@ func Handle_Admins_Update_Crud(c *fiber.Ctx) error {
 	}
 
 	// Fetch admin
-	admin, err := repository.GetAdmin(dto)
+	admin, err := repository.GetAdmin(id)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -178,9 +178,39 @@ func Handle_Admins_Update_Crud(c *fiber.Ctx) error {
 }
 
 func Handle_Admins_Delete_Crud(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	// Fetch admin
+	admin, err := repository.GetAdmin(id)
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Admin Update: Failed %s", err),
+		})
+	}
+
+	authAdmin := c.Locals("admin").(*dbtype.Admin)
+	if authAdmin.ID.String() == admin.ID.String() {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": "Admin Update: Can't delete self",
+		})
+	}
+
+	repository.DelAdmin(admin.ID.String(), admin)
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": fmt.Sprintf("Admin Update: Failed %s", err),
+		})
+	}
+	
 	return c.JSON(fiber.Map{
 		"status":  "success",
 		"redirect": "/admin/admins",
-		"message": fmt.Sprintf("Admin Delete: Success"),
+		"message": fmt.Sprintf("Admin Delete: Success %s", admin.Name),
 	})
 }

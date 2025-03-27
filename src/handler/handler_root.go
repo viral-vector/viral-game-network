@@ -9,8 +9,6 @@ func Handle_Root(c *fiber.Ctx) error {
 }
 
 func Handle_Health(c *fiber.Ctx) error {
-	c.Set("Viral-Game-Network-Action", "root/health")
-
 	return c.JSON(fiber.Map{
 		"status": "success",
 	})

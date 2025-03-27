@@ -1,0 +1,63 @@
+form(method="DELETE", action="/admin/pod/" .Name, name="", data-confirm-message="Are you sure you want to delete")
+    button.button.is-rounded.has-text-danger(type="submit") 
+        span.fas.fa-trash Delete
+.section
+    .container
+        .content
+            h4.subtitle Pod Information
+            .columns
+                .column
+                    strong Name:
+                .column #{.pod.Name}
+            .columns
+                .column
+                    strong Labels:
+                .column 
+                    ul
+                    each lable in .pod.Labels
+                        li #{.}
+            .columns
+                .column
+                    strong Status:
+                .column 
+                    | #{.pod.Status.Phase}
+                    br
+                    ul
+                        li #{.pod.Status.Message}
+            .columns
+                .column
+                    strong Start Time:
+                .column #{.pod.CreationTimestamp}
+            hr
+            h4.subtitle Node Information
+            .columns
+                .column
+                    strong Node Name:
+                .column #{.node.Name}
+            .columns
+                .column
+                    strong Node IP:
+                .column 
+                    ul
+                        each address in .node.Status.Addresses
+                            li #{.Address} #{.Type}
+            hr 
+            h4.subtitle Pod Port Information
+            .columns
+                .column
+                    strong Port Info:
+                .column 
+                    each cts in .pod.Spec.Containers
+                        each port in .Ports
+                            ul
+                                li Name: #{.Name}
+                                li HostPort: #{.HostPort}
+                                li GamePort: #{.ContainerPort}
+                                li #{.Protocol}
+    .container
+        .content
+            h4.subtitle Pod Logs
+            hr
+            div(style="max-height: 300px; overflow-y: auto; overflow-x: hidden;")
+                each log in .logs
+                    p #{.}

@@ -32,7 +32,25 @@ func AllAdmin(count int, pager int) ([]dbtype.Admin, int, error) {
 	return admins, total[0].Total, nil
 }
 
-func GetAdmin(info *dbtype.Admin) (*dbtype.Admin, error) {
+func GetAdmin(id string) (*dbtype.Admin, error) {
+	admins, err := database.Query[dbtype.Admin](
+		`SELECT * FROM type::record($id);`,
+		map[string]interface{}{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(admins) == 0 {
+		return nil, fmt.Errorf("Admin not found")
+	}
+
+	return &admins[0], nil
+}
+
+func SelAdmin(info *dbtype.Admin) (*dbtype.Admin, error) {
 	// Get admin by name or guid.
 	admins, err := database.Query[dbtype.Admin](
 		`
@@ -68,4 +86,8 @@ func PutAdmin(admin *dbtype.Admin) (*dbtype.Admin, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	admin.Date_Created = now
 	return database.Create[dbtype.Admin](admin)
+}
+
+func DelAdmin(id string, admin *dbtype.Admin) error {
+	return database.Delete(*admin.ID)
 }

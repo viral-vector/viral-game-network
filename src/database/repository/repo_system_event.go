@@ -7,7 +7,7 @@ import (
 	dbtype "viral-game-network/src/database/type"
 )
 
-func GetSystemEvents(count int64) ([]dbtype.SystemEvent, error) {
+func SelSystemEvents(count int64) ([]dbtype.SystemEvent, error) {
 	lQuery := `
 	SELECT *
 	FROM type::table(System_Event) 
@@ -21,7 +21,7 @@ func GetSystemEvents(count int64) ([]dbtype.SystemEvent, error) {
 	return database.Query[dbtype.SystemEvent](fmt.Sprintf("%s%s", lQuery, `;`), params)
 }
 
-func GetSystemEventsInFrame(seconds int32) ([]dbtype.SystemEvent, error) {
+func SelSystemEventsInFrame(seconds int32) ([]dbtype.SystemEvent, error) {
 	startTime := time.Now().Add(time.Duration(-seconds) * time.Second).Format(time.RFC3339)
 
 	lQuery := `

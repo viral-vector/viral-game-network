@@ -39,7 +39,7 @@ func Handle_ValidateAppKey(c *fiber.Ctx) error {
 func Handle_ValidateTokenAdmin(c *fiber.Ctx) error {
 	token := c.Cookies(NVET_COOKIE_KEY)
 
-	_, err := auth.ValidateToken(token)
+	claims, err := auth.ValidateToken(token)
 
 	if err != nil {
 		c.Status(fiber.StatusForbidden)
@@ -47,6 +47,18 @@ func Handle_ValidateTokenAdmin(c *fiber.Ctx) error {
 			"status":  "error",
 			"message": "Unauthorized: Bad Token @ " + err.Error(),
 		})
+	}
+
+	record := dbtype.Admin{
+		ID: nil,
+		Name: claims.Username,
+		Email: claims.Username,
+		Phone: claims.Username,
+	}
+
+	admin, err := repository.SelAdmin(&record)
+	if err == nil {
+		c.Locals("admin", admin)
 	}
 
 	return c.Next()
@@ -82,10 +94,11 @@ func Handle_ValidateTokenUsers(c *fiber.Ctx) error {
 	}
 
 	record := dbtype.User{
+		Guid: claims.Username,
 		Name: claims.Username,
 	}
 
-	user, err := repository.GetUser(&record)
+	user, err := repository.SelUser(&record)
 	if err == nil {
 		c.Locals("user", user)
 	}
@@ -94,8 +107,6 @@ func Handle_ValidateTokenUsers(c *fiber.Ctx) error {
 }
 
 func Handle_AuthLobby(c *fiber.Ctx) error {
-	c.Set("Viral-Game-Network-Action", "auth/lobby")
-
 	dto := new(AuthUserRequestDTO)
 
 	if err := c.BodyParser(dto); err != nil {
@@ -104,6 +115,7 @@ func Handle_AuthLobby(c *fiber.Ctx) error {
 
 	// TODO: Get User from repo first  
 	user := dbtype.User{
+		Guid: dto.Name,
 		Name: dto.Name,
 	}
 
@@ -124,18 +136,17 @@ func Handle_AuthLobby(c *fiber.Ctx) error {
 }
 
 func Handle_AuthGuest(c *fiber.Ctx) error {
-	c.Set("Viral-Game-Network-Action", "auth/guest")
-
 	dto := new(AuthUserRequestDTO)
 
 	if err := c.BodyParser(dto); err != nil {
 		return err
 	}
 	utmp := dbtype.User{
+		Guid: dto.Name,
 		Name: dto.Name,
 	}
 
-	user, err := repository.GetUser(&utmp)
+	user, err := repository.SelUser(&utmp)
 	if err != nil {
 		user, err = repository.PutUser(&utmp)
 	}
@@ -171,8 +182,6 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 }
 
 func Handle_AuthAdmin(c *fiber.Ctx) error {
-	c.Set("Viral-Game-Network-Action", "auth/admin")
-
 	post := strings.ToLower(c.Method()) == "post"
 
 	// Get - show form
@@ -196,7 +205,8 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 	}
 
 	// Fetch admin
-	admin, err := repository.GetAdmin(&dbtype.Admin {
+	admin, err := repository.SelAdmin(&dbtype.Admin {
+		ID: nil,
 		Name: dto.Username,
 		Email: dto.Username,
 		Phone: dto.Username,
@@ -244,9 +254,25 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 	c.Cookie(cookie)
 
 	return c.JSON(fiber.Map{
-		"message" 		: "Login Success",
+		"message" 		: "Welcome back " + admin.Name,
 		"redirect"		: "/admin",
 		"status"		: "success",
 		"access_token"	: access_token,
+	})
+}
+
+func Handle_LogoutAdmin(c *fiber.Ctx) error {
+	// Create cookie
+	cookie := new(fiber.Cookie)
+	cookie.Name = NVET_COOKIE_KEY
+	cookie.Value = ""
+	cookie.Expires = time.Now().Add(0 * time.Second)
+
+	// Set cookie
+	c.Cookie(cookie)
+
+	return c.RedirectToRoute("admin", fiber.Map{
+		"status":  "success",
+		"message": "Authorized",
 	})
 }

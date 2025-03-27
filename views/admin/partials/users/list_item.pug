@@ -1,28 +1,27 @@
 .container
+    form(method="DELETE", action="/admin/user/" .ID, name="", data-confirm-message="Are you sure you want to delete")
+        button.button.is-rounded.has-text-danger(type="submit") 
+            span.fas.fa-trash Delete
+    br
     .columns
         .column.is-one-third
-            p
+            a(href="/admin/user/" .ID, title="Edit User " .Name)
                 strong 
                     i.fas.fa-user&nbsp;
                 | #{.ID}
         .column.is-one-third
-            p
-                strong Name:
-                | #{.Name}
+            strong Name:
+            | #{.Name}
         .column.is-one-third
-            p
-                strong GUID:
-                | #{.Guid}
+            strong GUID:
+            | #{.Guid}
     .columns
         .column.is-one-third
-            p
-                strong Date Created:
-                | #{.Date_Created}
+            strong Date Created:
+            | #{.Date_Created}
         .column.is-one-third
-            p
-                strong Date Updated:
-                | #{.Date_Updated}
+            strong Date Updated:
+            | #{.Date_Updated}
         .column.is-one-third
-            p
-                strong Last Login:
-                | #{.Date_LastLogin}
+            strong Last Login:
+            | #{.Date_LastLogin}

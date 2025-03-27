@@ -21,8 +21,16 @@ nav#header.navbar.is-fixed-top.is-dark
       a.navbar-item.menu-item(href='/admin/configs') Configs 
     .navbar-end
       .navbar-item
+       .field.is-grouped
+          p.control
+            if .admin
+              span Hello #{.admin.Name}
+            else 
+              span Login Please!
+      .navbar-item
         .field.is-grouped
           p.control
-            a.bd-tw-button.button.is-dark.is-soft(target='_blank')
+            a.bd-tw-button.button.is-dark.is-soft(target='_blank', href="/auth/admin/logout")
+              | Logout
               span.icon
-                i.fas.fa-sign-out-alt
+                i.fa.fa-sign-out

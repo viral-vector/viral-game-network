@@ -1,7 +1,11 @@
 .container
+    form(method="DELETE", action="/admin/admin/" .ID, name="", data-confirm-message="Are you sure you want to delete")
+        button.button.is-rounded.has-text-danger(type="submit") 
+            span.fas.fa-trash Delete
+    br
     .columns
         .column.is-one-third
-            a(href="/admin/admin/" .Name, title="Edit Admin " .Name)
+            a(href="/admin/admin/" .ID, title="Edit Admin " .Name)
                 strong 
                     i.fas.fa-user&nbsp;
                 | #{.ID}

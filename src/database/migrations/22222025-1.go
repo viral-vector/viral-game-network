@@ -42,7 +42,6 @@ func init() {
 			DEFINE FIELD date_created ON TABLE User TYPE string;
 			DEFINE FIELD date_updated ON TABLE User TYPE option<string>;
 			DEFINE FIELD date_last_login ON TABLE User TYPE option<string>;
-			DEFINE FIELD configs ON TABLE User TYPE option<string>;
 			DEFINE INDEX idx_user_id ON TABLE User COLUMNS id UNIQUE;
 			DEFINE INDEX idx_user_guid ON TABLE User COLUMNS guid UNIQUE;
 			DEFINE INDEX idx_user_name ON TABLE User COLUMNS name UNIQUE;
@@ -57,7 +56,6 @@ func init() {
 			DEFINE FIELD name ON TABLE Lobby TYPE string;
 			DEFINE FIELD date_created ON TABLE Lobby TYPE string;
 			DEFINE FIELD date_updated ON TABLE Lobby TYPE option<string>;
-			DEFINE FIELD configs ON TABLE Lobby TYPE option<string>;
 			DEFINE FIELD private ON TABLE Lobby TYPE bool DEFAULT false;
 			DEFINE FIELD code ON TABLE Lobby TYPE option<string>;
 			DEFINE INDEX idx_lobby_id ON TABLE Lobby COLUMNS id UNIQUE;
@@ -80,7 +78,6 @@ func init() {
 			DEFINE FIELD date_updated ON TABLE Server TYPE option<string>;
 			DEFINE FIELD address ON TABLE Server TYPE option<string>;
 			DEFINE FIELD port ON TABLE Server TYPE option<number>;
-			DEFINE FIELD configs ON TABLE Server TYPE option<string>;
 			DEFINE INDEX idx_server_id ON TABLE Server COLUMNS id UNIQUE;
 			DEFINE INDEX idx_server_guid ON TABLE Server COLUMNS guid UNIQUE;
 			`,

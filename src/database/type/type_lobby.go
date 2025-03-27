@@ -10,7 +10,6 @@ type Lobby struct {
 	Guid  string `json:"guid,omitempty"`
 	Date_Created string `json:"date_created"`
 	Date_Updated string `json:"date_updated"`
-	Configs string `json:"configs"`
 	Private bool `json:"private"`
 	Code string `json:"code"`
 	Lobby_Application *Application `json:"lobby_application,omitempty"`

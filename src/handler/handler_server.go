@@ -9,8 +9,6 @@ import (
 
 // Handle_HostTick
 func Handle_TickHost(c *fiber.Ctx) error {
-	c.Set("Viral-Game-Network-Action", "host/tick")
-
 	lobby, err := repository.GetLobby(c.Params("id"))
 
 	if err != nil || lobby == nil {

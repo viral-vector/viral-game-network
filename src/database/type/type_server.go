@@ -13,7 +13,6 @@ type Server struct {
 	Date_Updated string `json:"date_updated"`
 	Address string `json:"address"`
 	Port int32 `json:"port"`
-	Configs string `json:"configs"`
 	Lobby *Lobby `json:"lobby,omitempty"`
 }
 

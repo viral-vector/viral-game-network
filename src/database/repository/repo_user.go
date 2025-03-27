@@ -32,7 +32,26 @@ func AllUser(count int, pager int) ([]dbtype.User, int, error) {
 	return users, total[0].Total, nil
 }
 
-func GetUser(info *dbtype.User) (*dbtype.User, error) {
+func GetUser(id string) (*dbtype.User, error) {
+	// Get user by name or guid.
+	users, err := database.Query[dbtype.User](
+		`SELECT * FROM type::record($id);`,
+		map[string]interface{}{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(users) == 0 {
+		return nil, fmt.Errorf("User not found")
+	}
+
+	return &users[0], nil
+}
+
+func SelUser(info *dbtype.User) (*dbtype.User, error) {
 	// Get user by name or guid.
 	users, err := database.Query[dbtype.User](
 		`
@@ -68,4 +87,8 @@ func PutUser(user *dbtype.User) (*dbtype.User, error) {
 	user.Date_Created = now
 	user.Guid = database.GetUUID()
 	return database.Create[dbtype.User](user)
+}
+
+func DelUser(id string, user *dbtype.User) error {
+	return database.Delete(*user.ID)
 }

@@ -32,7 +32,26 @@ func AllApplication(count int, pager int) ([]dbtype.Application, int, error) {
 	return apps, total[0].Total, nil
 }
 
-func GetApplication(info *dbtype.Application) (*dbtype.Application, error) {
+func GetApplication(id string) (*dbtype.Application, error) {
+	// Get app by name or guid.
+	apps, err := database.Query[dbtype.Application](
+		`SELECT * FROM type::record($id);`,
+		map[string]interface{}{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(apps) == 0 {
+		return nil, fmt.Errorf("Application not found")
+	}
+
+	return &apps[0], nil
+}
+
+func SelApplication(info *dbtype.Application) (*dbtype.Application, error) {
 	// Get app by name or guid.
 	apps, err := database.Query[dbtype.Application](
 		`

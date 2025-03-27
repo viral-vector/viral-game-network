@@ -4,18 +4,26 @@ div#app.my-5.mx-3
         .columns
             .column.is-one-quarter
                 include partials/aside.pug
-            .column
+            .column(data-controller="form")
                 include partials/modal_prompt.pug
                 include partials/notification.pug
                 section.content
                     h3.subtitle
                         | Manage Lobbies
                 hr
-                p.notification.is-info 
-                    | #{.total} lobbies found.
-                    | Viewing #{.paged} of #{.pages} pages.
-                each lobby in .lobbies
-                    .box
-                        include partials/lobbies/list_item.pug
-                include partials/pager.pug
+                if .form
+                    include partials/form.pug
+                else
+                    p.notification.is-info 
+                        | #{.total} lobbies found.
+                        | Viewing #{.paged} of #{.pages} pages.
+                    p.p-3
+                        a.has-text-primary(href="/admin/lobby")
+                            span.icon
+                                span.fas.fa-plus-circle 
+                            | Add Lobby
+                    each lobby in .lobbies
+                        .box
+                            include partials/lobbies/list_item.pug
+                    include partials/pager.pug
 script(src="/admin.js")

@@ -4,18 +4,21 @@ div#app.my-5.mx-3
         .columns
             .column.is-one-quarter
                 include partials/aside.pug
-            .column
+            .column(data-controller="form")
                 include partials/modal_prompt.pug
                 include partials/notification.pug
                 section.content
                     h3.subtitle
                         | Manage Servers
                 hr
-                p.notification.is-info 
-                    | #{.total} servers found.
-                    | Viewing #{.paged} of #{.pages} pages.
-                each server in .servers
-                    .box
-                        include partials/servers/list_item.pug
-                include partials/pager.pug
+                if .form
+                    include partials/form.pug
+                else
+                    p.notification.is-info 
+                        | #{.total} servers found.
+                        | Viewing #{.paged} of #{.pages} pages.
+                    each server in .servers
+                        .box
+                            include partials/servers/list_item.pug
+                    include partials/pager.pug
 script(src="/admin.js")

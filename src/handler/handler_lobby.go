@@ -21,7 +21,6 @@ type HostLobbyRequestDTO struct {
 
 // Handle_AllLobby
 func Handle_AllLobby(c *fiber.Ctx) error {
-	c.Set("Viral-Game-Network-Action", "lobby/all")
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage, _ := strconv.Atoi(c.Query("show", "100"))
 
@@ -44,8 +43,6 @@ func Handle_AllLobby(c *fiber.Ctx) error {
 
 // Handle_SetLobby
 func Handle_SetLobby(c *fiber.Ctx) error {
-	c.Set("Viral-Game-Network-Action", "lobby/set")
-
 	record := new(dbtype.Lobby)
 	err := json.Unmarshal(c.Body(), record)
 
@@ -75,8 +72,6 @@ func Handle_SetLobby(c *fiber.Ctx) error {
 
 // Handle_GetLobby
 func Handle_GetLobby(c *fiber.Ctx) error {
-	c.Set("Viral-Game-Network-Action", "lobby/get")
-
 	lobby, err := repository.GetLobby(c.Params("id"))
 
 	if err != nil {
@@ -95,8 +90,6 @@ func Handle_GetLobby(c *fiber.Ctx) error {
 
 // Handle_JoinLobby
 func Handle_JoinLobby(c *fiber.Ctx) error {
-	c.Set("Viral-Game-Network-Action", "lobby/join")
-
 	lobby, err := repository.GetLobby(c.Params("id"))
 
 	if err != nil {
@@ -165,8 +158,6 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 
 // Handle_HostLobby
 func Handle_HostLobby(c *fiber.Ctx) error {
-	c.Set("Viral-Game-Network-Action", "lobby/host")
-
 	dto := new(HostLobbyRequestDTO)
 	if err := c.BodyParser(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -179,7 +170,7 @@ func Handle_HostLobby(c *fiber.Ctx) error {
 	user := c.Locals("user").(*dbtype.User)
 
 	// Fetch the app
-	app, err := repository.GetApplication(&dbtype.Application{
+	app, err := repository.SelApplication(&dbtype.Application{
 		Guid: dto.App,
 		Name: dto.App,
 	})
