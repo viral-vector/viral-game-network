@@ -1,8 +1,10 @@
 package job
 
 import (
-	"fmt"
+	"log"
+	"sync"
 	"time"
+
 	"viral-game-network/src/cache"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
@@ -13,118 +15,137 @@ import (
 )
 
 /**
- * Manages Server/Pod Lifecycle
+ * Manages Server/Pod Lifecycle for lobbies
  */
 func Job_Lobby_Server_Stewardship() {
+	// Retrieve all server pods.
 	pods, err := k8.GetAllServerPods()
 	if err != nil {
-		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: %s", err))
+		log.Printf("RUN_Lobby_Server_Stewardship error: %v", err)
 		return
 	}
-	for _, pod := range pods {		
-		// Check if we have a lock on the pod
-		if cache_lock, _ := cache.Get[string]("server-stewardship-lock-" + pod.Name); cache_lock != "" {
+
+	// Use a semaphore to limit concurrent goroutines.
+	const maxConcurrent = 100 // Adjust as needed based on resources.
+	sem := make(chan struct{}, maxConcurrent)
+	var wg sync.WaitGroup
+
+	for _, pod := range pods {
+		// Capture the pod value to avoid closure issues.
+		pod := pod
+
+		// Check if there's already a lock for this pod.
+		if lock, _ := cache.Get[string]("server-stewardship-lock-" + pod.Name); lock != "" {
 			continue
 		}
+
+		wg.Add(1)
+		sem <- struct{}{} // acquire a semaphore slot
+
 		go func(pod *v1.Pod, podName string) {
-			// Lock the pod
-			cache.Set[string]("server-stewardship-lock-" + podName, "true", time.Second*30)
+			defer wg.Done()
+			defer func() { <-sem }() // release semaphore when done
 
-			fmt.Println("RUN_Lobby_Server_Stewardship: @ Looking", pod.Name)
+			// Lock the pod for stewardship.
+			if err := cache.Set[string]("server-stewardship-lock-"+podName, "true", 30*time.Second); err != nil {
+				log.Printf("Error setting lock for pod %s: %v", podName, err)
+				return
+			}
+			defer cache.Del("server-stewardship-lock-" + podName)
 
-			// RUN
+			log.Printf("RUN_Lobby_Server_Stewardship: Processing pod %s", pod.Name)
+
+			// Run the main stewardship process.
 			RUN_Lobby_Server_Stewardship(pod)
-			// Unlock the pod
-			cache.Del("server-stewardship-lock-" + podName)
+
 		}(pod, pod.Name)
 	}
+
+	wg.Wait()
 }
 
+// RUN_Lobby_Server_Stewardship processes a single pod.
 func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 	node, lobpod, err := k8.LocateServerPod(pod.Name)
-
 	if err != nil {
-		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: %s", err))
+		log.Printf("RUN_Lobby_Server_Stewardship error locating server pod for %s: %v", pod.Name, err)
+		return
+	}
+	if node == nil || lobpod == nil {
+		log.Printf("RUN_Lobby_Server_Stewardship: Unable to locate node or pod for %s", pod.Name)
 		return
 	}
 
-	if node == nil || lobpod == nil{
-		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: %s", err))
-		return
-	}
-	
-	// Get the lobby
+	// Get the corresponding lobby.
 	lobby, err := repository.GetLobby("Lobby:" + lobpod.Name)
 	if err != nil {
-		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: @ Lobby Fetch Error %s", err))
+		log.Printf("RUN_Lobby_Server_Stewardship: Error fetching lobby for %s: %v", lobpod.Name, err)
 		return
 	}
 
+	// If the pod is terminating, skip further processing.
 	if pod.DeletionTimestamp != nil {
-		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: Terminating %s", lobpod.Name))
+		log.Printf("RUN_Lobby_Server_Stewardship: Pod %s is terminating", lobpod.Name)
 		return
 	}
 
-	if (lobby == nil || lobby.Lobby_Server == nil) {
-		// Purge Pod & Server
+	// If no lobby or no server recorded in the lobby, purge the stale pod/server.
+	if lobby == nil || lobby.Lobby_Server == nil {
 		RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, node)
-
-		fmt.Println(fmt.Errorf("RUN_Lobby_Server_Stewardship: Lobby/Server not found %s", lobpod.Name))
+		log.Printf("RUN_Lobby_Server_Stewardship: Lobby/Server not found for pod %s", lobpod.Name)
 		return
 	}
 
+	// Process based on pod phase.
 	switch lobpod.Status.Phase {
-	// Check if the pod is running
 	case v1.PodRunning:
 		RUN_Lobby_Server_Stewardship_Running(lobby, lobpod, node)
-	// Check if the pod is pending
-	case v1.PodPending:
-	// Check if the pod is failed
 	case v1.PodFailed:
-		// Purge Pod & Server
 		RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, node)
+		// For PodPending, you might choose to wait or log; here we do nothing.
 	}
 
-	if lobby.Lobby_Server == nil || lobby.Lobby_Server.Status == string(lobpod.Status.Phase) || lobby.Lobby_Server.Status == "Online" {
-		return
+	// Update the server status if needed.
+	if lobby.Lobby_Server != nil &&
+		(lobby.Lobby_Server.Status != string(lobpod.Status.Phase) && lobby.Lobby_Server.Status != "Online") {
+
+		lobby.Lobby_Server.Status = string(lobpod.Status.Phase)
+
+		if _, err := repository.SetServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
+			log.Printf("RUN_Lobby_Server_Stewardship: Error updating server for lobby %s: %v", lobpod.Name, err)
+			return
+		}
 	}
 
-	lobby.Lobby_Server.Status = string(lobpod.Status.Phase)
-	// Update the server
-	_, err = repository.SetServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server)
-	if err != nil {
-		fmt.Println("RUN_Lobby_Server_Stewardship: @ Error Updating", err)
-		return
-	}
-
-	// Notify Lobby Users
+	// Notify lobby users about the current server status.
 	msg := "Server:" + lobby.Lobby_Server.Status
 	ministration.Service_Lobby_Notify(lobby.ID.String(), msg, "")
+	log.Printf("RUN_Lobby_Server_Stewardship: Server/Pod processed for lobby %s; phase: %s", lobpod.Name, lobpod.Status.Phase)
 }
 
+// RUN_Lobby_Server_Stewardship_Running updates server info when pod is running.
 func RUN_Lobby_Server_Stewardship_Running(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) {
-	// Update the server address
 	lobby.Lobby_Server.Port = k8.GetPodHostPort(pod)
 	lobby.Lobby_Server.Address = k8.GetNodeExternalIP(node)
 }
 
-// Purge a Server & Pod
-func RUN_Lobby_Server_Stewardship_Purger(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) error {	
-	// Delete Pod
+// RUN_Lobby_Server_Stewardship_Purger cleans up a server pod and server record.
+func RUN_Lobby_Server_Stewardship_Purger(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) error {
+	// Delete the pod.
 	k8.DeleteServerPod(pod.Name)
 
-	// Delete Server
-	serverID := ""
+	// Determine the server ID to delete.
+	var serverID string
 	if lobby != nil && lobby.Lobby_Server != nil {
 		serverID = lobby.Lobby_Server.ID.String()
 		lobby.Lobby_Server = nil
-	}else {
+	} else {
 		server, _ := repository.GetServerByGuid(pod.Name)
-		if server != nil{
+		if server != nil {
 			serverID = server.ID.String()
 		}
 	}
-	if len(serverID) > 0 {
+	if serverID != "" {
 		repository.DelServer(serverID)
 	}
 	return nil
