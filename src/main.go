@@ -31,6 +31,9 @@ func ServeApp() {
 		ViewsLayout:       "base",
 		PassLocalsToViews: true,
 	})
+
+	// bootstrap the application
+	go bootstrap()
 	// Serve static files from the public folder
 	app.Static("/", "./public")
 	// Register routes
