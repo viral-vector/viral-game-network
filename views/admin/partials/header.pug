@@ -1,4 +1,4 @@
-nav#header.navbar.is-fixed-top.is-dark
+nav#header.navbar.is-fixed-top.is-dark(role="navigation", aria-label="dropdown navigation")
   .navbar-brand
     a.navbar-item(href='/admin')
       img(src="/images/vgn.webp", alt="")
@@ -9,16 +9,17 @@ nav#header.navbar.is-fixed-top.is-dark
       span
   #nav-menu.navbar-menu
     .navbar-start
-      .navbar-item.has-dropdown
-        a.navbar-link.menu-item(href='/admin', is-absolute="true") Admin 
-        .navbar-dropdown
-          a.navbar-item.menu-item(href='/admin/applications') Applications 
-          a.navbar-item.menu-item(href='/admin/users') Users 
-          a.navbar-item.menu-item(href='/admin/lobbies') Lobbies 
-          a.navbar-item.menu-item(href='/admin/servers') Servers 
-      a.navbar-item.menu-item(href='/admin/admins') Admins 
-      a.navbar-item.menu-item(href='/admin/metrics') Metrics 
-      a.navbar-item.menu-item(href='/admin/configs') Configs 
+      if .admin
+        .navbar-item.has-dropdown.is-hoverable
+          a.navbar-link.menu-item.is-arrowless(href='/admin', is-absolute="true" is-disabled="true") Dashboard 
+          .navbar-dropdown.is-hidden-desktop
+            a.navbar-item.menu-item(href='/admin/applications') Applications 
+            a.navbar-item.menu-item(href='/admin/users') Users 
+            a.navbar-item.menu-item(href='/admin/lobbies', hset="/admin/lobby") Lobbies 
+            a.navbar-item.menu-item(href='/admin/servers') Servers 
+        a.navbar-item.menu-item(href='/admin/admins') Admins 
+        a.navbar-item.menu-item(href='/admin/metrics') Metrics 
+        a.navbar-item.menu-item(href='/admin/configs') Configs 
     .navbar-end
       .navbar-item
        .field.is-grouped
