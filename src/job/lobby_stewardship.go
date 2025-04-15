@@ -69,12 +69,12 @@ func Job_Lobby_Stewardship() {
 
 // RUN_Lobby_Stewardship processes a single lobby to check its persistence and potentially purge it.
 func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
-	log.Printf("RUN_Lobby_Stewardship: Evaluating lobby %s", lobby.ID.String())
+	log.Printf("[RUN_Lobby_Stewardship] Evaluating lobby %s", lobby.ID.String())
 
 	// Parse the maximum persistence from the lobby configuration.
 	lobbyMaxPersist, err := strconv.ParseFloat(lobby.Lobby_Application.Lobby_Max_Persist, 64)
 	if err != nil {
-		log.Printf("Error parsing Lobby_Max_Persist for lobby %s: %v", lobby.ID.String(), err)
+		log.Printf("[RUN_Lobby_Stewardship] Error parsing Lobby_Max_Persist %v", err)
 		return
 	}
 
@@ -86,7 +86,7 @@ func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
 	}
 	dateLobby, err := time.Parse(time.RFC3339, dateStr)
 	if err != nil {
-		log.Printf("Error parsing date for lobby %s: %v", lobby.ID.String(), err)
+		log.Printf("[RUN_Lobby_Stewardship] Error parsing date for lobby %s: %v", lobby.ID.String(), err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
 		}
 
 		// Delete the lobby.
-		if err := repository.DelLobby(lobby.ID.String()); err != nil {
+		if err := repository.DelLobby(lobby.ID.String(), lobby); err != nil {
 			log.Printf("Error deleting lobby %s: %v", lobby.ID.String(), err)
 		}
 	}

@@ -16,6 +16,10 @@ type Server struct {
 	Lobby *Lobby `json:"lobby,omitempty"`
 }
 
-func (u Server) TableName() string {
+func (n Server) ModelID() string {
+	return n.ID.String()
+}
+
+func (n Server) TableName() string {
 	return "Server"
 }

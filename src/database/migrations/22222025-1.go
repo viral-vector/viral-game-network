@@ -85,37 +85,37 @@ func init() {
 		// Lobby_Application
 		dbtype.Migration{
 			SQL: `
-			DEFINE TABLE Lobby_Application SCHEMAFULL TYPE RELATION IN Lobby OUT Application ENFORCED ;
-			DEFINE INDEX idx_lobby_application_in ON TABLE Lobby_Application COLUMNS in UNIQUE;
-			DEFINE INDEX idx_lobby_application_out ON TABLE Lobby_Application COLUMNS out UNIQUE;
+			DEFINE TABLE Lobby_Application SCHEMAFULL TYPE RELATION IN Lobby OUT Application ENFORCED;
+			DEFINE INDEX idx_lobby_application_in ON TABLE Lobby_Application COLUMNS in;
+			DEFINE INDEX idx_lobby_application_out ON TABLE Lobby_Application COLUMNS out;
 			`,
 		},
 		// Lobby_Host
 		dbtype.Migration{
 			SQL: `
 			DEFINE TABLE Lobby_Host SCHEMAFULL TYPE RELATION IN Lobby OUT User ENFORCED ;
-			DEFINE INDEX idx_lobby_host_in ON TABLE Lobby_Host COLUMNS in UNIQUE;
-			DEFINE INDEX idx_lobby_host_out ON TABLE Lobby_Host COLUMNS out UNIQUE;
+			DEFINE INDEX idx_lobby_host_in ON TABLE Lobby_Host COLUMNS in;
+			DEFINE INDEX idx_lobby_host_out ON TABLE Lobby_Host COLUMNS out;
 			`,
 		},
 		// Lobby_Server
 		dbtype.Migration{
 			SQL: `
 			DEFINE TABLE Lobby_Server SCHEMAFULL TYPE RELATION IN Lobby OUT Server ENFORCED;
-			DEFINE INDEX idx_lobby_server_in ON TABLE Lobby_Server COLUMNS in UNIQUE;
-			DEFINE INDEX idx_lobby_server_out ON TABLE Lobby_Server COLUMNS out UNIQUE;
+			DEFINE INDEX idx_lobby_server_in ON TABLE Lobby_Server COLUMNS in;
+			DEFINE INDEX idx_lobby_server_out ON TABLE Lobby_Server COLUMNS out;
 			`,
 		},
 		// Lobby_Users
 		dbtype.Migration{
 			SQL: `
 			DEFINE TABLE Lobby_Users SCHEMAFULL TYPE RELATION IN Lobby OUT User ENFORCED;
-			DEFINE INDEX idx_lobby_users_host_in ON TABLE Lobby_Users COLUMNS in UNIQUE;
-			DEFINE INDEX idx_lobby_users_host_out ON TABLE Lobby_Users COLUMNS out UNIQUE;
+			DEFINE INDEX idx_lobby_users_host_in ON TABLE Lobby_Users COLUMNS in;
+			DEFINE INDEX idx_lobby_users_host_out ON TABLE Lobby_Users COLUMNS out;
 			`,
 		},
 	}
-
+	
 	for _, migration := range migrations {
 		versionset += 1
 		migration.Name = identifier + "-" + strconv.Itoa(versionset)

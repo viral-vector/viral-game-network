@@ -14,6 +14,10 @@ type SystemEvent struct {
 	Severity     string `json:"severity"`
 }
 
-func (u SystemEvent) TableName() string {
+func (n SystemEvent) ModelID() string {
+	return n.ID.String()
+}
+
+func (n SystemEvent) TableName() string {
 	return "System_Event"
 }

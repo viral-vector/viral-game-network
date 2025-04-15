@@ -7,6 +7,20 @@ import (
 	dbtype "viral-game-network/src/database/type"
 )
 
+func GenAdmin(password string) (*dbtype.Admin, error) {
+	admin, err := PutAdmin(&dbtype.Admin{
+		Name:     	"viral-vector",
+		Email: 		"vectorviral@gmail.com",
+		Phone: 		"1234567890",
+		Password: 	password,
+	})
+	if err != nil {
+		return nil, err
+	}
+	
+	return admin, nil
+}
+
 func AllAdmin(count int, pager int) ([]dbtype.Admin, int, error) {
 	// Get All Admins
 	admins, err := database.Query[dbtype.Admin](`

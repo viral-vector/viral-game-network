@@ -19,11 +19,15 @@ type SystemConfig struct {
 	SortOrder    int32 `json:"readonly,omitempty"`
 }
 
-func (u SystemConfig) TableName() string {
+func (n SystemConfig) ModelID() string {
+	return n.ID.String()
+}
+
+func (n SystemConfig) TableName() string {
 	return "System_Config"
 }
 
-func (u SystemConfig) KeyValMap() map[string]SystemConfig {
+func (n SystemConfig) KeyValMap() map[string]SystemConfig {
 	return map[string]SystemConfig{
 		 "APP_ENV": {
 			Key:  "APP_ENV",

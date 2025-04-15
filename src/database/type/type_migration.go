@@ -11,6 +11,10 @@ type Migration struct {
 	SQL  string `json:"sql"`
 }
 
-func (u Migration) TableName() string {
+func (n Migration) ModelID() string {
+	return n.ID.String()
+}
+
+func (n Migration) TableName() string {
 	return "Migrations"
 }

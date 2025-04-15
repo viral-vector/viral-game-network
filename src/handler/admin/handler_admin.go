@@ -43,19 +43,6 @@ func Handle_Dash(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Lobbies(c *fiber.Ctx) error {
-	curPage, _ := strconv.Atoi(c.Query("page", "1"))
-	perPage := 15
-	lobbies, total, _ := repository.AllLobby(perPage, curPage)
-
-	return c.Render("admin/lobbies", fiber.Map{
-		"lobbies": lobbies,
-		"total":   total,
-		"pages":   int(math.Ceil(float64(total) / float64(perPage))),
-		"paged":   curPage,
-	})
-}
-
 func Handle_Servers(c *fiber.Ctx) error {
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15

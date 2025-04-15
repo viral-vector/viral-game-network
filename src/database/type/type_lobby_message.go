@@ -11,6 +11,10 @@ type LobbyMessage struct {
 	Body string `json:"body"`
 }
 
-func (u LobbyMessage) TableName() string {
+func (n LobbyMessage) ModelID() string {
+	return n.ID.String()
+}
+
+func (n LobbyMessage) TableName() string {
 	return "Lobby_Message"
 }

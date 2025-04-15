@@ -25,7 +25,7 @@ export default class extends Controller {
                 if (this.routeValue in kmap && kmap[this.routeValue].absolute) {
                 return ref === this.routeValue;
                 }
-                return ref === this.routeValue || ref.startsWith(this.routeValue);
+                return ref === this.routeValue || ref.startsWith(this.routeValue) || this.routeValue.startsWith(ref);
             });
 
             if (active) 

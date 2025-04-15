@@ -32,7 +32,6 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 	// Get all lobbies.
 	lobbies, err := database.Query[dbtype.Lobby](fmt.Sprintf("%s;", lQuery), params)
 	if err != nil {
-		fmt.Println("AllLobby: ", err)
 		return nil, 0, err
 	}
 
@@ -95,24 +94,18 @@ func PutLobby(body *dbtype.Lobby, app *dbtype.Application, user *dbtype.User) (*
 		return nil, err
 	}
 	// Link the host.
-	err = LinkLobbyHost(lobby, user)
-	if err != nil {
-		return nil, err
+	if user != nil {
+		err = LinkLobbyHost(lobby, user)
+		if err != nil {
+			return nil, err
+		}
 	}
 	
 	return GetLobby(lobby.ID.String())
 }
 
-func DelLobby(id string) error {
-	lobby, err := GetLobby(id)
-	if err != nil || lobby == nil {
-		return fmt.Errorf("DelLobby error: lobby not found %s", err)
-	}
-	err = database.Delete(*lobby.ID)
-	if err != nil {
-		return fmt.Errorf("DelLobby error: lobby not found %s", err)
-	}
-	return nil
+func DelLobby(id string, lobby *dbtype.Lobby) error {
+	return database.Delete(*lobby.ID)
 }
 
 func LinkLobbyApplication(lobby *dbtype.Lobby, app *dbtype.Application) error {

@@ -1,23 +1,23 @@
 .container
     h4.subtitle #{.form.Title}
-    form(method=.form.Method, action=.form.Action, name=.form.Title, data-confirm-message=.form.Confirm)
+    form.vgnform(method=.form.Method, action=.form.Action, name=.form.Title, data-confirm-message=.form.Confirm)
         each field in .form.Fields
             .field
                 label.label(for=.Name) #{.Label}
                 .control
                     if equals .Type "bool"
                         label.checkbox
-                            input(type="checkbox", name=.Name, value=.Value, is-checked=(equals .Value true), is-disabled=(equals .ReadOnly true)) 
+                            input.vgnform-input(type="checkbox", name=.Name, value=.Value, is-checked=(equals .Value true), is-disabled=.ReadOnly) 
                                 | #{.Name}
                     else if equals .Type "number"
-                        input.input(type="number", name=.Name, value=.Value, is-disabled=.ReadOnly)
+                        input.input.vgnform-input(type="number", name=.Name, value=.Value, is-required=.Required, is-disabled=.ReadOnly)
                     else if equals .Type "choice"
-                        select.input(name=.Name, value=.Value is-disabled=.ReadOnly)
-                            option(value="", selected, disabled, hidden) Select...
+                        select.input.vgnform-input(name=.Name, value=.Value, is-required=.Required, is-disabled=.ReadOnly)
+                            option(value="", selected, disabled, hidden) Select #{.Label}
                             each opt in .Options
-                                option(value=.value)= .label
+                                option(value=.value, is-selected=(equals .Value .value))= .label
                     else
-                        input.input(type=.Type, name=.Name, value=.Value, placeholder=.Label, is-required=.Required, is-disabled=.ReadOnly)
+                        input.input.vgnform-input(type=.Type, name=.Name, value=.Value, placeholder=.Label, is-required=.Required, is-disabled=.ReadOnly)
         hr
         .field.is-grouped
             .control

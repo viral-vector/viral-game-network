@@ -13,10 +13,14 @@ type User struct {
 	Date_LastLogin string `json:"date_last_login,omitempty"`
 }
 
-func (u User) TableName() string {
+func (n User) ModelID() string {
+	return n.ID.String()
+}
+
+func (n User) TableName() string {
 	return "User"
 }
 
-func (u User) SetGUID(guid string) {
-	u.Guid = guid
+func (n User) SetGUID(guid string) {
+	n.Guid = guid
 }

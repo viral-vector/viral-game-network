@@ -1,6 +1,7 @@
 package dbtype
 
 import (
+	"strings"
 	"github.com/surrealdb/surrealdb.go/pkg/models"
 )
 
@@ -19,6 +20,21 @@ type Application struct {
 	Lobby_Max_Persist string `json:"lobby_max_persist,omitempty" form:"lobby_max_persist,label:Lobby Persist (minutes),type:number,required:true"`
 }
 
-func (u Application) TableName() string {
+func (n Application) ModelID() string {
+	return n.ID.String()
+}
+
+func (n Application) TableName() string {
 	return "Application"
+}
+
+func (n *Application) UnmarshalText(text []byte) error {
+    if len(text) != 0 {
+		parts := strings.Split(string(text), ":")
+		n.ID = &models.RecordID {
+			ID: parts[1],
+			Table: n.TableName(),
+		}
+    }
+    return nil
 }

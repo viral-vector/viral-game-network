@@ -15,6 +15,10 @@ type Admin struct {
 	Date_LastLogin string `json:"date_last_login,omitempty"`
 }
 
-func (u Admin) TableName() string {
+func (n Admin) ModelID() string {
+	return n.ID.String()
+}
+
+func (n Admin) TableName() string {
 	return "Admin"
 }

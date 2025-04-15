@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	dbtype "viral-game-network/src/database/type"
+	"github.com/surrealdb/surrealdb.go/pkg/models"
 )
 
 type FormField struct {
@@ -52,13 +54,30 @@ func generateFormFields(input interface{}, mode string) ([]FormField, error) {
 	t := v.Type()
 
 	var fields []FormField
+
+	recordIDType := reflect.TypeOf(models.RecordID{})
+
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		// Get The value
-		value, ok := v.Field(i).Interface().(string)
-		if !ok {
-			// Option 2: Convert it to a string using fmt.Sprintf, if appropriate:
-			value = fmt.Sprintf("%v", value)
+
+        fieldValue := v.Field(i)
+        var valueStr string
+
+		if (fieldValue.Kind() == reflect.Ptr || fieldValue.Kind() == reflect.Interface) && fieldValue.IsNil() {
+			valueStr = ""
+		} else if fieldValue.Type() == recordIDType {
+			// If the field is exactly of type models.RecordID.
+			ident := fieldValue.Interface().(models.RecordID)
+			valueStr = ident.String()
+			fmt.Println("---RecordID: ", ident, field.Name, valueStr)
+		} else if ident, ok := fieldValue.Interface().(dbtype.Model); ok {
+			// Field implements our Model interface.
+			valueStr = ident.ModelID()
+		} else if s, ok := fieldValue.Interface().(string); ok {
+			valueStr = s
+		} else {
+			// Fallback: use fmt.Sprintf.
+			valueStr = fmt.Sprintf("%v", fieldValue.Interface())
 		}
 
 		// Get Tags
@@ -84,10 +103,12 @@ func generateFormFields(input interface{}, mode string) ([]FormField, error) {
 
 		fields = append(fields, FormField{
 			Name:      jprops[0],
-			Value:     value,
+			Value:     valueStr,
 			Label:     fprops["label"],
 			Type:      fprops["type"],
 			Required:  req,
+			ReadOnly:  false,
+			SortOrder: 0,
 		})
 	}
 	return fields, nil

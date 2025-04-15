@@ -27,7 +27,7 @@ func GenerateToken(username string) (string, error) {
 		app_name = "VNet"
 	}
 	if exp_time == "" {
-		exp_time = "15"
+		exp_time = "30"
 	}
 
 	i, err := strconv.ParseInt(exp_time, 10, 64)

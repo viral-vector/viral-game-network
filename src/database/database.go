@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"time"
+	dbtype "viral-game-network/src/database/type"
 	migrations "viral-game-network/src/database/migrations"
     "github.com/surrealdb/surrealdb.go"
 	"github.com/surrealdb/surrealdb.go/pkg/models"
@@ -13,10 +14,6 @@ import (
 
 var DBS *surrealdb.DB
 var err error
-
-type Model interface {
-	TableName() string
-}
 
 func init() {
 	log.Println("Database Initialize!")
@@ -81,16 +78,16 @@ func Query[T any](query string, params map[string]interface{}) ([]T, error) {
 	return output, nil
 }
 
-func Create[T Model](record *T) (*T, error) {
+func Create[T dbtype.Model](record *T) (*T, error) {
 	table := (*record).TableName()
 	return surrealdb.Create[T](DBS, models.Table(table), record)
 }
 
-func Update[T Model](id models.RecordID, record *T) (*T, error) {
+func Update[T dbtype.Model](id models.RecordID, record *T) (*T, error) {
 	return surrealdb.Update[T](DBS, id, record)
 }
 
-func Upsert[T Model](record *T) (*T, error) {
+func Upsert[T dbtype.Model](record *T) (*T, error) {
 	table := (*record).TableName()
 	queryResultsSingle, err := surrealdb.Upsert[[]T](DBS, models.Table(table), record)
 	if err != nil {

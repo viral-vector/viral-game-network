@@ -96,6 +96,11 @@ func serve_routes(app *fiber.App) {
 	admin.Delete("/user/:id", handler_admin.Handle_Users_Delete_Crud)
 	// Users Lobbies & Servers
 	admin.Get("/lobbies", handler_admin.Handle_Lobbies).Name("admin/lobbies")
+	admin.Get("/lobby", handler_admin.Handle_Lobbies_Create_View)
+	admin.Post("/lobby", handler_admin.Handle_Lobbies_Create_Crud)
+	admin.Get("/lobby/:id", handler_admin.Handle_Lobbies_Update_View)
+	admin.Post("/lobby/:id", handler_admin.Handle_Lobbies_Update_Crud)
+	admin.Delete("/lobby/:id", handler_admin.Handle_Lobbies_Delete_Crud)
 	admin.Get("/servers", handler_admin.Handle_Servers).Name("admin/servers")
 	//  Cluster & Pods
 	admin.Post("/cluster/start", handler_admin.Handle_Cluster_Start)

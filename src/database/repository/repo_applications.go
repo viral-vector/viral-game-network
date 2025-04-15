@@ -9,26 +9,36 @@ import (
 
 func AllApplication(count int, pager int) ([]dbtype.Application, int, error) {
 	// Get All Applications
-	apps, err := database.Query[dbtype.Application](`
+	lQuery := `
 	SELECT * 
 	FROM type::table(Application) 
 	ORDER BY date_created DESC 
-	LIMIT $ct START $pg;`,
-		map[string]interface{}{
-			"ct": count,
-			"pg": (pager - 1) * count,
-		})
+	`
+	params := map[string]interface{}{}
+
+	if count > -1 {
+		lQuery = fmt.Sprintf("%s LIMIT $ct START $pg", lQuery)
+		params["ct"] = count
+		params["pg"] = (pager - 1) * count
+	}
+
+	// Get Applications.
+	apps, err := database.Query[dbtype.Application](fmt.Sprintf("%s;", lQuery), params)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Count All Applications
-	total, err := database.Query[dbtype.Total]("SELECT count() AS total FROM type::table(Application) GROUP ALL;",
+	// Count all Applications.
+	total, err := database.Query[dbtype.Total](
+		"SELECT count() AS total FROM type::table(Applications) GROUP ALL;",
 		map[string]interface{}{
-		})
-	if err != nil {
+			
+		},
+	)
+	if err != nil || len(total) == 0 {
 		return apps, 0, err
 	}
+
 	return apps, total[0].Total, nil
 }
 

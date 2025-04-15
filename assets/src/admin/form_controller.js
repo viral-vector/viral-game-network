@@ -8,11 +8,11 @@ export default class extends Controller {
 
     buildAForms() {
         this.element.querySelectorAll('form').forEach(element => {
-            element.querySelectorAll('input[is-checked="true"]').forEach(item => {
+            element.querySelectorAll('.vgnform-input[is-checked="true"]').forEach(item => {
                 item.click()
                 item.setAttribute('checked', true)
             })
-            element.querySelectorAll('select').forEach(item => {
+            element.querySelectorAll('select.vgnform-input').forEach(item => {
                 for (let opt of item.querySelectorAll('option')) {
                     if (opt.getAttribute('value') == item.getAttribute('value')) {
                         opt.click()
@@ -20,13 +20,13 @@ export default class extends Controller {
                     }
                 }
             })
-            element.querySelectorAll('input[type="text"][is-disabled="true"]').forEach(item => {
+            element.querySelectorAll('.vgnform-input[type="text"][is-disabled="true"]').forEach(item => {
                 item.setAttribute('readonly', true)
             })
-            element.querySelectorAll('input[is-required="true"]').forEach(item => {
+            element.querySelectorAll('.vgnform-input[is-required="true"]').forEach(item => {
                 item.setAttribute('required', true)
             })
-            element.querySelectorAll('input[type="checkbox"][is-disabled="true"]').forEach(item => {
+            element.querySelectorAll('.vgnform-input[type="checkbox"][is-disabled="true"]').forEach(item => {
                 let inp = document.createElement("input");
                 inp.setAttribute('type', 'hidden')
                 inp.setAttribute('name', item.getAttribute('name'))
@@ -86,8 +86,6 @@ export default class extends Controller {
                         "priority": 0
                     })
                 } catch (error) {
-                    console.error(error.message);
-                    // Show an error toast
                     window.pushNotification({
                         "type": "danger",
                         "message": error.message,
