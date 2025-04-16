@@ -13,11 +13,11 @@ nav#header.navbar.is-fixed-top.is-dark(role="navigation", aria-label="dropdown n
         .navbar-item.has-dropdown.is-hoverable
           a.navbar-link.menu-item.is-arrowless(href='/admin', is-absolute="true" is-disabled="true") Dashboard 
           .navbar-dropdown.is-hidden-desktop
-            a.navbar-item.menu-item(href='/admin/applications') Applications 
-            a.navbar-item.menu-item(href='/admin/users') Users 
+            a.navbar-item.menu-item(href='/admin/applications' hset="/admin/application") Applications 
+            a.navbar-item.menu-item(href='/admin/users' hset="/admin/user") Users 
             a.navbar-item.menu-item(href='/admin/lobbies', hset="/admin/lobby") Lobbies 
-            a.navbar-item.menu-item(href='/admin/servers') Servers 
-        a.navbar-item.menu-item(href='/admin/admins') Admins 
+            a.navbar-item.menu-item(href='/admin/servers' hset="/admin/server") Servers 
+        a.navbar-item.menu-item(href='/admin/admins' hset="/admin/admin") Admins 
         a.navbar-item.menu-item(href='/admin/metrics') Metrics 
         a.navbar-item.menu-item(href='/admin/configs') Configs 
     .navbar-end
