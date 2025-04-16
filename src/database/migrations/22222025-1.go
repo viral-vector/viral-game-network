@@ -80,6 +80,7 @@ func init() {
 			DEFINE FIELD port ON TABLE Server TYPE option<number>;
 			DEFINE INDEX idx_server_id ON TABLE Server COLUMNS id UNIQUE;
 			DEFINE INDEX idx_server_guid ON TABLE Server COLUMNS guid UNIQUE;
+			DEFINE INDEX idx_server_status ON TABLE Server COLUMNS status;
 			`,
 		},
 		// Lobby_Application

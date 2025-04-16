@@ -1,7 +1,7 @@
 package job
 
 import (
-	"fmt"
+	"log"
 	"time"
 	"viral-game-network/src/cache"
 	dbtype "viral-game-network/src/database/type"
@@ -17,7 +17,7 @@ func Job_Monitoring() {
 	if cache_lock, _ := cache.Get[string]("monitoring-cluster-events"); cache_lock == "" {
 		go func() {
 			// Lock monitoring
-			cache.Set[string]("monitoring-cluster-events", "true", time.Second * 3)
+			cache.Set[string]("monitoring-cluster-events", "true", time.Second * 5)
 			// RUN
 			RUN_Monitoring_ClusterEvents()
 		}()
@@ -26,14 +26,14 @@ func Job_Monitoring() {
 
 // Monitor the cluster
 func RUN_Monitoring_ClusterEvents() {
-	fmt.Println("RUN_Monitoring: @ Cluster Events")
+	log.Println("[Job_Monitoring]: @ClusterEvents")
 
 	cachedLastEventStr, err := cache.Get[string]("monitoring-cluster:last_event")
 	var cachedLastEvent time.Time
 	if cachedLastEventStr != "" {
 		cachedLastEvent, err = time.Parse(time.RFC3339, cachedLastEventStr)
 		if err != nil {
-			fmt.Println(fmt.Errorf("RUN_Monitoring_ClusterEvents Error: %v", err))
+			log.Panicf("[Job_Monitoring]: @ClusterEvents: %v", err)
 		}
 	}
 	ctlines := int64(100)

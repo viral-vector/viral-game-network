@@ -3,7 +3,6 @@ package pubsub
 import (
 	"os"
 	"log"
-	//"time"
 	"context"
 	"github.com/redis/go-redis/v9"
 )

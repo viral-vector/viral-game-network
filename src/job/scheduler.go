@@ -1,7 +1,7 @@
 package job
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/robfig/cron/v3"
 )
@@ -43,7 +43,7 @@ func stack() []Entry {
 func Start() {
 	run := cron.New(cron.WithSeconds())
 	for _, v := range stack() {
-		fmt.Println("Scheduler Scheduling: ", v.Name)
+		log.Println("Scheduling Job: ", v.Name)
 		run.AddFunc(v.Time, v.Func)
 	}
 	run.Start()

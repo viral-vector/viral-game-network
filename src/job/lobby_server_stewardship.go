@@ -21,7 +21,7 @@ func Job_Lobby_Server_Stewardship() {
 	// Retrieve all server pods.
 	pods, err := k8.GetAllServerPods()
 	if err != nil {
-		log.Printf("RUN_Lobby_Server_Stewardship error: %v", err)
+		log.Panicf("[Job_Lobby_Server_Stewardship]: %v", err)
 		return
 	}
 
@@ -45,19 +45,14 @@ func Job_Lobby_Server_Stewardship() {
 		go func(pod *v1.Pod, podName string) {
 			defer wg.Done()
 			defer func() { <-sem }() // release semaphore when done
-
 			// Lock the pod for stewardship.
 			if err := cache.Set[string]("server-stewardship-lock-"+podName, "true", 30*time.Second); err != nil {
-				log.Printf("Error setting lock for pod %s: %v", podName, err)
+				log.Panicf("[Job_Lobby_Server_Stewardship]: Error locking pod %s: %v", podName, err)
 				return
 			}
 			defer cache.Del("server-stewardship-lock-" + podName)
-
-			log.Printf("RUN_Lobby_Server_Stewardship: Processing pod %s", pod.Name)
-
 			// Run the main stewardship process.
 			RUN_Lobby_Server_Stewardship(pod)
-
 		}(pod, pod.Name)
 	}
 
@@ -68,31 +63,31 @@ func Job_Lobby_Server_Stewardship() {
 func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 	node, lobpod, err := k8.LocateServerPod(pod.Name)
 	if err != nil {
-		log.Printf("RUN_Lobby_Server_Stewardship error locating server pod for %s: %v", pod.Name, err)
+		log.Panicf("[Job_Lobby_Server_Stewardship]: Error locating server pod for %s: %v", pod.Name, err)
 		return
 	}
 	if node == nil || lobpod == nil {
-		log.Printf("RUN_Lobby_Server_Stewardship: Unable to locate node or pod for %s", pod.Name)
+		log.Printf("[Job_Lobby_Server_Stewardship]: Unable to locate node or pod for %s", pod.Name)
 		return
 	}
 
 	// Get the corresponding lobby.
 	lobby, err := repository.GetLobby("Lobby:" + lobpod.Name)
 	if err != nil {
-		log.Printf("RUN_Lobby_Server_Stewardship: Error fetching lobby for %s: %v", lobpod.Name, err)
+		log.Panicf("[Job_Lobby_Server_Stewardship]: Error fetching lobby for %s: %v", lobpod.Name, err)
 		return
 	}
 
 	// If the pod is terminating, skip further processing.
 	if pod.DeletionTimestamp != nil {
-		log.Printf("RUN_Lobby_Server_Stewardship: Pod %s is terminating", lobpod.Name)
+		log.Printf("[Job_Lobby_Server_Stewardship]: Pod %s is terminating", lobpod.Name)
 		return
 	}
 
 	// If no lobby or no server recorded in the lobby, purge the stale pod/server.
 	if lobby == nil || lobby.Lobby_Server == nil {
 		RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, node)
-		log.Printf("RUN_Lobby_Server_Stewardship: Lobby/Server not found for pod %s", lobpod.Name)
+		log.Printf("[Job_Lobby_Server_Stewardship]: Lobby/Server not found for pod %s", lobpod.Name)
 		return
 	}
 
@@ -102,7 +97,6 @@ func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 		RUN_Lobby_Server_Stewardship_Running(lobby, lobpod, node)
 	case v1.PodFailed:
 		RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, node)
-		// For PodPending, you might choose to wait or log; here we do nothing.
 	}
 
 	// Update the server status if needed.
@@ -112,7 +106,7 @@ func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 		lobby.Lobby_Server.Status = string(lobpod.Status.Phase)
 
 		if _, err := repository.SetServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
-			log.Printf("RUN_Lobby_Server_Stewardship: Error updating server for lobby %s: %v", lobpod.Name, err)
+			log.Panicf("[Job_Lobby_Server_Stewardship]: Error updating server for lobby %s: %v", lobpod.Name, err)
 			return
 		}
 	}
@@ -120,7 +114,7 @@ func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 	// Notify lobby users about the current server status.
 	msg := "Server:" + lobby.Lobby_Server.Status
 	ministration.Service_Lobby_Notify(lobby.ID.String(), msg, "")
-	log.Printf("RUN_Lobby_Server_Stewardship: Server/Pod processed for lobby %s; phase: %s", lobpod.Name, lobpod.Status.Phase)
+	log.Printf("[Job_Lobby_Server_Stewardship]: Server/Pod processed for lobby %s; phase: %s", lobpod.Name, lobpod.Status.Phase)
 }
 
 // RUN_Lobby_Server_Stewardship_Running updates server info when pod is running.

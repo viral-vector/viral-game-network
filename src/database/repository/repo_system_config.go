@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"log"
 	"fmt"
 	"time"
 	"sort"
@@ -67,7 +68,6 @@ func PopSystemConfigs(configs *[]dbtype.SystemConfig) ([]dbtype.SystemConfig, er
 
 	var err error
 	for _, config := range *configs {
-		fmt.Println(config.ID, config.Key, config.Val)
 		config.Date_Updated = datetime
 		if config.ID != nil {
 			_, err = database.Update[dbtype.SystemConfig](*config.ID, &config)
@@ -75,7 +75,7 @@ func PopSystemConfigs(configs *[]dbtype.SystemConfig) ([]dbtype.SystemConfig, er
 			_, err = database.Upsert[dbtype.SystemConfig](&config)
 		}
 		if err != nil{
-			fmt.Println(fmt.Errorf("PopSystemConfigs Error: %s", err))
+			log.Panicf("Repository: PopSystemConfigs Error: %s", err)
 		}
 	}
 

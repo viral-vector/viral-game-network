@@ -49,6 +49,48 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 	return lobbies, total[0].Total, nil
 }
 
+func AllLobbyNotRunning(count int, pager int) ([]dbtype.Lobby, int, error) {
+	lQuery := `
+	SELECT * FROM (
+		SELECT *
+		,array::first(SELECT * FROM ->Lobby_Application.out) AS lobby_application
+		,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
+		{array::first(SELECT id, name, guid, status FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
+		FROM type::table(Lobby)
+	)
+	WHERE lobby_server.status NOTINSIDE ['Running', 'Online']
+	ORDER BY date_created DESC
+	`
+	params := map[string]interface{}{
+		
+	}
+
+	if count > -1 {
+		lQuery = fmt.Sprintf("%s LIMIT $ct START $pg", lQuery)
+		params["ct"] = count
+		params["pg"] = (pager - 1) * count
+	}
+
+	// Get all lobbies.
+	lobbies, err := database.Query[dbtype.Lobby](fmt.Sprintf("%s;", lQuery), params)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Count all lobbies.
+	total, err := database.Query[dbtype.Total](
+		"SELECT count() AS total FROM type::table(Lobby) GROUP ALL;",
+		map[string]interface{}{
+			
+		},
+	)
+	if err != nil || len(total) == 0 {
+		return lobbies, 0, err
+	}
+
+	return lobbies, total[0].Total, nil
+}
+
 func GetLobby(id string) (*dbtype.Lobby, error) {
 	// Get lobby by ID.
 	lobbies, err := database.Query[dbtype.Lobby](`

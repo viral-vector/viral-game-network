@@ -109,7 +109,7 @@ func CreateNameSpace() error {
 		return fmt.Errorf("failed to create namespace: %v", err)
 	}
 
-	fmt.Println("Created K8 Namespace: " + result.Name)
+	log.Println("Created K8 Namespace: " + result.Name)
 
 	return nil
 }
@@ -351,7 +351,7 @@ func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, imag
 
 	pod, err := clientset.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 	if err != nil {
-		fmt.Println("Failed to create pod: ", err)
+		log.Println("Failed to create pod: ", err)
 		return nil, err
 	}
 

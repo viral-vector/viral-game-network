@@ -102,7 +102,7 @@ func Delete[T models.RecordID](id models.RecordID) (error) {
 		"id": id.String(), 
 	})
 	if err != nil {
-		fmt.Println("Delete Error: ", err)
+		log.Panicf("Database Delete Error: ", err)
 	}
 	return err
 }
@@ -112,7 +112,7 @@ func Select[T any](id string) (*T, error) {
 		"id": id,
 	})
 	if err != nil {
-		fmt.Println("Select Error: ", err)
+		log.Panicf("Database Select Error: ", err)
 		return nil, err
 	}
 	return &(*result)[0].Result, err
@@ -128,7 +128,7 @@ func Relate(in *models.RecordID, out *models.RecordID, table string, data map[st
 	}
 	err := surrealdb.Relate(DBS, relationship)
 	if err != nil {
-		fmt.Println("Relate Error: ", err)
+		log.Panicf("Database Relate Error: ", err)
 	}
 	return err
 }
