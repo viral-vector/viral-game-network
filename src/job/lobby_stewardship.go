@@ -50,7 +50,7 @@ func Job_Lobby_Stewardship() {
 			defer func() { <-sem }() // release semaphore when done
 
 			// Lock the lobby for stewardship.
-			if err := cache.Set[string]("lobby-stewardship-lock-"+label, "true", 30*time.Second); err != nil {
+			if err := cache.Set[string]("lobby-stewardship-lock-"+label, "true", 15*time.Second); err != nil {
 				log.Panicf("[Job_Lobby_Stewardship]: Error locking lobby %s: %v", label, err)
 				return
 			}

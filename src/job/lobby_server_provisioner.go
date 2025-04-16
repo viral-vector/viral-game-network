@@ -51,7 +51,7 @@ func Job_Lobby_Server_Provisioner() {
 			defer func() { <-sem }() // release semaphore
 
 			// Lock the lobby (30-second duration).
-			if err := cache.Set[string]("provisioner-lock-"+label, "true", 30*time.Second); err != nil {
+			if err := cache.Set[string]("provisioner-lock-"+label, "true", 60*time.Second); err != nil {
 				log.Panicf("[Job_Lobby_Server_Provisioner]: Error locking lobby %s: %v", label, err)
 				return
 			}

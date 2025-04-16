@@ -71,16 +71,16 @@ func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 		return
 	}
 
+	// If the pod is terminating, skip further processing.
+	if pod.DeletionTimestamp != nil {
+		log.Printf("[Job_Lobby_Server_Stewardship]: Pod %s is terminating", lobpod.Name)
+		return
+	}
+
 	// Get the corresponding lobby.
 	lobby, err := repository.GetLobby("Lobby:" + lobpod.Name)
 	if err != nil {
 		log.Panicf("[Job_Lobby_Server_Stewardship]: Error fetching lobby for %s: %v", lobpod.Name, err)
-		return
-	}
-
-	// If the pod is terminating, skip further processing.
-	if pod.DeletionTimestamp != nil {
-		log.Printf("[Job_Lobby_Server_Stewardship]: Pod %s is terminating", lobpod.Name)
 		return
 	}
 
@@ -101,7 +101,7 @@ func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 
 	// Update the server status if needed.
 	if lobby.Lobby_Server != nil &&
-		(lobby.Lobby_Server.Status != string(lobpod.Status.Phase) && lobby.Lobby_Server.Status != "Online") {
+		(lobby.Lobby_Server.Status != string(lobpod.Status.Phase) && lobby.Lobby_Server.Status != "Running") {
 
 		lobby.Lobby_Server.Status = string(lobpod.Status.Phase)
 
