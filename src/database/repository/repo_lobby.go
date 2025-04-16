@@ -11,11 +11,11 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 	lQuery := `
 	SELECT *
 	,array::first(SELECT * FROM ->Lobby_Application.out) AS lobby_application
-    ,(IF count(SELECT id FROM ->Lobby_Host.out) > 0
-       {array::first(SELECT id, name, guid FROM ->Lobby_Host.out)} ELSE {NULL}) AS lobby_host
-    ,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
-       {array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
-    ,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
+	,(IF count(SELECT id FROM ->Lobby_Users.out) > 0
+		{array::first(SELECT out.* FROM ->Lobby_Users WHERE user_type = 'host')} ELSE {NULL}).out AS lobby_host
+	,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
+		{array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
+	,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
 	FROM type::table(Lobby)
 	ORDER BY date_created DESC
 	`
@@ -55,7 +55,7 @@ func AllLobbyNotRunning(count int, pager int) ([]dbtype.Lobby, int, error) {
 		SELECT *
 		,array::first(SELECT * FROM ->Lobby_Application.out) AS lobby_application
 		,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
-		{array::first(SELECT id, name, guid, status FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
+			{array::first(SELECT id, name, guid, status FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
 		FROM type::table(Lobby)
 	)
 	WHERE lobby_server.status NOTINSIDE ['Running', 'Online']
@@ -94,14 +94,15 @@ func AllLobbyNotRunning(count int, pager int) ([]dbtype.Lobby, int, error) {
 func GetLobby(id string) (*dbtype.Lobby, error) {
 	// Get lobby by ID.
 	lobbies, err := database.Query[dbtype.Lobby](`
-	SELECT * 
+	SELECT *
 	,array::first(SELECT * FROM ->Lobby_Application.out) AS lobby_application
-    ,(IF count(SELECT id FROM ->Lobby_Host.out) > 0
-       {array::first(SELECT id, name, guid FROM ->Lobby_Host.out)} ELSE {NULL}) AS lobby_host
-    ,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
-       {array::first(SELECT * FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
-    ,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
-	FROM type::record($id);`,
+	,(IF count(SELECT id FROM ->Lobby_Users.out) > 0
+		{array::first(SELECT out.* FROM ->Lobby_Users WHERE user_type = 'host')} ELSE {NULL}).out AS lobby_host
+	,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
+		{array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
+	,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
+	FROM type::table(Lobby)
+	ORDER BY date_created DESC;`,
 		map[string]interface{}{
 			"id": id,
 		})
@@ -157,13 +158,24 @@ func LinkLobbyApplication(lobby *dbtype.Lobby, app *dbtype.Application) error {
 }
 
 func LinkLobbyHost(lobby *dbtype.Lobby, user *dbtype.User) error {
-	return database.Relate(lobby.ID, user.ID, "Lobby_Host", map[string]interface{}{
+	if err := database.Relate(lobby.ID, user.ID, "Lobby_Host", map[string]interface{}{
 
-	})
+	}); err != nil {
+		return err
+	}
+	return LinkLobbyUser(lobby, user, "host")
 }
 
-func LinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User) error {
-	// First, remove any existing relation.
+func SwapLobbyHost(lobby *dbtype.Lobby, user *dbtype.User) error {
+	err := UnlinkLobbyUser(lobby, lobby.Lobby_Host)
+	if err != nil {
+		return err
+	}
+	return LinkLobbyUser(lobby, user, "host")
+}
+
+func LinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User, user_type string) error {
+	// First, remove any existing lobby.
 	_, err := database.Query[any](
 		`DELETE FROM Lobby_Users WHERE out=$user RETURN *;`,
 		map[string]interface{}{
@@ -176,7 +188,19 @@ func LinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User) error {
 
 	return database.Relate(lobby.ID, user.ID, "Lobby_Users", map[string]interface{}{
 		"date_created": time.Now().UTC().Format(time.RFC3339),
+		"user_type"   : user_type,
 	})
+}
+
+func UnlinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User) error {
+	_, err := database.Query[any](
+		`DELETE FROM Lobby_Users WHERE in=$lobby AND out=$user RETURN *;`,
+		map[string]interface{}{
+			"lobby": lobby.ID.String(),
+			"user" : user.ID.String(),
+		},
+	)
+	return err
 }
 
 func UnlinkLobbyAllUsers(id string) error {

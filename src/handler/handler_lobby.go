@@ -127,18 +127,8 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 
 	req_user := c.Locals("user").(*dbtype.User)
 
-	// for _, user := range lobby.Lobby_Users {
-	// 	if user.User.ID == req_user.ID {
-	// 		c.Status(fiber.StatusBadRequest)
-	// 		return c.JSON(fiber.Map{
-	// 			"status": "error",
-	// 			"message": "Already joined lobby",
-	// 		})
-	// 	}
-	// }
-
 	// Link User to lobby
-	err = repository.LinkLobbyUser(lobby, req_user)
+	err = repository.LinkLobbyUser(lobby, req_user, "user")
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)

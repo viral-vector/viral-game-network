@@ -111,6 +111,8 @@ func init() {
 		dbtype.Migration{
 			SQL: `
 			DEFINE TABLE Lobby_Users SCHEMAFULL TYPE RELATION IN Lobby OUT User ENFORCED;
+			DEFINE FIELD user_type ON TABLE Lobby_Users TYPE string;
+			DEFINE INDEX idx_lobby_users_user_type ON TABLE Lobby_Users COLUMNS user_type;
 			DEFINE INDEX idx_lobby_users_host_in ON TABLE Lobby_Users COLUMNS in;
 			DEFINE INDEX idx_lobby_users_host_out ON TABLE Lobby_Users COLUMNS out;
 			`,
