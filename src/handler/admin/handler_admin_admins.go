@@ -33,6 +33,7 @@ func Handle_Admins_Create_View(c *fiber.Ctx) error {
 		"create",  
 		dbtype.Admin{},
 		"Create Admin",
+		"Create Admin",
 	)
 	form.Confirm = "Save Admin Config?"
 
@@ -99,6 +100,7 @@ func Handle_Admins_Update_View(c *fiber.Ctx) error {
 		"/admin/admin/" + admin.ID.String(),
 		"update", 
 		admin,
+		"Update Admin",
 		"Update Admin",
 	)
 	form.Confirm = "Save Admin Config?"

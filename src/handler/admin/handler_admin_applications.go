@@ -32,6 +32,7 @@ func Handle_Applications_Create_View(c *fiber.Ctx) error {
 		"create",
 		dbtype.Application{},
 		"Create Application",
+		"Create Application",
 	)
 	form.Confirm = "Save Application Config?"
 
@@ -84,6 +85,7 @@ func Handle_Applications_Update_View(c *fiber.Ctx) error {
 		"/admin/application/" + application.ID.String(),
 		"update", 
 		application,
+		"Update Application",
 		"Update Application",
 	)
 	form.Confirm = "Save Application Config?"

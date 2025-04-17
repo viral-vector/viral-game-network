@@ -21,6 +21,7 @@
         hr
         .field.is-grouped
             .control
-                button.button.is-link(type="submit") Save
-            .control
-                button.button.is-light(type="reset") Reset
+                button.button.is-link(type="submit") #{.form.Submit}
+            if .form.CanReset
+                .control
+                    button.button.is-light(type="reset") Reset

@@ -35,6 +35,7 @@ func Handle_Lobbies_Create_View(c *fiber.Ctx) error {
 		"create",
 		dbtype.Lobby{},
 		"Create Lobby",
+		"Create Lobby",
 	)
 	form.Confirm = "Save Lobby Config?"
 
@@ -110,6 +111,7 @@ func Handle_Lobbies_Update_View(c *fiber.Ctx) error {
 		"/admin/lobby/" + lobby.ID.String(),
 		"update", 
 		lobby,
+		"Update Lobby",
 		"Update Lobby",
 	)
 	form.Confirm = "Save Lobby Config?"

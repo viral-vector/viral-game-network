@@ -32,6 +32,7 @@ func Handle_Users_Create_View(c *fiber.Ctx) error {
 		"create",  
 		dbtype.User{},
 		"Create User",
+		"Create User",
 	)
 	form.Confirm = "Save User Config?"
 
@@ -85,6 +86,7 @@ func Handle_Users_Update_View(c *fiber.Ctx) error {
 		"/admin/user/" + user.ID.String(),
 		"update", 
 		user,
+		"Update User",
 		"Update User",
 	)
 	form.Confirm = "Save User Config?"

@@ -192,6 +192,7 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 			"",
 			AuthAdminRequestDTO{},
 			"",
+			"Login",
 		)
 		return c.Render("admin/login", fiber.Map{
 			"form" : form,

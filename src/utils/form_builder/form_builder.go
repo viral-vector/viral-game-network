@@ -21,10 +21,12 @@ type FormField struct {
 
 type Form struct {
 	Title  string
+	Submit string
 	Confirm string
 	Action string
 	Method string
 	Fields []FormField
+	CanReset  bool
 }
 
 func parseFormTag(tag string) map[string]string {
@@ -69,7 +71,6 @@ func generateFormFields(input interface{}, mode string) ([]FormField, error) {
 			// If the field is exactly of type models.RecordID.
 			ident := fieldValue.Interface().(models.RecordID)
 			valueStr = ident.String()
-			fmt.Println("---RecordID: ", ident, field.Name, valueStr)
 		} else if ident, ok := fieldValue.Interface().(dbtype.Model); ok {
 			// Field implements our Model interface.
 			valueStr = ident.ModelID()
@@ -114,12 +115,30 @@ func generateFormFields(input interface{}, mode string) ([]FormField, error) {
 	return fields, nil
 }
 
-func GenerateForm(method string, action string, mode string, input interface{}, title string) (Form, error) {
+func GenerateForm(
+	method string, 
+	action string, 
+	mode string, 
+	input interface{}, 
+	title string,
+	submit string,
+) (*Form, error) {
 	fields, err := generateFormFields(input, mode)
-	return Form{
+
+	if submit == "" {
+	   	submit = "Submit"
+	}
+	if action == "" || method == "" {
+		return nil, fmt.Errorf("method and action are required")
+	}
+
+	return &Form{
 		Title : title,
+		Submit: submit,
 		Action: action,
 		Method: method,
 		Fields: fields,
+		CanReset: true,
+		Confirm: "",
 	}, err
 }
