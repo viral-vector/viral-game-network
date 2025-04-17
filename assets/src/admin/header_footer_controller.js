@@ -22,7 +22,7 @@ export default class extends Controller {
             }
             refs.push(item.getAttribute("href"));
             const active = refs.some(ref => {
-                if (this.routeValue in kmap && kmap[this.routeValue].absolute) {
+                if ((this.routeValue in kmap && kmap[this.routeValue].absolute) || (ref in kmap && kmap[ref].absolute)) {
                 return ref === this.routeValue;
                 }
                 return ref === this.routeValue || ref.startsWith(this.routeValue) || this.routeValue.startsWith(ref);

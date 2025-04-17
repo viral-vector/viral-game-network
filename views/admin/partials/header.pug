@@ -25,13 +25,22 @@ nav#header.navbar.is-fixed-top.is-dark(role="navigation", aria-label="dropdown n
        .field.is-grouped
           p.control
             if .admin
-              span Hello #{.admin.Name}
-            else 
-              span Login Please!
+              span.icon
+                i.fa.fa-user-shield
+              | &nbsp;
+              span.is-hidden-touch
+                | #{.admin.Name}
       .navbar-item
         .field.is-grouped
           p.control
-            a.bd-tw-button.button.is-dark.is-soft(target='_blank', href="/auth/admin/logout")
-              | Logout
+            if .admin
+              a.bd-tw-button.button.is-dark.is-soft(href="/auth/admin/logout")
+                span.icon
+                  i.fa.fa-sign-out
+                | &nbsp;
+                span.is-hidden-touch.has-text-danger Logout
+            else
               span.icon
-                i.fa.fa-sign-out
+                i.fa.fa-sign-in
+              | &nbsp;
+              span.is-hidden-touch Login

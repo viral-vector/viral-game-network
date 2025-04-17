@@ -1,7 +1,8 @@
 aside.menu.is-hidden-mobile
+  p.menu-label Administration
   ul.menu-list
     li
-      a.menu-item(href="/admin", is-absolute="true") Dashboard
+      a.menu-item(href="/admin" is-absolute="true") Dashboard
     li
       ul
         li
@@ -14,9 +15,11 @@ aside.menu.is-hidden-mobile
           a.menu-item(href="/admin/servers" hset="/admin/server") Servers
           ul
             li
-              a.menu-item(href="/admin/pods" hset="/admin/pod") Pods
+              a.menu-item(href="/admin/pods" hset="/admin/pod") Pods      
+  p.menu-label Configuration
+  ul.menu-list
     li
-      a.menu-item(href="/admin/admins"     hset="/admin/admin") Admins
+      a.menu-item(href="/admin/admins" hset="/admin/admin") Admins
     li
       a.menu-item(href="/admin/metrics"     ) Metrics
     li

@@ -5,8 +5,10 @@ div.level
 			p.subtitle #{.name}
 	.level-item.has-text-centered
 		div
-			p.heading Phase
-			p.subtitle #{.phase}
+			p.heading Status
+			p.subtitle #{.status}
+				each condition in .status.conditions 
+					span.tag.is-info.is-small #{.type}: #{.status}
 	.level-item.has-text-centered
 		div
 			p.heading IP

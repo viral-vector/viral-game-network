@@ -8,9 +8,11 @@ div#app.my-5.mx-3
                 include partials/modal_prompt.pug
                 include partials/notification.pug
                 section.content
-                    h3.subtitle App Name Dashboard
+                    h3.subtitle Metrics
                 hr
-                include partials/index/cluster.pug
-                include partials/index/sevents.pug
-                include partials/index/cevents.pug
+                .columns
+                    .column
+                        canvas#chart-sample-a
+                    .column
+                        canvas#chart-sample-b
 script(src="/admin.js")

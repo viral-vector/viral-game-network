@@ -8,16 +8,13 @@
     .content(style="max-height: 300px; overflow-y: auto; overflow-x: hidden;")
       each event in .sevents
         hr
-        div.level
-          .level-item.has-text-centered
-            div
-              p.heading Date
-              p(style="max-width: 100%; overflow: hidden;") #{.Date_Created}
-          .level-item.has-text-centered
-            div
-              p.heading Message
-              p.content(style="max-width: 100%; overflow: hidden;") #{.Message}
-          .level-item.has-text-centered
-            div
-              p.heading Severity
-              p(style="max-width: 100%; overflow: hidden;") #{.Severity}
+        div.grid
+          .cell.has-text-centered
+            p.has-text-info Date
+            p #{.Date_Created}
+          .cell.has-text-centered
+            p.has-text-info Message
+            p #{.Message}
+          .cell.has-text-centered
+            p.has-text-info Severity
+            p #{.Severity}

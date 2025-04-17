@@ -216,6 +216,13 @@ func Handle_Configs_Update_Crud(c *fiber.Ctx) error {
 	})
 }
 
+// ##> Metrics
+func Handle_Metrics(c *fiber.Ctx) error {
+	return c.Render("admin/metrics", fiber.Map{
+	
+	})
+}
+
 // ##> SSEvents
 func Handle_SSEvents(c *fiber.Ctx) error {
 	c.Set("Content-Type", "text/event-stream")
