@@ -261,7 +261,49 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_LogoutAdmin(c *fiber.Ctx) error {
+func Handle_AuthAdminRefresh(c *fiber.Ctx) error {
+	admin := c.Locals("admin").(*dbtype.Admin)
+	
+	if admin == nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": "Admin not found",
+		})
+	}
+
+	// Gen Token
+	access_token, err := auth.GenerateToken(admin.Name)
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  "error",
+			"message": "Token generation failed: " + err.Error(),
+		})
+	}
+
+	// Create cookie
+	cookie := new(fiber.Cookie)
+	cookie.Name = NVET_COOKIE_KEY
+	cookie.Value = access_token
+	cookie.Expires = time.Now().Add(24 * time.Hour)
+
+	// Set cookie
+	c.Cookie(cookie)
+
+	return c.JSON(fiber.Map{
+		"message" 		: "Authorized " + admin.Name,
+		"status"		: "success",
+		"access_token"	: access_token,
+	})
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Authorized",
+	})
+}
+
+func Handle_AuthAdminLogout(c *fiber.Ctx) error {
 	// Create cookie
 	cookie := new(fiber.Cookie)
 	cookie.Name = NVET_COOKIE_KEY

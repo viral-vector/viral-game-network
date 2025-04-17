@@ -51,10 +51,10 @@ func serve_routes(app *fiber.App) {
 	auth.Post("/lobby", handler.Handle_AuthLobby).Name("auth/lobby")
 	auth.Post("/guest", handler.Handle_AuthGuest).Name("auth/guest")
 	// Admin Authentication
-	auth.Use([]string{"/admin"}, handler.Handle_RedirectAdmin)
-	auth.Get("/admin", handler.Handle_AuthAdmin).Name("auth/admin")
-	auth.Post("/admin", handler.Handle_AuthAdmin).Name("auth/admin/submit")
-	auth.Get("/admin/logout", handler.Handle_LogoutAdmin).Name("auth/admin/logout")
+	auth.Get("/admin", handler.Handle_RedirectAdmin, handler.Handle_AuthAdmin).Name("auth/admin")
+	auth.Post("/admin", handler.Handle_RedirectAdmin, handler.Handle_AuthAdmin).Name("auth/admin/submit")
+	auth.Get("/admin/refresh", handler.Handle_ValidateTokenAdmin, handler.Handle_AuthAdminRefresh).Name("auth/admin/refresh")
+	auth.Get("/admin/logout", handler.Handle_ValidateTokenAdmin, handler.Handle_AuthAdminLogout).Name("auth/admin/logout")
 
 	/**
 	 * 	Admin Routes -----------------------------------------------------------------  
@@ -110,7 +110,7 @@ func serve_routes(app *fiber.App) {
 	admin.Get("/pod/:id", handler_admin.Handle_Pods_Update_View)
 	admin.Delete("/pod/:id", handler_admin.Handle_Pods_Delete_Crud)
 	// Metrics Configs Etc
-	admin.Get("/metrics", handler_admin.Handle_Dash).Name("admin/metrics")
+	admin.Get("/metrics", handler_admin.Handle_Metrics).Name("admin/metrics")
 	admin.Get("/configs", handler_admin.Handle_Configs).Name("admin/configs")
 	admin.Post("/configs", handler_admin.Handle_Configs_Update_Crud)
 	admin.Get("/ssevents", handler_admin.Handle_SSEvents).Name("admin/ssevents")
