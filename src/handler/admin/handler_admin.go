@@ -26,7 +26,7 @@ func Handle_Dash(c *fiber.Ctx) error {
 		cluster_error = err.Error()
 	}
 	// Get cluster logs
-	ctlines := int64(100)
+	ctlines := int64(3)
 	cevents, _ := k8.GetLogsCluster(&ctlines)
 
 	// Get SystemEvent
@@ -213,6 +213,20 @@ func Handle_Configs_Update_Crud(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"message": "Settings Saved",
+	})
+}
+
+// ##> Events
+func Handle_Events(c *fiber.Ctx) error {
+	curPage, _ := strconv.Atoi(c.Query("page", "1"))
+	perPage := 30
+	sevents, total, _ := repository.AllSystemEvents(perPage, curPage)
+
+	return c.Render("admin/events", fiber.Map{
+		"sevents" : sevents,
+		"total": total,
+		"pages": int(math.Ceil(float64(total) / float64(perPage))),
+		"paged": curPage,
 	})
 }
 

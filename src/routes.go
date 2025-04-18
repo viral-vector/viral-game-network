@@ -111,6 +111,7 @@ func serve_routes(app *fiber.App) {
 	admin.Delete("/pod/:id", handler_admin.Handle_Pods_Delete_Crud)
 	// Metrics Configs Etc
 	admin.Get("/metrics", handler_admin.Handle_Metrics).Name("admin/metrics")
+	admin.Get("/events", handler_admin.Handle_Events).Name("admin/events")
 	admin.Get("/configs", handler_admin.Handle_Configs).Name("admin/configs")
 	admin.Post("/configs", handler_admin.Handle_Configs_Update_Crud)
 	admin.Get("/ssevents", handler_admin.Handle_SSEvents).Name("admin/ssevents")

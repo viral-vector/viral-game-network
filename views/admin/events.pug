@@ -1,0 +1,18 @@
+div#app.my-5.mx-3
+    include partials/header.pug
+    #admin.container.is-fullhd.px-1.py-6
+        .columns
+            .column.is-one-quarter
+                include partials/aside.pug
+            .column(data-controller="form")
+                include partials/modal_prompt.pug
+                include partials/notification.pug
+                section.content
+                    h3.subtitle Events
+                hr
+                p.notification.is-info 
+                    | #{.total} Events found.
+                    | Viewing #{.paged} of #{.pages} pages.
+                include partials/index/sevents.pug
+                include partials/pager.pug
+script(src="/admin.js")

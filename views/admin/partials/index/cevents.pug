@@ -5,16 +5,16 @@
             span.icon
                 i.fas.fa-info-circle(aria-hidden="true")
     .card-content
-        div(style="max-height: 300px; overflow-y: auto; overflow-x: hidden;")
-            each event in .cevents
-                hr
+        div(style="max-height: none; overflow-y: auto; overflow-x: hidden;")
+            each event, idx in .cevents
                 div.grid
                     .cell.has-text-centered
-                        p.has-text-info Date
+                        p.has-text-light Date
                         p #{.EventTime}
                     .cell.has-text-centered
-                        p.has-text-info Message
+                        p.has-text-light Message
                         p #{.Message}
                     .cell.has-text-centered
-                        p.has-text-info Severity
-                        p #{.Type}
+                        p.has-text-light Severity
+                        p(class=`has-text-` .Type) #{.Type}
+                hr

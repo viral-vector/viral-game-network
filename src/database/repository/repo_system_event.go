@@ -7,6 +7,31 @@ import (
 	dbtype "viral-game-network/src/database/type"
 )
 
+func AllSystemEvents(count int, pager int) ([]dbtype.SystemEvent, int, error) {
+	// Get All System Events
+	sevents, err := database.Query[dbtype.SystemEvent](`
+		SELECT * 
+		FROM type::table(System_Event) 
+		ORDER BY date_created DESC 
+		LIMIT $ct START $pg;`,
+		map[string]interface{}{
+			"ct": count,
+			"pg": (pager - 1) * count,
+		})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Count All System Events
+	total, err := database.Query[dbtype.Total]("SELECT count() AS total FROM type::table(System_Event) GROUP ALL;",
+		map[string]interface{}{
+		})
+	if err != nil {
+		return sevents, 0, err
+	}
+	return sevents, total[0].Total, nil
+}
+
 func SelSystemEvents(count int64) ([]dbtype.SystemEvent, error) {
 	lQuery := `
 	SELECT *
