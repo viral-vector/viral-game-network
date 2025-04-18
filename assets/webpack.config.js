@@ -1,6 +1,8 @@
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
+const RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts');
+
 const path = require('path');
 
 module.exports = (env, argv) => {
@@ -8,10 +10,7 @@ module.exports = (env, argv) => {
 
     return {
         entry: {
-            admin: './src/admin.js',
-            style: {
-                import: './src/style.scss'
-            },
+            admin: ['./src/admin.js', './src/admin.scss'],
         },
         output: {
             path: path.resolve(__dirname, '../public'),
@@ -21,6 +20,18 @@ module.exports = (env, argv) => {
         },
         module: {
             rules: [
+                // Copy JSON manifest
+                {
+                    test: /pwa_manifest\.json$/,
+                    type: 'asset/resource',
+                    generator: { filename: 'manifest.json' }
+                },
+                // Copy service worker
+                {
+                    test: /pwa_service_worker\.js$/,
+                    type: 'asset/resource',
+                    generator: { filename: 'service_worker.js' }
+                },
                 {
                     test: /\.js$/,
                     loader: 'babel-loader',
@@ -67,6 +78,7 @@ module.exports = (env, argv) => {
             ]
         },
         plugins: [
+            new RemoveEmptyScriptsPlugin(),
             new MiniCssExtractPlugin({
                 filename: 'css/[name].css',
                 chunkFilename: 'css/[name].chunk.css',

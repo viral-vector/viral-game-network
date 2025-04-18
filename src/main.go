@@ -22,7 +22,7 @@ func ServeApp() {
 	})
 	// Create a new Fiber app
 	app := fiber.New(fiber.Config{
-		Prefork:           os.Getenv("APP_PREFORK") == "true",
+		Prefork:           os.Getenv("development") == "production",
 		CaseSensitive:     true,
 		StrictRouting:     false,
 		ServerHeader:      "VGN",

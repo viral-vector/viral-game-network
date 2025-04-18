@@ -189,6 +189,7 @@ func Handle_Configs(c *fiber.Ctx) error {
 		Method: "POST",
 		Fields: fields,
 		Confirm: "Save Configurations?",
+		Submit: "Save",
 	}
 
 	return c.Render("admin/configs", fiber.Map{

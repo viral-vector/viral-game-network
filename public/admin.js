@@ -15,7 +15,7 @@
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _hotwired_stimulus__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @hotwired/stimulus */ 891);\n/* harmony import */ var _utils_IdleTimer__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./utils/IdleTimer */ 824);\n\n\nvar app = _hotwired_stimulus__WEBPACK_IMPORTED_MODULE_0__.Application.start();\nvar ctx = __webpack_require__(38);\n\n// Global variables\n// window.userIdle = false; // Track user activity\n// window.pushNotification = null; // Push notification object\n// window.hidePrompt = null; // Function to hide the prompt\n// window.showPrompt = null; // Function to show the prompt\n\n// Idle timer\nvar idle = new _utils_IdleTimer__WEBPACK_IMPORTED_MODULE_1__.IdleTimer(1 * 60 * 1000, function () {\n  window.userIdle = true; // Set the user as idle\n}, function () {\n  window.userIdle = false; // Set the user as active again\n});\nctx.keys().forEach(function (key) {\n  app.register(key.replace(/^\\.\\//, '').replace(/\\.js$/, '').replace(/_controller/, ''), ctx(key)[\"default\"]);\n});//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiMzQ2LmpzIiwibWFwcGluZ3MiOiI7OztBQUFpRDtBQUNIO0FBRTlDLElBQU1FLEdBQUcsR0FBR0YsMkRBQVcsQ0FBQ0csS0FBSyxDQUFDLENBQUM7QUFDL0IsSUFBTUMsR0FBRyxHQUFHQyx1QkFBeUM7O0FBRXJEO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7O0FBRUE7QUFDQSxJQUFNRSxJQUFJLEdBQUcsSUFBSU4sdURBQVMsQ0FBQyxDQUFDLEdBQUcsRUFBRSxHQUFHLElBQUksRUFBRSxZQUFNO0VBQzVDTyxNQUFNLENBQUNDLFFBQVEsR0FBRyxJQUFJLENBQUMsQ0FBQztBQUM1QixDQUFDLEVBQUUsWUFBTTtFQUNMRCxNQUFNLENBQUNDLFFBQVEsR0FBRyxLQUFLLENBQUMsQ0FBQztBQUM3QixDQUFDLENBQUM7QUFFRkwsR0FBRyxDQUFDTSxJQUFJLENBQUMsQ0FBQyxDQUFDQyxPQUFPLENBQUMsVUFBQ0MsR0FBRyxFQUFLO0VBQ3hCVixHQUFHLENBQUNXLFFBQVEsQ0FDUkQsR0FBRyxDQUFDRSxPQUFPLENBQUMsT0FBTyxFQUFFLEVBQUUsQ0FBQyxDQUFDQSxPQUFPLENBQUMsT0FBTyxFQUFFLEVBQUUsQ0FBQyxDQUFDQSxPQUFPLENBQUMsYUFBYSxFQUFFLEVBQUUsQ0FBQyxFQUN4RVYsR0FBRyxDQUFDUSxHQUFHLENBQUMsV0FDWixDQUFDO0FBQ0wsQ0FBQyxDQUFDIiwic291cmNlcyI6WyJ3ZWJwYWNrOi8vdmlyYWwtZ2FtZS1uZXR3b3JrLWFkbWluLy4vc3JjL2FkbWluLmpzP2ViNTkiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgQXBwbGljYXRpb24gfSBmcm9tICdAaG90d2lyZWQvc3RpbXVsdXMnO1xyXG5pbXBvcnQgeyBJZGxlVGltZXIgfSBmcm9tICcuL3V0aWxzL0lkbGVUaW1lcic7XHJcblxyXG5jb25zdCBhcHAgPSBBcHBsaWNhdGlvbi5zdGFydCgpO1xyXG5jb25zdCBjdHggPSByZXF1aXJlLmNvbnRleHQoJy4vYWRtaW4nLCB0cnVlLCAvXFwuanMkLyk7XHJcblxyXG4vLyBHbG9iYWwgdmFyaWFibGVzXHJcbi8vIHdpbmRvdy51c2VySWRsZSA9IGZhbHNlOyAvLyBUcmFjayB1c2VyIGFjdGl2aXR5XHJcbi8vIHdpbmRvdy5wdXNoTm90aWZpY2F0aW9uID0gbnVsbDsgLy8gUHVzaCBub3RpZmljYXRpb24gb2JqZWN0XHJcbi8vIHdpbmRvdy5oaWRlUHJvbXB0ID0gbnVsbDsgLy8gRnVuY3Rpb24gdG8gaGlkZSB0aGUgcHJvbXB0XHJcbi8vIHdpbmRvdy5zaG93UHJvbXB0ID0gbnVsbDsgLy8gRnVuY3Rpb24gdG8gc2hvdyB0aGUgcHJvbXB0XHJcblxyXG4vLyBJZGxlIHRpbWVyXHJcbmNvbnN0IGlkbGUgPSBuZXcgSWRsZVRpbWVyKDEgKiA2MCAqIDEwMDAsICgpID0+IHtcclxuICAgIHdpbmRvdy51c2VySWRsZSA9IHRydWU7IC8vIFNldCB0aGUgdXNlciBhcyBpZGxlXHJcbn0sICgpID0+IHtcclxuICAgIHdpbmRvdy51c2VySWRsZSA9IGZhbHNlOyAvLyBTZXQgdGhlIHVzZXIgYXMgYWN0aXZlIGFnYWluXHJcbn0pO1xyXG5cclxuY3R4LmtleXMoKS5mb3JFYWNoKChrZXkpID0+IHtcclxuICAgIGFwcC5yZWdpc3RlcihcclxuICAgICAgICBrZXkucmVwbGFjZSgvXlxcLlxcLy8sICcnKS5yZXBsYWNlKC9cXC5qcyQvLCAnJykucmVwbGFjZSgvX2NvbnRyb2xsZXIvLCAnJyksXHJcbiAgICAgICAgY3R4KGtleSkuZGVmYXVsdFxyXG4gICAgKTtcclxufSk7Il0sIm5hbWVzIjpbIkFwcGxpY2F0aW9uIiwiSWRsZVRpbWVyIiwiYXBwIiwic3RhcnQiLCJjdHgiLCJyZXF1aXJlIiwiY29udGV4dCIsImlkbGUiLCJ3aW5kb3ciLCJ1c2VySWRsZSIsImtleXMiLCJmb3JFYWNoIiwia2V5IiwicmVnaXN0ZXIiLCJyZXBsYWNlIl0sInNvdXJjZVJvb3QiOiIifQ==\n//# sourceURL=webpack-internal:///346\n");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _pwa_manifest_json__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./pwa_manifest.json */ 500);\n/* harmony import */ var _pwa_service_worker_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./pwa_service_worker.js */ 533);\n/* harmony import */ var _hotwired_stimulus__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @hotwired/stimulus */ 891);\n/* harmony import */ var _utils_IdleTimer__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./utils/IdleTimer */ 824);\n\n\n\n\nvar app = _hotwired_stimulus__WEBPACK_IMPORTED_MODULE_2__.Application.start();\nvar ctx = __webpack_require__(38);\n\n// Global variables\n// window.userIdle = false; // Track user activity\n// window.pushNotification = null; // Push notification object\n// window.hidePrompt = null; // Function to hide the prompt\n// window.showPrompt = null; // Function to show the prompt\n\n// Idle timer\nvar idle = new _utils_IdleTimer__WEBPACK_IMPORTED_MODULE_3__.IdleTimer(1 * 60 * 1000, function () {\n  window.userIdle = true; // Set the user as idle\n}, function () {\n  window.userIdle = false; // Set the user as active again\n});\n\n// Service worker registration\nif ('serviceWorker' in navigator) {\n  navigator.serviceWorker.register('/service_worker.js').then(function (registration) {\n    console.log('Service Worker registered with scope:', registration.scope);\n  })[\"catch\"](function (error) {\n    console.error(error);\n  });\n}\n\n// Automatically register Stimulus controllers\nctx.keys().forEach(function (key) {\n  app.register(key.replace(/^\\.\\//, '').replace(/\\.js$/, '').replace(/_controller/, ''), ctx(key)[\"default\"]);\n});//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiMzQ2LmpzIiwibWFwcGluZ3MiOiI7Ozs7O0FBQTZCO0FBQ0k7QUFFZ0I7QUFDSDtBQUU5QyxJQUFNRSxHQUFHLEdBQUdGLDJEQUFXLENBQUNHLEtBQUssQ0FBQyxDQUFDO0FBQy9CLElBQU1DLEdBQUcsR0FBR0MsdUJBQXlDOztBQUVyRDtBQUNBO0FBQ0E7QUFDQTtBQUNBOztBQUVBO0FBQ0EsSUFBTUUsSUFBSSxHQUFHLElBQUlOLHVEQUFTLENBQUMsQ0FBQyxHQUFHLEVBQUUsR0FBRyxJQUFJLEVBQUUsWUFBTTtFQUM1Q08sTUFBTSxDQUFDQyxRQUFRLEdBQUcsSUFBSSxDQUFDLENBQUM7QUFDNUIsQ0FBQyxFQUFFLFlBQU07RUFDTEQsTUFBTSxDQUFDQyxRQUFRLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDN0IsQ0FBQyxDQUFDOztBQUVGO0FBQ0EsSUFBSSxlQUFlLElBQUlDLFNBQVMsRUFBRTtFQUM5QkEsU0FBUyxDQUFDQyxhQUFhLENBQUNDLFFBQVEsQ0FBQyxvQkFBb0IsQ0FBQyxDQUNyREMsSUFBSSxDQUFDLFVBQUFDLFlBQVksRUFBSTtJQUNsQkMsT0FBTyxDQUFDQyxHQUFHLENBQUMsdUNBQXVDLEVBQUVGLFlBQVksQ0FBQ0csS0FBSyxDQUFDO0VBQzVFLENBQUMsQ0FBQyxTQUNJLENBQUMsVUFBQUMsS0FBSyxFQUFJO0lBQ1pILE9BQU8sQ0FBQ0csS0FBSyxDQUFDQSxLQUFLLENBQUM7RUFDeEIsQ0FBQyxDQUFDO0FBQ047O0FBRUE7QUFDQWQsR0FBRyxDQUFDZSxJQUFJLENBQUMsQ0FBQyxDQUFDQyxPQUFPLENBQUMsVUFBQ0MsR0FBRyxFQUFLO0VBQ3hCbkIsR0FBRyxDQUFDVSxRQUFRLENBQ1JTLEdBQUcsQ0FBQ0MsT0FBTyxDQUFDLE9BQU8sRUFBRSxFQUFFLENBQUMsQ0FBQ0EsT0FBTyxDQUFDLE9BQU8sRUFBRSxFQUFFLENBQUMsQ0FBQ0EsT0FBTyxDQUFDLGFBQWEsRUFBRSxFQUFFLENBQUMsRUFDeEVsQixHQUFHLENBQUNpQixHQUFHLENBQUMsV0FDWixDQUFDO0FBQ0wsQ0FBQyxDQUFDIiwic291cmNlcyI6WyJ3ZWJwYWNrOi8vdmlyYWwtZ2FtZS1uZXR3b3JrLWFkbWluLy4vc3JjL2FkbWluLmpzP2ViNTkiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0ICcuL3B3YV9tYW5pZmVzdC5qc29uJztcclxuaW1wb3J0ICcuL3B3YV9zZXJ2aWNlX3dvcmtlci5qcyc7XHJcblxyXG5pbXBvcnQgeyBBcHBsaWNhdGlvbiB9IGZyb20gJ0Bob3R3aXJlZC9zdGltdWx1cyc7XHJcbmltcG9ydCB7IElkbGVUaW1lciB9IGZyb20gJy4vdXRpbHMvSWRsZVRpbWVyJzsgXHJcblxyXG5jb25zdCBhcHAgPSBBcHBsaWNhdGlvbi5zdGFydCgpO1xyXG5jb25zdCBjdHggPSByZXF1aXJlLmNvbnRleHQoJy4vYWRtaW4nLCB0cnVlLCAvXFwuanMkLyk7XHJcblxyXG4vLyBHbG9iYWwgdmFyaWFibGVzXHJcbi8vIHdpbmRvdy51c2VySWRsZSA9IGZhbHNlOyAvLyBUcmFjayB1c2VyIGFjdGl2aXR5XHJcbi8vIHdpbmRvdy5wdXNoTm90aWZpY2F0aW9uID0gbnVsbDsgLy8gUHVzaCBub3RpZmljYXRpb24gb2JqZWN0XHJcbi8vIHdpbmRvdy5oaWRlUHJvbXB0ID0gbnVsbDsgLy8gRnVuY3Rpb24gdG8gaGlkZSB0aGUgcHJvbXB0XHJcbi8vIHdpbmRvdy5zaG93UHJvbXB0ID0gbnVsbDsgLy8gRnVuY3Rpb24gdG8gc2hvdyB0aGUgcHJvbXB0XHJcblxyXG4vLyBJZGxlIHRpbWVyXHJcbmNvbnN0IGlkbGUgPSBuZXcgSWRsZVRpbWVyKDEgKiA2MCAqIDEwMDAsICgpID0+IHtcclxuICAgIHdpbmRvdy51c2VySWRsZSA9IHRydWU7IC8vIFNldCB0aGUgdXNlciBhcyBpZGxlXHJcbn0sICgpID0+IHtcclxuICAgIHdpbmRvdy51c2VySWRsZSA9IGZhbHNlOyAvLyBTZXQgdGhlIHVzZXIgYXMgYWN0aXZlIGFnYWluXHJcbn0pO1xyXG5cclxuLy8gU2VydmljZSB3b3JrZXIgcmVnaXN0cmF0aW9uXHJcbmlmICgnc2VydmljZVdvcmtlcicgaW4gbmF2aWdhdG9yKSB7XHJcbiAgICBuYXZpZ2F0b3Iuc2VydmljZVdvcmtlci5yZWdpc3RlcignL3NlcnZpY2Vfd29ya2VyLmpzJylcclxuICAgIC50aGVuKHJlZ2lzdHJhdGlvbiA9PiB7XHJcbiAgICAgICAgY29uc29sZS5sb2coJ1NlcnZpY2UgV29ya2VyIHJlZ2lzdGVyZWQgd2l0aCBzY29wZTonLCByZWdpc3RyYXRpb24uc2NvcGUpO1xyXG4gICAgfSlcclxuICAgIC5jYXRjaChlcnJvciA9PiB7XHJcbiAgICAgICAgY29uc29sZS5lcnJvcihlcnJvcik7XHJcbiAgICB9KTtcclxufVxyXG5cclxuLy8gQXV0b21hdGljYWxseSByZWdpc3RlciBTdGltdWx1cyBjb250cm9sbGVyc1xyXG5jdHgua2V5cygpLmZvckVhY2goKGtleSkgPT4ge1xyXG4gICAgYXBwLnJlZ2lzdGVyKFxyXG4gICAgICAgIGtleS5yZXBsYWNlKC9eXFwuXFwvLywgJycpLnJlcGxhY2UoL1xcLmpzJC8sICcnKS5yZXBsYWNlKC9fY29udHJvbGxlci8sICcnKSxcclxuICAgICAgICBjdHgoa2V5KS5kZWZhdWx0XHJcbiAgICApO1xyXG59KTsiXSwibmFtZXMiOlsiQXBwbGljYXRpb24iLCJJZGxlVGltZXIiLCJhcHAiLCJzdGFydCIsImN0eCIsInJlcXVpcmUiLCJjb250ZXh0IiwiaWRsZSIsIndpbmRvdyIsInVzZXJJZGxlIiwibmF2aWdhdG9yIiwic2VydmljZVdvcmtlciIsInJlZ2lzdGVyIiwidGhlbiIsInJlZ2lzdHJhdGlvbiIsImNvbnNvbGUiLCJsb2ciLCJzY29wZSIsImVycm9yIiwia2V5cyIsImZvckVhY2giLCJrZXkiLCJyZXBsYWNlIl0sInNvdXJjZVJvb3QiOiIifQ==\n//# sourceURL=webpack-internal:///346\n");
 
 /***/ }),
 
@@ -107,6 +107,17 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 
 /***/ }),
 
+/***/ 20:
+/*!************************!*\
+  !*** ./src/admin.scss ***!
+  \************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n// extracted by mini-css-extract-plugin\n//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiMjAuanMiLCJtYXBwaW5ncyI6IjtBQUFBIiwic291cmNlcyI6WyJ3ZWJwYWNrOi8vdmlyYWwtZ2FtZS1uZXR3b3JrLWFkbWluLy4vc3JjL2FkbWluLnNjc3M/NjU3ZiJdLCJzb3VyY2VzQ29udGVudCI6WyIvLyBleHRyYWN0ZWQgYnkgbWluaS1jc3MtZXh0cmFjdC1wbHVnaW5cbmV4cG9ydCB7fTsiXSwibmFtZXMiOltdLCJzb3VyY2VSb290IjoiIn0=\n//# sourceURL=webpack-internal:///20\n");
+
+/***/ }),
+
 /***/ 38:
 /*!*******************************!*\
   !*** ./src/admin/ sync \.js$ ***!
@@ -143,12 +154,34 @@ webpackContext.resolve = webpackContextResolve;
 module.exports = webpackContext;
 webpackContext.id = 38;
 
+/***/ }),
+
+/***/ 533:
+/*!***********************************!*\
+  !*** ./src/pwa_service_worker.js ***!
+  \***********************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+"use strict";
+module.exports = __webpack_require__.p + "service_worker.js";
+
+/***/ }),
+
+/***/ 500:
+/*!*******************************!*\
+  !*** ./src/pwa_manifest.json ***!
+  \*******************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+"use strict";
+module.exports = __webpack_require__.p + "manifest.json";
+
 /***/ })
 
 },
 /******/ __webpack_require__ => { // webpackRuntimeModules
 /******/ var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-/******/ __webpack_require__.O(0, ["vendors"], () => (__webpack_exec__(346)));
+/******/ __webpack_require__.O(0, ["vendors"], () => (__webpack_exec__(346), __webpack_exec__(20)));
 /******/ var __webpack_exports__ = __webpack_require__.O();
 /******/ }
 ]);

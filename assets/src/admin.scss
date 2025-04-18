@@ -1,0 +1,23 @@
+@import "~bulma";
+$fa-font-path: "~@fortawesome/fontawesome-free/webfonts";
+@import '~@fortawesome/fontawesome-free/scss/fontawesome';
+@import '~@fortawesome/fontawesome-free/scss/solid';
+
+// Header/Nav
+#header {
+    hr {
+        margin: 5px 0px 0px;
+    }
+}
+
+// Notification
+.notification {
+    .tag {
+        inset-inline-start: 0rem;
+        position: absolute;
+        top: -0.5rem;
+    }
+    &.is-error {
+        @extend .is-danger;
+    }
+}
