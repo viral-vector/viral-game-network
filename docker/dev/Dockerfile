@@ -1,5 +1,5 @@
 # Stage 1: Builder stage
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 ENV PROJECT_DIR=/app \
     GO111MODULE=on \
@@ -25,7 +25,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app ./src
 RUN go install github.com/air-verse/air@latest
 
 # Stage 2: SSL Certificate generation
-FROM alpine:3.19 AS ssl-cert
+FROM alpine:3.21 AS ssl-cert
 
 RUN apk add --no-cache openssl
 
@@ -36,11 +36,11 @@ RUN mkdir -p ./ssl && \
     openssl genrsa -out ./ssl/vgn.server.key 2048 && \
     openssl req -new -x509 -key ./ssl/vgn.server.key -out ./ssl/vgn.server.crt -days 365 -subj "/CN=vgn-server.local" && \
     openssl genrsa -out ./ssl/vgn.client.key 2048 && \
-    openssl req -new -key ./ssl/vgn.client.key -subj "/CN=my-client" -out ./ssl/vgn.client.csr && \
+    openssl req -new -key ./ssl/vgn.client.key -subj "/CN=vgn-server.local" -out ./ssl/vgn.client.csr && \
     openssl x509 -req -in ./ssl/vgn.client.csr -CA ./ssl/vgn.server.crt -CAkey ./ssl/vgn.server.key -CAcreateserial -out ./ssl/vgn.client.crt -days 365
 
 # Stage 3: Runtime stage
-FROM golang:1.23-alpine
+FROM golang:1.24-alpine
 
 # Install runtime dependencies only
 RUN apk update && \

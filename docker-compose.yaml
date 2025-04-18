@@ -14,6 +14,7 @@ services:
       - "3000:3000"
     volumes:
       - ./:/app
+      - ssl-certs:/app/bin/ssl
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - viral-game-network
@@ -58,6 +59,8 @@ services:
     networks:
       - viral-game-network
 volumes:
+  ssl-certs:
+    driver: local
   viral-game-network-cache:
     driver: local
   viral-game-network-store:

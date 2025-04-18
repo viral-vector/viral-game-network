@@ -41,5 +41,7 @@ func ServeApp() {
 	// Start the job scheduler
 	job.Start()
 	// Log Errors
-	log.Fatal(app.Listen(":" + os.Getenv("VNET_PORT")))
+	log.Fatal(app.ListenTLS(":" + os.Getenv("VNET_PORT"),
+	"/app/bin/ssl/vgn.server.crt",
+	"/app/bin/ssl/vgn.server.key"))
 }
