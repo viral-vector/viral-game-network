@@ -10,8 +10,8 @@ const ctx = require.context('./admin', true, /\.js$/);
 // Global variables
 // window.userIdle = false; // Track user activity
 // window.pushNotification = null; // Push notification object
-// window.hidePrompt = null; // Function to hide the prompt
-// window.showPrompt = null; // Function to show the prompt
+// window.prompt = {}; // Prompt object
+// window.progress = {}; // Progress object
 
 // Idle timer
 const idle = new IdleTimer(1 * 60 * 1000, () => {

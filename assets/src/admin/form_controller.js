@@ -50,7 +50,7 @@ export default class extends Controller {
                             accept: event.target.dataset.confirmAccept,
                             reject: event.target.dataset.confirmReject
                         };
-                        await window.showPrompt(prompt);
+                        await window.prompt.show(prompt);
                     } catch (error) {
                         execute = false;
                     }
@@ -59,6 +59,7 @@ export default class extends Controller {
                     return;
                 }
 
+                window.progress.show()
                 try {
                     const action = event.target.getAttribute('action');
                     const method = event.target.getAttribute('method');
@@ -86,6 +87,8 @@ export default class extends Controller {
                         "message": data.message || "success",
                         "priority": 0
                     })
+
+                    
                 } catch (error) {
                     window.pushNotification({
                         "type": "danger",
@@ -93,6 +96,10 @@ export default class extends Controller {
                         "priority": 1
                     })
                 }
+
+                setTimeout(() => {
+                    window.progress.hide()
+                }, 1000);
             })
         })
     }

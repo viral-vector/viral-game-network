@@ -1,7 +1,7 @@
-nav#header.navbar.is-fixed-top.is-dark(role="navigation", aria-label="dropdown navigation")
+nav#header.navbar.is-fixed-top.is-dark(role="navigation" aria-label="dropdown navigation")
   .navbar-brand
     a.navbar-item(href='/admin')
-      img(src="/images/vgn.webp", alt="")
+      img(src="/images/vgn.webp" alt="")
     .navbar-burger.js-burger(data-target='nav-menu')
       span
       span
@@ -11,11 +11,11 @@ nav#header.navbar.is-fixed-top.is-dark(role="navigation", aria-label="dropdown n
     .navbar-start
       if .admin
         .navbar-item.has-dropdown.is-hoverable
-          a.navbar-link.menu-item.is-arrowless(href='/admin', is-absolute="true" is-disabled="true") Dashboard 
+          a.navbar-link.menu-item.is-arrowless(href='/admin' is-absolute="true" is-disabled="true") Dashboard 
           .navbar-dropdown.is-hidden-desktop
             a.navbar-item.menu-item(href='/admin/applications' hset="/admin/application") Applications 
             a.navbar-item.menu-item(href='/admin/users' hset="/admin/user") Users 
-            a.navbar-item.menu-item(href='/admin/lobbies', hset="/admin/lobby") Lobbies 
+            a.navbar-item.menu-item(href='/admin/lobbies' hset="/admin/lobby") Lobbies 
             a.navbar-item.menu-item(href='/admin/servers' hset="/admin/server") Servers 
         a.navbar-item.menu-item(href='/admin/admins' hset="/admin/admin") Admins 
         a.navbar-item.menu-item(href='/admin/metrics') Metrics 
@@ -23,7 +23,7 @@ nav#header.navbar.is-fixed-top.is-dark(role="navigation", aria-label="dropdown n
         a.navbar-item.menu-item(href='/admin/configs') Configs 
     .navbar-end
       .navbar-item
-       .field.is-grouped
+        .field.is-grouped
           p.control
             if .admin
               span.icon
@@ -45,3 +45,5 @@ nav#header.navbar.is-fixed-top.is-dark(role="navigation", aria-label="dropdown n
                 i.fa.fa-sign-in
               | &nbsp;
               span Login
+  .progress-container
+    progress.progress.is-info.is-small.max(max="100" data-progress-target="progress")

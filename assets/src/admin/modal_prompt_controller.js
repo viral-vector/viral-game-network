@@ -6,12 +6,11 @@ export default class extends Controller {
     ]
 
     connect() {
-        const closePrompt = () => {
+        const hidePrompt = () => {
             this.element.classList.remove('is-active');
-        }
+        };
 
-        window.hidePrompt = closePrompt;
-        window.showPrompt = (prompt) => {
+        const showPrompt = (prompt) => {
             this.titleTarget.innerHTML      = prompt.title   || "Confirm Action";
             this.messageTarget.innerHTML    = prompt.message || "Accept of Reject?";
             this.acceptTarget.innerHTML     = prompt.accept  ||  "Yes";
@@ -22,14 +21,19 @@ export default class extends Controller {
                 let rejectors = [this.rejectTarget, ...document.querySelectorAll('.modal-background, .modal-close, .modal-card-head .delete') || []];
                 rejectors.forEach((close) => {
                     close.addEventListener('click', () => {
-                        closePrompt(); reject();
+                        hidePrompt(); reject();
                     }, {once : true});
                 });
 
                 this.acceptTarget.addEventListener('click', () => {
-                    closePrompt(); accept();
+                    hidePrompt(); accept();
                 }, {once : true});
             })
-        }
+        };
+
+        window.prompt = {
+            hide: hidePrompt.bind(this),
+            show: showPrompt.bind(this)
+        };
     }
 }

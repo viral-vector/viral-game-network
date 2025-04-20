@@ -8,6 +8,18 @@ $fa-font-path: "~@fortawesome/fontawesome-free/webfonts";
     hr {
         margin: 5px 0px 0px;
     }
+    // Progress
+    .progress-container {
+        position: absolute;
+        bottom: 0rem;
+        left: 0;
+        right: 0;
+        progress {
+            display: none;
+            height: 0.2rem;
+            width: 100%;
+        }
+    }
 }
 
 // Notification
@@ -17,13 +29,14 @@ $fa-font-path: "~@fortawesome/fontawesome-free/webfonts";
         position: absolute;
         top: -0.5rem;
     }
+
     &.is-error {
         @extend .is-danger;
     }
 }
 
 // Form
-.form-inline{
+.form-inline {
     display: inline-block;
 }
 
@@ -31,10 +44,12 @@ $fa-font-path: "~@fortawesome/fontawesome-free/webfonts";
 .list {
     padding: 0.8rem;
     position: relative;
+
     .list-head {
         margin-bottom: 0.5rem;
         border-bottom: 1px solid white;
     }
+
     .list-item {
         display: flex;
         align-content: center;
@@ -42,17 +57,20 @@ $fa-font-path: "~@fortawesome/fontawesome-free/webfonts";
         flex-direction: column;
         min-height: 2.5rem;
         position: relative;
-        + .list-item {
+
+        +.list-item {
             padding-top: 0.5rem;
-            border-top: 1px solid white; 
+            border-top: 1px solid white;
         }
-        .list-item-buttons{
+
+        .list-item-buttons {
             @extend .form-inline;
             display: inline;
             float: right;
             top: -0.5rem;
             right: 0.0rem;
         }
+
         .cell {
             overflow-wrap: anywhere;
         }

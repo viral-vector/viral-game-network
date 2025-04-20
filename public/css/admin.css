@@ -29716,6 +29716,17 @@ readers do not read off random characters that represent icons */
 #header hr {
   margin: 5px 0px 0px;
 }
+#header .progress-container {
+  position: absolute;
+  bottom: 0rem;
+  left: 0;
+  right: 0;
+}
+#header .progress-container progress {
+  display: none;
+  height: 0.2rem;
+  width: 100%;
+}
 
 .notification .tag {
   inset-inline-start: 0rem;
