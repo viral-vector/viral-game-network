@@ -130,17 +130,22 @@ func RUN_Lobby_Server_Stewardship_Purger(lobby *dbtype.Lobby, pod *v1.Pod, node 
 
 	// Determine the server ID to delete.
 	var serverID string
+	var server *dbtype.Server
 	if lobby != nil && lobby.Lobby_Server != nil {
+		server = lobby.Lobby_Server
 		serverID = lobby.Lobby_Server.ID.String()
-		lobby.Lobby_Server = nil
 	} else {
-		server, _ := repository.GetServerByGuid(pod.Name)
+		server, _ = repository.GetServerByGuid(pod.Name)
 		if server != nil {
 			serverID = server.ID.String()
 		}
 	}
 	if serverID != "" {
-		repository.DelServer(serverID)
+		repository.DelServer(serverID, server)
 	}
+	// Delete the server record from the lobby.
+	lobby.Lobby_Server = nil
+	server = nil
+
 	return nil
 }

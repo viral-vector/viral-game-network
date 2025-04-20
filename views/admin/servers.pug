@@ -12,12 +12,24 @@ div#app.my-5.mx-3
                         | Manage Servers
                 hr
                 if .form
+                    .buttons.is-right
+                        form.form-inline(method="DELETE", action="/admin/server" .ID, name="", data-confirm-message="Are you sure you want to delete")
+                            button.button.is-text.has-text-danger(type="submit") 
+                                span.icon.is-small
+                                    i.fa.fa-trash 
                     include partials/form.pug
                 else
-                    p.notification.is-info 
-                        | #{.total} servers found.
-                        | Viewing #{.paged} of #{.pages} pages.
-                    each server in .servers
-                        .box
+                    include partials/search.pug
+                    .box.list
+                        .grid.list-head
+                            .cell
+                                strong ID
+                            .cell
+                                strong Lobby
+                            .cell
+                                strong Status
+                            .cell
+                                strong Address
+                        each server in .servers
                             include partials/servers/list_item.pug
                     include partials/pager.pug

@@ -4,7 +4,7 @@ Viral-Network (Viral Games Network Backend) is a game backend server written in 
 
 ### What is this repository for? ###
 
-* Game Network Backend Server with WebRTC written in Golang 
+* Game Network Backend Server written in Golang 
 * 1.0.0
 
 ## Commands

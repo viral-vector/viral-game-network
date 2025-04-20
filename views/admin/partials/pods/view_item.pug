@@ -1,9 +1,20 @@
 form(method="DELETE", action="/admin/pod/" .Name, name="", data-confirm-message="Are you sure you want to delete")
-    button.button.has-text-danger(type="submit") 
-        span.fas.fa-trash Delete
+    button.button.is-text.has-text-danger(type="submit")
+        span.icon.is-small
+            i.fas.fa-trash
 .section
     .container
         .content
+            if .lobby
+                h4.subtitle Lobby Information
+                .columns
+                    .column
+                        strong ID:
+                    .column #{strip .lobby.ID.String "Lobby:"}
+                .columns
+                    .column
+                        strong Name:
+                    .column #{.lobby.Name}
             h4.subtitle Pod Information
             .columns
                 .column
@@ -58,6 +69,6 @@ form(method="DELETE", action="/admin/pod/" .Name, name="", data-confirm-message=
         .content
             h4.subtitle Pod Logs
             hr
-            div(style="max-height: 300px; overflow-y: auto; overflow-x: hidden;")
+            div(style="max-height: 600px; overflow-y: hidden; overflow-x: hidden;")
                 each log in .logs
                     p #{.}

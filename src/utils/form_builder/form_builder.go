@@ -2,6 +2,7 @@ package form_builder
 
 import (
 	"fmt"
+	"strconv"
 	"reflect"
 	"strings"
 	dbtype "viral-game-network/src/database/type"
@@ -27,6 +28,7 @@ type Form struct {
 	Method string
 	Fields []FormField
 	CanReset  bool
+	DisableSubmit bool
 }
 
 func parseFormTag(tag string) map[string]string {
@@ -101,6 +103,24 @@ func generateFormFields(input interface{}, mode string) ([]FormField, error) {
 		if r, ok := fprops["required-create"]; ok && r == "true" && mode == "create" {
 			req = true
 		}
+		if r, ok := fprops["required-update"]; ok && r == "true" && mode == "update" {
+			req = true
+		}
+
+		readonly := false
+		if r, ok := fprops["readonly"]; ok && r == "true" {
+			readonly = true
+		}
+		if r, ok := fprops["readonly-update"]; ok && r == "true" && mode == "update" {
+			readonly = true
+		}
+
+		sortorder := int32(0)
+		if r, ok := fprops["sortorder"]; ok {
+			if i, err := strconv.Atoi(r); err == nil {
+				sortorder = int32(i)
+			}
+		}
 
 		fields = append(fields, FormField{
 			Name:      jprops[0],
@@ -108,8 +128,9 @@ func generateFormFields(input interface{}, mode string) ([]FormField, error) {
 			Label:     fprops["label"],
 			Type:      fprops["type"],
 			Required:  req,
-			ReadOnly:  false,
-			SortOrder: 0,
+			ReadOnly:  readonly,
+			SortOrder: sortorder,
+			Options:   nil,
 		})
 	}
 	return fields, nil
@@ -128,9 +149,6 @@ func GenerateForm(
 	if submit == "" {
 	   	submit = "Submit"
 	}
-	if action == "" || method == "" {
-		return nil, fmt.Errorf("method and action are required")
-	}
 
 	return &Form{
 		Title : title,
@@ -140,5 +158,6 @@ func GenerateForm(
 		Fields: fields,
 		CanReset: true,
 		Confirm: "",
+		DisableSubmit: false,
 	}, err
 }

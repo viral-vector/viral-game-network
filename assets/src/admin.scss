@@ -21,3 +21,40 @@ $fa-font-path: "~@fortawesome/fontawesome-free/webfonts";
         @extend .is-danger;
     }
 }
+
+// Form
+.form-inline{
+    display: inline-block;
+}
+
+// List
+.list {
+    padding: 0.8rem;
+    position: relative;
+    .list-head {
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid white;
+    }
+    .list-item {
+        display: flex;
+        align-content: center;
+        justify-items: center;
+        flex-direction: column;
+        min-height: 2.5rem;
+        position: relative;
+        + .list-item {
+            padding-top: 0.5rem;
+            border-top: 1px solid white; 
+        }
+        .list-item-buttons{
+            @extend .form-inline;
+            display: inline;
+            float: right;
+            top: -0.5rem;
+            right: 0.0rem;
+        }
+        .cell {
+            overflow-wrap: anywhere;
+        }
+    }
+}

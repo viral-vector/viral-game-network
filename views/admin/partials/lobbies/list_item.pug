@@ -1,29 +1,14 @@
-.container
-    form(method="DELETE", action="/admin/lobby/" .ID, name="", data-confirm-message="Are you sure you want to delete")
-        button.button.has-text-danger(type="submit") 
-            span.fas.fa-trash Delete
-    br
-    .columns
-        .column.is-one-third
+.div.list-item
+    .list-item-buttons
+        form(method="DELETE", action="/admin/lobby/" .ID, name="", data-confirm-message="Are you sure you want to delete")
+            button.button.is-text.has-text-danger(type="submit") 
+                span.icon.is-small
+                    i.fa.fa-trash
+    .grid
+        .cell
             a(href="/admin/lobby/" .ID, title="Edit Lobby " .Name)
-                strong 
-                    i.fas.fa-user&nbsp;
-                | #{.ID}
-        .column.is-one-third
-            strong Name:
-            | #{.Name}
-        .column.is-one-third
-            strong Code:
-            | #{.Code}
-    .columns
-        .column.is-one-third
-            strong Guid:
-            | #{.Guid}
-        .column.is-one-third
-            strong Date Created:
-            | #{.Date_Created}
-        .column.is-one-third
-            strong Date Updated:
-            | #{.Date_Updated}
-        .column.is-one-third
+                | #{strip .ID.String "Lobby:"}
+        .cell #{.Name}
+        .cell #{.Guid}
+        .cell #{.Date_Created}
                 

@@ -15,6 +15,9 @@ type SystemEvent struct {
 }
 
 func (n SystemEvent) ModelID() string {
+	if n.ID == nil {
+		return ""
+	}
 	return n.ID.String()
 }
 

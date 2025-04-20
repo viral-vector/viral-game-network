@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 	"viral-game-network/src/job"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,6 +20,9 @@ func ServeApp() {
 	engine.Reload(true)
 	engine.AddFunc("equals", func(a any, b any) bool {
 		return a == b
+	})
+	engine.AddFunc("strip", func(haystack string, needle string) string {
+		return strings.ReplaceAll(haystack, needle, "")
 	})
 	// Create a new Fiber app
 	app := fiber.New(fiber.Config{

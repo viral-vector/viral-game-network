@@ -12,17 +12,29 @@ div#app.my-5.mx-3
                         | Manage Users
                 hr
                 if .form
+                    .buttons.is-right
+                        form.form-inline(method="DELETE", action="/admin/user" .ID, name="", data-confirm-message="Are you sure you want to delete")
+                            button.button.is-text.has-text-danger(type="submit") 
+                                span.icon.is-small
+                                    i.fa.fa-trash 
                     include partials/form.pug
                 else
-                    p.notification.is-info 
-                        | #{.total} users found.
-                        | Viewing #{.paged} of #{.pages} pages.
                     p.p-3
                         a.has-text-primary(href="/admin/user")
                             span.icon
                                 span.fas.fa-plus-circle 
                             | Add User
-                    each user in .users
-                        .box
+                    include partials/search.pug
+                    .box.list
+                        .grid.list-head
+                            .cell
+                                strong ID
+                            .cell
+                                strong Name
+                            .cell
+                                strong Guid
+                            .cell
+                                strong Last Login
+                        each user in .users
                             include partials/users/list_item.pug
                     include partials/pager.pug

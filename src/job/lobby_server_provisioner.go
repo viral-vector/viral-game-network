@@ -63,7 +63,7 @@ func Job_Lobby_Server_Provisioner() {
 			// If no server pod exists, but a Server record is present, delete it.
 			if lobpod == nil && lobby.Lobby_Server != nil {
 				log.Printf("[Job_Lobby_Server_Provisioner]: Deleting lobby %s server", label)
-				if err := repository.DelServer(lobby.Lobby_Server.ID.String()); err != nil {
+				if err := repository.DelServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
 					log.Panicf("[Job_Lobby_Server_Provisioner]: Error deleting lobby %s server: %v", label, err)
 				}
 				lobby.Lobby_Server = nil
@@ -158,7 +158,7 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 	// Link the lobby with the server.
 	if err := repository.LinkLobbyServer(lobby, server); err != nil {
 		k8.DeleteServerPod(label)
-		repository.DelServer(server.ID.String())
+		repository.DelServer(server.ID.String(), server)
 
 		log.Panicf("[Job_Lobby_Server_Provisioner]: Error linking lobby and server for lobby %s: %w", label, err)
 		return err

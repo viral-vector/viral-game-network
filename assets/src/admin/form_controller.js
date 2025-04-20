@@ -19,8 +19,10 @@ export default class extends Controller {
                     }
                 }
             })
-            element.querySelectorAll('.vgnform-input[type="text"][is-disabled="true"]').forEach(item => {
+            element.querySelectorAll('.vgnform-input[type="text"][is-disabled="true"], .vgnform-input[type="number"][is-disabled="true"]').forEach(item => {
                 item.setAttribute('readonly', true)
+                item.setAttribute('disabled', true)
+                item.removeAttribute('name')
             })
             element.querySelectorAll('.vgnform-input[is-required="true"]').forEach(item => {
                 item.setAttribute('required', true)
@@ -76,7 +78,7 @@ export default class extends Controller {
                     if (data.redirect) {
                         setTimeout(() => {
                             window.location.href = data.redirect
-                        }, 1000);
+                        }, 500);
                     }
 
                     window.pushNotification({

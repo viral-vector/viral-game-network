@@ -101,7 +101,7 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
 	,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
 		{array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
 	,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
-	FROM type::table(Lobby)
+	FROM type::record($id)
 	ORDER BY date_created DESC;`,
 		map[string]interface{}{
 			"id": id,

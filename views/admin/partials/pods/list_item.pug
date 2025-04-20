@@ -1,21 +1,17 @@
-.container
-    form(method="DELETE", action="/admin/pod/" .Name, name="", data-confirm-message="Are you sure you want to delete")
-        button.button.has-text-danger(type="submit") 
-            span.fas.fa-trash Delete
-    br
-    .columns
-        .column
-            a(href="/admin/pod/" .Name, title="Edit Pod " .Name)
-                span.icon
-                    span.fas.fa-pencil
+.div.list-item
+    .list-item-buttons
+        form(method="DELETE", action="/admin/pod/" .Name, name="", data-confirm-message="Are you sure you want to delete")
+            button.button.is-text.has-text-danger(type="submit")
+                span.icon.is-small
+                    i.fas.fa-trash
+    .grid
+        .cell
+            a(href="/admin/pod/" .Name, title="View Pod " .Name)
                 | #{.Name}
-        .column
-            strong Phase:
-            | #{.Status.Phase}
-        .column
-            strong Node:
-            | #{.Spec.NodeName}
-        .column
-            strong IP:
+        .cell #{.Status.Phase}
+        .cell 
             | #{.Status.HostIP}
+            each cts in .Spec.Containers
+                each port in .Ports
+                    | #{.HostPort}
                     

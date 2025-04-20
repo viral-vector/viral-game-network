@@ -1,32 +1,15 @@
-.container
-    br
-    .columns
-        .column.is-one-third
-            strong 
-                i.fas.fa-database&nbsp;
-            | #{.ID}
-        .column.is-one-third
-            strong Name:
-            | #{.Name}
-        .column.is-one-third
-            strong Status:
-            | #{.Status}
-    .columns
-        .column.is-one-third
-            strong Lobby:
-            | #{.Lobby.ID}
-        .column.is-one-third
-            strong Address:
-            | #{.Address}
-        .column.is-one-third
-            strong Port:
-            | #{.Port}
-    .columns
-        .column.is-one-third
-            strong Date Created:
-            | #{.Date_Created}
-        .column.is-one-third
-            strong Date Updated:
-            | #{.Date_Updated}
-        .column.is-one-third
+.div.list-item
+    .list-item-buttons
+        form(method="DELETE", action="/admin/server" .ID, name="", data-confirm-message="Are you sure you want to delete")
+            button.button.is-text.has-text-danger(type="submit") 
+                span.icon.is-small
+                    i.fa.fa-trash
+    .grid
+        .cell
+            a(href="/admin/server/" .ID, title="View Server " .Name)
+                | #{strip .ID.String "Server:"}
+        .cell #{strip .Lobby.ID.String "Lobby:"}
+        .cell #{.Status}
+        .cell #{.Address}:#{.Port}
+            
                 

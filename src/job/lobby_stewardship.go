@@ -99,7 +99,7 @@ func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
 		log.Printf("[Job_Lobby_Stewardship]: Closing lobby %s", lobby.ID.String())
 		// Delete the associated server, if it exists.
 		if lobby.Lobby_Server != nil {
-			if err := repository.DelServer(lobby.Lobby_Server.ID.String()); err != nil {
+			if err := repository.DelServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
 				log.Panicf("[Job_Lobby_Stewardship]: Error deleting server for lobby %s: %v", lobby.ID.String(), err)
 			}
 		}

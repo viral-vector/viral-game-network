@@ -9,17 +9,20 @@ div#app.my-5.mx-3
                 include partials/notification.pug
                 section.content
                     h3.subtitle
-                        | Manage k8 Pods
+                        | Manage Server Pods
                 hr
-                if .pod 
-                    p.notification.is-info
-                        | Viewing #{.pod.Name}
+                if .pod
                     include partials/pods/view_item.pug
                 else
-                    p.notification.is-info 
-                        | #{.total} pods found.
-                        | Viewing #{.paged} of #{.pages} pages.
-                    each pod in .pods
-                        .box
+                    include partials/search.pug
+                    .box.list
+                        .grid.list-head
+                            .cell
+                                strong ID
+                            .cell
+                                strong Node
+                            .cell
+                                strong Address
+                        each pod in .pods
                             include partials/pods/list_item.pug
                     include partials/pager.pug

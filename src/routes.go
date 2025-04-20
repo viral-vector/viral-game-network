@@ -73,6 +73,10 @@ func serve_routes(app *fiber.App) {
 	admin.Use(handler.Handle_ValidateTokenAdmin)
 	
 	admin.Get("/", handler_admin.Handle_Dash).Name("admin")
+	// Cluster
+	admin.Post("/cluster/start", handler_admin.Handle_Cluster_Start)
+	admin.Post("/cluster/stop", handler_admin.Handle_Cluster_Stop)
+	admin.Post("/cluster/pods/stop", handler_admin.Handle_Cluster_Pods_Stop)
 	// Admins
 	admin.Get("/admins", handler_admin.Handle_Admins).Name("admin/admins")
 	admin.Get("/admin", handler_admin.Handle_Admins_Create_View)
@@ -94,18 +98,18 @@ func serve_routes(app *fiber.App) {
 	admin.Get("/user/:id", handler_admin.Handle_Users_Update_View)
 	admin.Post("/user/:id", handler_admin.Handle_Users_Update_Crud)
 	admin.Delete("/user/:id", handler_admin.Handle_Users_Delete_Crud)
-	// Users Lobbies & Servers
+	// Lobbies
 	admin.Get("/lobbies", handler_admin.Handle_Lobbies).Name("admin/lobbies")
 	admin.Get("/lobby", handler_admin.Handle_Lobbies_Create_View)
 	admin.Post("/lobby", handler_admin.Handle_Lobbies_Create_Crud)
 	admin.Get("/lobby/:id", handler_admin.Handle_Lobbies_Update_View)
 	admin.Post("/lobby/:id", handler_admin.Handle_Lobbies_Update_Crud)
 	admin.Delete("/lobby/:id", handler_admin.Handle_Lobbies_Delete_Crud)
+	// Servers
 	admin.Get("/servers", handler_admin.Handle_Servers).Name("admin/servers")
-	//  Cluster & Pods
-	admin.Post("/cluster/start", handler_admin.Handle_Cluster_Start)
-	admin.Post("/cluster/stop", handler_admin.Handle_Cluster_Stop)
-	admin.Post("/cluster/pods/stop", handler_admin.Handle_Cluster_Pods_Stop)
+	admin.Get("/server/:id", handler_admin.Handle_Servers_Update_View)
+	admin.Delete("/server/:id", handler_admin.Handle_Servers_Delete_Crud)
+	// Pods
 	admin.Get("/pods", handler_admin.Handle_Pods).Name("admin/pods")
 	admin.Get("/pod/:id", handler_admin.Handle_Pods_Update_View)
 	admin.Delete("/pod/:id", handler_admin.Handle_Pods_Delete_Crud)

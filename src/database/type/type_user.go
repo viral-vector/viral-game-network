@@ -5,8 +5,8 @@ import (
 )
 
 type User struct {
-	ID      *models.RecordID `json:"id,omitempty"`
-	Name    string `json:"name,omitempty" form:"name,label:Name,type:string,required:true"`
+	ID      *models.RecordID `json:"id,omitempty" form:"id,label:ID,type:text,readonly:true"`
+	Name    string `json:"name,omitempty" form:"name,label:Name,type:text,required:true"`
 	Guid    string `json:"guid,omitempty"`
 	Date_Created string `json:"date_created,omitempty"`
 	Date_Updated string `json:"date_updated,omitempty"`
@@ -14,6 +14,9 @@ type User struct {
 }
 
 func (n User) ModelID() string {
+	if n.ID == nil {
+		return ""
+	}
 	return n.ID.String()
 }
 

@@ -60,7 +60,22 @@ func GetServerByGuid(guid string) (*dbtype.Server, error) {
 }
 
 func GetServer(id string) (*dbtype.Server, error) {
-	return database.Select[dbtype.Server](id)
+	// Get lobby by ID.
+	servers, err := database.Query[dbtype.Server](`
+	SELECT *
+	,array::first(SELECT * FROM <-Lobby_Server.in) AS lobby 
+	FROM type::record($id)
+	ORDER BY date_created DESC;`,
+		map[string]interface{}{
+			"id": id,
+		})
+	if err != nil {
+		return nil, err
+	}
+	if len(servers) == 0 { 
+		return nil, nil
+	}
+	return &servers[0], nil
 }
 
 func SetServer(id string, server *dbtype.Server) (*dbtype.Server, error) {
@@ -75,16 +90,8 @@ func PutServer(server *dbtype.Server, lobby *dbtype.Lobby) (*dbtype.Server, erro
 	return database.Create[dbtype.Server](server)
 }
 
-func DelServer(id string) error {
-	server, err := GetServer(id)
-	if err != nil {
-		return fmt.Errorf("DelServer Error: %v", err)
-	} 
-	err = database.Delete(*server.ID)
-	if err != nil {
-		return fmt.Errorf("DelServer error: %s", err)
-	}
-	return nil
+func DelServer(id string, server *dbtype.Server) error {
+	return database.Delete(*server.ID)
 }
 
 func GetServerPorts() []int32 {

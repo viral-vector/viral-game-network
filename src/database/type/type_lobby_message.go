@@ -12,6 +12,9 @@ type LobbyMessage struct {
 }
 
 func (n LobbyMessage) ModelID() string {
+	if n.ID == nil {
+		return ""
+	}
 	return n.ID.String()
 }
 

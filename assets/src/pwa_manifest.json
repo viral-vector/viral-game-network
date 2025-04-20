@@ -1,24 +1,43 @@
 {
-    "name": "Viral Game Network",
-    "short_name": "VGN", 
-    "start_url": "/",
-    "display": "standalone",
-    "theme_color": "#000000",
-    "background_color": "#000000",
-    "orientation": "portrait",
-    "scope": "/",
-    "lang": "en-US",
-    "icons": [
-      {
-        "src": "/images/vgn.webp",
-        "sizes": "192x192",
-        "type": "image/webp"
-      },
-      {
-        "src": "/images/vgn.webp",
-        "sizes": "512x512",
-        "type": "image/webp"
-      }
-    ]
-  }
-  
+  "name": "Viral Game Network",
+  "short_name": "VGN",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#000000",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "/images/vgn.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "/images/vgn.webp",
+      "sizes": "501x241",
+      "type": "image/webp"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/vgn-wide.png",
+      "sizes": "320x320",
+      "type": "image/png",
+      "platform": "narrow"
+    },
+    {
+      "src": "/images/vgn-wide.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "platform": "wide"
+    },
+    {
+      "src": "/images/vgn-wide.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "platform": "wide"
+    }
+  ]
+}

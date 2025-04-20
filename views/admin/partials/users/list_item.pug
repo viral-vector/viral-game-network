@@ -1,27 +1,13 @@
-.container
-    form(method="DELETE", action="/admin/user/" .ID, name="", data-confirm-message="Are you sure you want to delete")
-        button.button.has-text-danger(type="submit") 
-            span.fas.fa-trash Delete
-    br
-    .columns
-        .column.is-one-third
+.div.list-item
+    .list-item-buttons
+        form(method="DELETE", action="/admin/user/" .ID, name="", data-confirm-message="Are you sure you want to delete")
+            button.button.is-text.has-text-danger(type="submit") 
+                span.icon.is-small
+                    i.fa.fa-trash
+    .grid
+        .cell
             a(href="/admin/user/" .ID, title="Edit User " .Name)
-                strong 
-                    i.fas.fa-user&nbsp;
-                | #{.ID}
-        .column.is-one-third
-            strong Name:
-            | #{.Name}
-        .column.is-one-third
-            strong GUID:
-            | #{.Guid}
-    .columns
-        .column.is-one-third
-            strong Date Created:
-            | #{.Date_Created}
-        .column.is-one-third
-            strong Date Updated:
-            | #{.Date_Updated}
-        .column.is-one-third
-            strong Last Login:
-            | #{.Date_LastLogin}
+                | #{strip .ID.String "User:"}
+        .cell #{.Name}
+        .cell #{.Guid}
+        .cell #{.Date_LastLogin}

@@ -29722,3 +29722,36 @@ readers do not read off random characters that represent icons */
   position: absolute;
   top: -0.5rem;
 }
+.form-inline, .list .list-item .list-item-buttons {
+  display: inline-block;
+}
+
+.list {
+  padding: 0.8rem;
+  position: relative;
+}
+.list .list-head {
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid white;
+}
+.list .list-item {
+  display: flex;
+  align-content: center;
+  justify-items: center;
+  flex-direction: column;
+  min-height: 2.5rem;
+  position: relative;
+}
+.list .list-item + .list-item {
+  padding-top: 0.5rem;
+  border-top: 1px solid white;
+}
+.list .list-item .list-item-buttons {
+  display: inline;
+  float: right;
+  top: -0.5rem;
+  right: 0rem;
+}
+.list .list-item .cell {
+  overflow-wrap: anywhere;
+}
