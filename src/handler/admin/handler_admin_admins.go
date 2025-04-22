@@ -14,15 +14,17 @@ import (
 )
 
 func Handle_Admins(c *fiber.Ctx) error {
+	search := c.Query("search", "")
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
-	admins, total, _ := repository.AllAdmin(perPage, curPage)
+	admins, total, _ := repository.AllAdmin(perPage, curPage, search)
 
 	return c.Render("admin/admins", fiber.Map{
 		"admins" : admins,
 		"total": total,
 		"pages": int(math.Ceil(float64(total) / float64(perPage))),
 		"paged": curPage,
+		"search": search,
 	})
 }
 

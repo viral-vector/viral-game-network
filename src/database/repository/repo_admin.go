@@ -21,28 +21,47 @@ func GenAdmin(password string) (*dbtype.Admin, error) {
 	return admin, nil
 }
 
-func AllAdmin(count int, pager int) ([]dbtype.Admin, int, error) {
+func AllAdmin(count int, pager int, search string) ([]dbtype.Admin, int, error) {
 	// Get All Admins
-	admins, err := database.Query[dbtype.Admin](`
+	lQuery := `
 	SELECT * 
 	FROM type::table(Admin) 
-	ORDER BY date_created DESC 
-	LIMIT $ct START $pg;`,
-		map[string]interface{}{
-			"ct": count,
-			"pg": (pager - 1) * count,
-		})
+	`
+	params := map[string]interface{}{}
+
+	// Search
+	if search != "" {
+		lQuery = fmt.Sprintf("%s WHERE [name, email] ?~ $search", lQuery)
+		params["search"] = fmt.Sprintf("%s", search)
+	}
+
+	// Ordering
+	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC", lQuery)
+
+	// Limit and Pagination
+	if count > -1 {
+		lQuery = fmt.Sprintf("%s LIMIT $ct START $pg", lQuery)
+		params["ct"] = count
+		params["pg"] = (pager - 1) * count
+	}
+
+	// Get Admins.
+	admins, err := database.Query[dbtype.Admin](fmt.Sprintf("%s;", lQuery), params)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Count All Admins
-	total, err := database.Query[dbtype.Total]("SELECT count() AS total FROM type::table(Admin) GROUP ALL;",
+	// Count all Admins.
+	total, err := database.Query[dbtype.Total](
+		"SELECT count() AS total FROM type::table(Admin) GROUP ALL;",
 		map[string]interface{}{
-		})
-	if err != nil {
+			
+		},
+	)
+	if err != nil || len(total) == 0 {
 		return admins, 0, err
 	}
+
 	return admins, total[0].Total, nil
 }
 

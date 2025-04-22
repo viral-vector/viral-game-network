@@ -7,7 +7,7 @@ import (
 	dbtype "viral-game-network/src/database/type"
 )
 
-func AllServer(count int, pager int) ([]dbtype.Server, int, error) {
+func AllServer(count int, pager int, search string) ([]dbtype.Server, int, error) {
 	lQuery := `
 	SELECT *
 	,(IF count(SELECT id FROM <-Lobby_Server.in) > 0
@@ -18,6 +18,16 @@ func AllServer(count int, pager int) ([]dbtype.Server, int, error) {
 		
 	}
 
+	// Search
+	if search != "" {
+		lQuery = fmt.Sprintf("%s WHERE [name, guid, address, port] ?~ $search", lQuery)
+		params["search"] = fmt.Sprintf("%s", search)
+	}
+
+	// Ordering
+	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC", lQuery)
+
+	// Limit and Pagination
 	if count > -1 {
 		lQuery = fmt.Sprintf("%s LIMIT $ct START $pg", lQuery)
 		params["ct"] = count
@@ -26,7 +36,6 @@ func AllServer(count int, pager int) ([]dbtype.Server, int, error) {
 
 	servers, err := database.Query[dbtype.Server](fmt.Sprintf("%s;", lQuery), params)
 	if err != nil {
-		fmt.Println("AllServer: ", err)
 		return nil, 0, err
 	}
 

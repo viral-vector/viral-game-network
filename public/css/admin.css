@@ -29738,7 +29738,7 @@ readers do not read off random characters that represent icons */
 }
 
 .list {
-  padding: 0.8rem;
+  padding: 1rem;
   position: relative;
 }
 .list .list-head {

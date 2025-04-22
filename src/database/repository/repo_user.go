@@ -7,28 +7,47 @@ import (
 	dbtype "viral-game-network/src/database/type"
 )
 
-func AllUser(count int, pager int) ([]dbtype.User, int, error) {
-	// Get All Users
-	users, err := database.Query[dbtype.User](`
+func AllUser(count int, pager int, search string) ([]dbtype.User, int, error) {
+	// Get All Users.
+	lQuery := `
 	SELECT * 
 	FROM type::table(User) 
-	ORDER BY date_created DESC 
-	LIMIT $ct START $pg;`,
-		map[string]interface{}{
-			"ct": count,
-			"pg": (pager - 1) * count,
-		})
+	`
+	params := map[string]interface{}{}
+
+	// Search
+	if search != "" {
+		lQuery = fmt.Sprintf("%s WHERE [name, guid] ?~ $search", lQuery)
+		params["search"] = fmt.Sprintf("%s", search)
+	}
+
+	// Ordering
+	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC", lQuery)
+
+	// Limit and Pagination
+	if count > -1 {
+		lQuery = fmt.Sprintf("%s LIMIT $ct START $pg", lQuery)
+		params["ct"] = count
+		params["pg"] = (pager - 1) * count
+	}
+
+	// Get User.
+	users, err := database.Query[dbtype.User](fmt.Sprintf("%s;", lQuery), params)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Count All Users
-	total, err := database.Query[dbtype.Total]("SELECT count() AS total FROM type::table(User) GROUP ALL;",
+	// Count all User.
+	total, err := database.Query[dbtype.Total](
+		"SELECT count() AS total FROM type::table(User) GROUP ALL;",
 		map[string]interface{}{
-		})
-	if err != nil {
+			
+		},
+	)
+	if err != nil || len(total) == 0 {
 		return users, 0, err
 	}
+
 	return users, total[0].Total, nil
 }
 

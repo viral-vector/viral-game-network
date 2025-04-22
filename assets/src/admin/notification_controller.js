@@ -18,7 +18,7 @@ export default class extends Controller {
         window.pushNotification = this.NotificationsPush.bind(this);
         setInterval(
             this.Notifications.bind(this), 
-            1000
+            100
         );
         
         this.SSEventListen();

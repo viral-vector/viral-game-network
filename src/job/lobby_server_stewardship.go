@@ -19,7 +19,7 @@ import (
  */
 func Job_Lobby_Server_Stewardship() {
 	// Retrieve all server pods.
-	pods, err := k8.GetAllServerPods()
+	pods, _, err := k8.GetAllServerPodsList("", -1, "")
 	if err != nil {
 		log.Panicf("[Job_Lobby_Server_Stewardship]: %v", err)
 		return
@@ -127,25 +127,16 @@ func RUN_Lobby_Server_Stewardship_Running(lobby *dbtype.Lobby, pod *v1.Pod, node
 func RUN_Lobby_Server_Stewardship_Purger(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) error {
 	// Delete the pod.
 	k8.DeleteServerPod(pod.Name)
-
 	// Determine the server ID to delete.
-	var serverID string
-	var server *dbtype.Server
-	if lobby != nil && lobby.Lobby_Server != nil {
-		server = lobby.Lobby_Server
-		serverID = lobby.Lobby_Server.ID.String()
-	} else {
-		server, _ = repository.GetServerByGuid(pod.Name)
-		if server != nil {
-			serverID = server.ID.String()
-		}
+	server, err := repository.GetServerByGuid(pod.Name)
+	if err != nil || server == nil {
+		return nil
 	}
-	if serverID != "" {
-		repository.DelServer(serverID, server)
+	// Delete the server record.
+	repository.DelServer(server.ID.String(), server)
+	// Delete the server from the lobby.
+	if lobby != nil {
+		lobby.Lobby_Server = nil
 	}
-	// Delete the server record from the lobby.
-	lobby.Lobby_Server = nil
-	server = nil
-
 	return nil
 }

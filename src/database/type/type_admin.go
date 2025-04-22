@@ -7,7 +7,7 @@ import (
 type Admin struct {
 	ID *models.RecordID `json:"id,omitempty" form:"id,label:ID,type:text,readonly:true"`
 	Name string `json:"name,omitempty" form:"name,label:Name,type:text,required:true"`
-	Password string `json:"password,omitempty" form:"password,label:Password,type:text,required-create:true"`
+	Password string `json:"password,omitempty" form:"password,label:Password,type:password,required-create:true"`
 	Email string `json:"email,omitempty" form:"email,label:Email,type:text,required:true"`
 	Phone string `json:"phone,omitempty" form:"phone,label:Phone,type:text,required:true"`
 	Date_Created string `json:"date_created,omitempty"`

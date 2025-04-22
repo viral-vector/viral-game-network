@@ -1,6 +1,7 @@
 package handler_admin
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -10,16 +11,22 @@ import (
 )
 
 func Handle_Pods(c *fiber.Ctx) error {
+	search := c.Query("search", "")
+	prvPage, _ := strconv.Atoi(c.Query("prevPage", "1"))
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
-	perPage := 15
-	pods, _ := k8.GetAllServerPods()
-	total := len(pods)
+	perPage := int64(2)
+	pageToken := c.Query("pageToken", "")
+	pods, total, continueToken, _ := k8.GetAllServerPodsPager(search, perPage, prvPage, curPage, pageToken)
+
+	fmt.Println("Pods: ", len(pods), continueToken)
 
 	return c.Render("admin/pods", fiber.Map{
 		"pods":  pods,
 		"total": total,
 		"pages": int(math.Ceil(float64(total) / float64(perPage))),
 		"paged": curPage,
+		"pageToken": continueToken,
+		"search": search,
 	})
 }
 

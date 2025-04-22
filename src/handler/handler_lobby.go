@@ -21,10 +21,11 @@ type HostLobbyRequestDTO struct {
 
 // Handle_AllLobby
 func Handle_AllLobby(c *fiber.Ctx) error {
+	search := c.Query("search", "")
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage, _ := strconv.Atoi(c.Query("show", "100"))
 
-	data, total, err := repository.AllLobby(perPage, curPage)
+	data, total, err := repository.AllLobby(perPage, curPage, search)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)

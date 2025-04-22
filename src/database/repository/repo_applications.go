@@ -7,15 +7,24 @@ import (
 	dbtype "viral-game-network/src/database/type"
 )
 
-func AllApplication(count int, pager int) ([]dbtype.Application, int, error) {
+func AllApplication(count int, pager int, search string) ([]dbtype.Application, int, error) {
 	// Get All Applications
 	lQuery := `
 	SELECT * 
 	FROM type::table(Application) 
-	ORDER BY date_created DESC 
 	`
 	params := map[string]interface{}{}
 
+	// Search
+	if search != "" {
+		lQuery = fmt.Sprintf("%s WHERE [name, guid, group, image] ?~ $search", lQuery)
+		params["search"] = fmt.Sprintf("%s", search)
+	}
+
+	// Ordering
+	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC", lQuery)
+
+	// Limit and Pagination
 	if count > -1 {
 		lQuery = fmt.Sprintf("%s LIMIT $ct START $pg", lQuery)
 		params["ct"] = count
@@ -30,7 +39,7 @@ func AllApplication(count int, pager int) ([]dbtype.Application, int, error) {
 
 	// Count all Applications.
 	total, err := database.Query[dbtype.Total](
-		"SELECT count() AS total FROM type::table(Applications) GROUP ALL;",
+		"SELECT count() AS total FROM type::table(Application) GROUP ALL;",
 		map[string]interface{}{
 			
 		},

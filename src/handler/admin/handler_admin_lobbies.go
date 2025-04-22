@@ -13,20 +13,22 @@ import (
 )
 
 func Handle_Lobbies(c *fiber.Ctx) error {
+	search := c.Query("search", "")
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
-	lobbies, total, _ := repository.AllLobby(perPage, curPage)
+	lobbies, total, _ := repository.AllLobby(perPage, curPage, search)
 
 	return c.Render("admin/lobbies", fiber.Map{
 		"lobbies" : lobbies,
 		"total": total,
 		"pages": int(math.Ceil(float64(total) / float64(perPage))),
 		"paged": curPage,
+		"search": search,
 	})
 }
 
 func Handle_Lobbies_Create_View(c *fiber.Ctx) error {
-	apps, _, err := repository.AllApplication(-1, 1)
+	apps, _, err := repository.AllApplication(-1, 1, "")
 	if err != nil {}
 
 	form, _ := form_builder.GenerateForm(
@@ -103,7 +105,7 @@ func Handle_Lobbies_Update_View(c *fiber.Ctx) error {
 		return c.Redirect("/admin/lobbies")
 	}
 
-	apps, _, err := repository.AllApplication(-1, 1)
+	apps, _, err := repository.AllApplication(-1, 1, "")
 	if err != nil {}	
 
 	form, _ := form_builder.GenerateForm(

@@ -256,22 +256,70 @@ func KillAllServerPods() error {
 	return nil
 }
 
-// Get All server Pods
-func GetAllServerPods() ([]*v1.Pod, error) {
+func GetAllServerPodsPager(
+	search string, 
+	limit int64, 
+	currentPage int,
+	desiredPage int,
+	continueToken string,
+) ([]*v1.Pod, int, string, error) {
 	if clientset == nil {
-		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
+		return nil, 0, "", fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 
-	list, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	group, _, err := GetAllServerPodsList(search, -1, "")
 	if err != nil {
-		return nil, fmt.Errorf("error pulling pods: %s", err)
+		return nil, 0, "", fmt.Errorf("K8 Error: %s", err)
+	}
+	count := len(group)
+
+	if desiredPage <= 1 {
+		currentPage = 1
+		continueToken = ""
+	}
+	
+	for currentPage <= desiredPage {
+		pods, newContinueToken, err := GetAllServerPodsList(search, limit, continueToken)
+		if err != nil {
+			return nil, count, "", fmt.Errorf("K8 Error: %s", err)
+		}
+		if currentPage == desiredPage || newContinueToken == "" {
+			return pods, count, newContinueToken, nil
+		}
+		continueToken = newContinueToken
+		currentPage++
+	}
+
+	return nil, 0, "", fmt.Errorf("K8 Error: %s", "no pods found")
+}
+
+// Get All server Pods
+func GetAllServerPodsList(search string, limit int64, continueToken string) ([]*v1.Pod, string, error) {
+	if clientset == nil {
+		return nil, "", fmt.Errorf("K8 Error: Cluster Not Running")
+	}
+
+	listOptions := metav1.ListOptions{}
+	if continueToken != "" {
+		listOptions.Continue = continueToken
+	}
+	if search != "" {
+		listOptions.LabelSelector = "app=" + search
+	}
+	if limit > 0 {
+		listOptions.Limit = limit
+	}
+
+	list, err := clientset.CoreV1().Pods(namespace).List(ctx, listOptions)
+	if err != nil {
+		return nil, "", fmt.Errorf("error pulling pods: %s", err)
 	}
 
 	pods := make([]*v1.Pod, len(list.Items))
 	for i := range list.Items {
 		pods[i] = &list.Items[i]
 	}
-	return pods, nil
+	return pods, list.Continue, nil
 }
 
 // Locate Server Pod

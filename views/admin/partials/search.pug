@@ -1,11 +1,12 @@
-nav.level
+nav.level(data-controller='search', data-search-action-value=.route.http)
     .level-left
-   
     .level-right
         .level-item
-            .field.has-addons
+            .search.field.has-addons
                 p.control
-                    input.input(type='text' placeholder='Find a record')
+                    input.input(type='text', value=.search placeholder='search...', data-search-target='control')
                 p.control
-                    button.button Search
+                    button.button.is-link(data-search-target='button')
+                        span.icon.is-small
+                            i.fa.fa-search
 

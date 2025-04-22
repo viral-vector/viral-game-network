@@ -16,7 +16,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// ##> 
+// ##> Dashboard
 func Handle_Dash(c *fiber.Ctx) error {
 	// Get the cluster status
 	cluster, err := k8.GetClusterStatus()

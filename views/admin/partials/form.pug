@@ -17,12 +17,12 @@
                             each opt in .Options
                                 option(value=.value, is-selected=(equals .Value .value))= .label
                     else
-                        input.input.vgnform-input(type="text", name=.Name, value=.Value, placeholder=.Label, is-required=.Required, is-disabled=.ReadOnly)
+                        input.input.vgnform-input(type=.Type, name=.Name, value=.Value, placeholder=.Label, is-required=.Required, is-disabled=.ReadOnly)
         br
         if equals .form.DisableSubmit false
             .field.is-grouped
                 .control
-                    button.button.is-link(type="submit") #{.form.Submit}
+                    button.button.is-primary(type="submit") #{.form.Submit}
                 if .form.CanReset
                     .control
-                        button.button.is-light(type="reset") Reset
+                        button.button.is-text(type="reset") Reset

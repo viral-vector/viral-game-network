@@ -13,15 +13,17 @@ import (
 )
 
 func Handle_Applications(c *fiber.Ctx) error {
+	search := c.Query("search", "")
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
-	apps, total, _ := repository.AllApplication(perPage, curPage)
+	apps, total, _ := repository.AllApplication(perPage, curPage, search)
 
 	return c.Render("admin/applications", fiber.Map{
 		"apps" : apps,
 		"total": total,
 		"pages": int(math.Ceil(float64(total) / float64(perPage))),
 		"paged": curPage,
+		"search": search,
 	})
 }
 

@@ -24,7 +24,10 @@ func serve_routes(app *fiber.App) {
 	}))
 	app.Use(func(c *fiber.Ctx) error {
 		c.Set("Viral-Game-Network-Entity", c.Get("Viral-Game-Network-Entity"))
-		c.Locals("route", c.Path())
+		c.Locals("route", map[string]string {
+			"path": c.Path(),
+			"http": c.BaseURL() + c.Path(),
+		})
 		c.Locals("title", "VGN - " + c.Path())
 		return c.Next()
 	})

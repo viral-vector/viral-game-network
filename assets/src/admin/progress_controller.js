@@ -8,8 +8,6 @@ export default class extends Controller {
             show: this.show.bind(this),
             hide: this.hide.bind(this),
         };
-
-
         this.hide();
 
         // const lerp = (x, y, a) => x * (1 - a) + y * a;
@@ -27,14 +25,11 @@ export default class extends Controller {
     }
 
     show() {
-        console.log("show")
         this.ishow = true
-        // this.progressTarget.style.display = "block"
     }
 
     hide() {
         this.ishow = false
-        // this.progressTarget.style.display = "none"
     }
     
     set(val) {

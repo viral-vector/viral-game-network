@@ -17,7 +17,7 @@ import (
  * Manages Lobby Lifecycle
  */
 func Job_Lobby_Stewardship() {
-	lobbies, _, err := repository.AllLobby(-1, 1)
+	lobbies, _, err := repository.AllLobby(-1, 1, "")
 	if err != nil {
 		log.Panicf("[Job_Lobby_Stewardship]: %v", err)
 		return

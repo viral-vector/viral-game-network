@@ -7,7 +7,7 @@ import (
 	dbtype "viral-game-network/src/database/type"
 )
 
-func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
+func AllLobby(count int, pager int, search string) ([]dbtype.Lobby, int, error) {
 	lQuery := `
 	SELECT *
 	,array::first(SELECT * FROM ->Lobby_Application.out) AS lobby_application
@@ -17,12 +17,21 @@ func AllLobby(count int, pager int) ([]dbtype.Lobby, int, error) {
 		{array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
 	,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
 	FROM type::table(Lobby)
-	ORDER BY date_created DESC
 	`
 	params := map[string]interface{}{
 		
 	}
+	
+	// Search
+	if search != "" {
+		lQuery = fmt.Sprintf("%s WHERE [name, guid] ?~ $search", lQuery)
+		params["search"] = fmt.Sprintf("%s", search)
+	}
+	
+	// Ordering
+	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC", lQuery)
 
+	// Limit and Pagination
 	if count > -1 {
 		lQuery = fmt.Sprintf("%s LIMIT $ct START $pg", lQuery)
 		params["ct"] = count

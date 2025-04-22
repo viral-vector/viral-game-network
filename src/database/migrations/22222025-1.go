@@ -61,9 +61,6 @@ func init() {
 			DEFINE INDEX idx_lobby_id ON TABLE Lobby COLUMNS id UNIQUE;
 			DEFINE INDEX idx_lobby_guid ON TABLE Lobby COLUMNS guid UNIQUE;
 			DEFINE INDEX idx_lobby_name ON TABLE Lobby COLUMNS name;
-			DEFINE ANALYZER idx_lobby_analyzer TOKENIZERS class FILTERS ascii;
-			DEFINE INDEX idx_lobby_name_analyzer ON TABLE Lobby COLUMNS name SEARCH ANALYZER idx_lobby_analyzer BM25 HIGHLIGHTS;
-	
 			`,
 		},
 		// Server

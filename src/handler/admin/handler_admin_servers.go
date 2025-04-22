@@ -10,15 +10,17 @@ import (
 )
 
 func Handle_Servers(c *fiber.Ctx) error {
+	search := c.Query("search", "")
 	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
-	servers, total, _ := repository.AllServer(perPage, curPage)
+	servers, total, _ := repository.AllServer(perPage, curPage, search)
 
 	return c.Render("admin/servers", fiber.Map{
 		"servers": servers,
 		"total":   total,
 		"pages":   int(math.Ceil(float64(total) / float64(perPage))),
 		"paged":   curPage,
+		"search":  search,
 	})
 }
 
