@@ -56,13 +56,3 @@ func AddApiKey(name string, key string) error {
 
 	return err
 }
-
-func GetKeyValue(key string) *string {
-	keys, _ := GetApiKeys() 
-	if keys != nil {
-		for _, key := range keys {
-			fmt.Println(key)
-		}
-	}
-	return nil
-}

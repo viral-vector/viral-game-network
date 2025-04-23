@@ -72,13 +72,18 @@ func GenerateAppKey(size int32) string {
 }
 
 func ValidateAppKey(key string) (bool, error) {
-	hashedAppKey := sha256.Sum256(vnet_key)
-    hashedExtKey := sha256.Sum256([]byte(key))
-
-    if subtle.ConstantTimeCompare(hashedAppKey[:], hashedExtKey[:]) == 1 {
-        return true, nil
-    }
-    return false, fmt.Errorf("Invalid App Key")
+	keys, err := repository.GetApiKeys()
+	if err != nil {
+		return false, fmt.Errorf("Error pulling keys")
+	}
+	hashedExtKey := sha256.Sum256([]byte(key))
+	for _, k := range keys {
+		hashedAppKey := sha256.Sum256([]byte(k.Val))
+		if subtle.ConstantTimeCompare(hashedAppKey[:], hashedExtKey[:]) == 1 {
+			return true, nil
+		}
+	}
+    return false, fmt.Errorf("Invalid app key")
 }
 
 func HashGenerate(item string) (string, error) {

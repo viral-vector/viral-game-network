@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"time"
 	"strings"
 	"viral-game-network/src/auth"
@@ -30,7 +31,7 @@ func Handle_ValidateAppKey(c *fiber.Ctx) error {
 		c.Status(fiber.StatusForbidden)
 		return c.JSON(fiber.Map{
 			"status":  "error",
-			"message": "Unauthorized: Bad or missing App Key",
+			"message": fmt.Sprintf("Unauthorized %s", err),
 		})
 	}
 	return c.Next()

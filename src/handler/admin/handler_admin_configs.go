@@ -94,7 +94,7 @@ func Handle_Configs_ApiKey_Create_Crud(c *fiber.Ctx) error {
 	}
 
 	if dto.Key == "" {
-		dto.Key = auth.GenerateAppKey(12)
+		dto.Key = auth.GenerateAppKey(20)
 	}
 
 	if err := repository.AddApiKey(dto.Name, dto.Key); err != nil {
