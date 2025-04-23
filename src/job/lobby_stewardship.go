@@ -19,7 +19,7 @@ import (
 func Job_Lobby_Stewardship() {
 	lobbies, _, err := repository.AllLobby(-1, 1, "")
 	if err != nil {
-		log.Panicf("[Job_Lobby_Stewardship]: %v", err)
+		log.Printf("[Job_Lobby_Stewardship]ERROR: %v", err)
 		return
 	}
 
@@ -32,7 +32,7 @@ func Job_Lobby_Stewardship() {
 		lobby := lobbies[i] // capture by value
 		parts := strings.Split(lobby.ID.String(), ":")
 		if len(parts) < 2 {
-			log.Panicf("[Job_Lobby_Stewardship]: Invalid lobby ID format: %v", lobby.ID)
+			log.Printf("[Job_Lobby_Stewardship]ERROR: Invalid lobby ID format: %v", lobby.ID)
 			continue
 		}
 		label := parts[1]
@@ -51,7 +51,7 @@ func Job_Lobby_Stewardship() {
 
 			// Lock the lobby for stewardship.
 			if err := cache.Set[string]("lobby-stewardship-lock-"+label, "true", 15*time.Second); err != nil {
-				log.Panicf("[Job_Lobby_Stewardship]: Error locking lobby %s: %v", label, err)
+				log.Printf("[Job_Lobby_Stewardship]ERROR: locking lobby %s: %v", label, err)
 				return
 			}
 			// Ensure the lock is removed regardless of errors.
@@ -72,7 +72,7 @@ func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
 	// Parse the max persist from the application config.
 	lobbyMaxPersist, err := strconv.ParseFloat(lobby.Lobby_Application.Lobby_Max_Persist, 64)
 	if err != nil {
-		log.Panicf("[Job_Lobby_Stewardship]: Error parsing Lobby_Max_Persist %v", err)
+		log.Printf("[Job_Lobby_Stewardship]ERROR: parsing Lobby_Max_Persist %v", err)
 		return
 	}
 	
@@ -84,7 +84,7 @@ func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
 	}
 	dateLobby, err := time.Parse(time.RFC3339, dateStr)
 	if err != nil {
-		log.Panicf("[Job_Lobby_Stewardship]: Error parsing date for lobby %s: %v", lobby.ID.String(), err)
+		log.Printf("[Job_Lobby_Stewardship]ERROR: parsing date for lobby %s: %v", lobby.ID.String(), err)
 		return
 	}
 
@@ -100,12 +100,12 @@ func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
 		// Delete the associated server, if it exists.
 		if lobby.Lobby_Server != nil {
 			if err := repository.DelServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
-				log.Panicf("[Job_Lobby_Stewardship]: Error deleting server for lobby %s: %v", lobby.ID.String(), err)
+				log.Printf("[Job_Lobby_Stewardship]ERROR: deleting server for lobby %s: %v", lobby.ID.String(), err)
 			}
 		}
 		// Delete the lobby.
 		if err := repository.DelLobby(lobby.ID.String(), lobby); err != nil {
-			log.Panicf("[Job_Lobby_Stewardship]: Error deleting lobby %s: %v", lobby.ID.String(), err)
+			log.Printf("[Job_Lobby_Stewardship]ERROR: deleting lobby %s: %v", lobby.ID.String(), err)
 		}
 	}
 }

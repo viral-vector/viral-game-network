@@ -101,9 +101,6 @@ func Delete[T models.RecordID](id models.RecordID) (error) {
 	_, err := surrealdb.Query[any](DBS, "DELETE type::record($id);", map[string]interface{}{
 		"id": id.String(), 
 	})
-	if err != nil {
-		log.Panicf("Database Delete Error: ", err)
-	}
 	return err
 }
 
@@ -112,7 +109,6 @@ func Select[T any](id string) (*T, error) {
 		"id": id,
 	})
 	if err != nil {
-		log.Panicf("Database Select Error: ", err)
 		return nil, err
 	}
 	return &(*result)[0].Result, err
@@ -126,11 +122,7 @@ func Relate(in *models.RecordID, out *models.RecordID, table string, data map[st
 		Relation: models.Table(table),
 		Data: data,
 	}
-	err := surrealdb.Relate(DBS, relationship)
-	if err != nil {
-		log.Panicf("Database Relate Error: ", err)
-	}
-	return err
+	return surrealdb.Relate(DBS, relationship)
 }
 
 func GetUUID() string {

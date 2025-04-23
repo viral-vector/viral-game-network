@@ -34,7 +34,7 @@ func Job_Lobby_Server_Provisioner() {
 		lobby := lobbies[i] // capture by value
 		parts := strings.Split(lobby.ID.String(), ":")
 		if len(parts) < 2 {
-			log.Panicf("[Job_Lobby_Server_Provisioner]: Invalid lobby ID: %v", lobby.ID)
+			log.Printf("[Job_Lobby_Server_Provisioner]ERROR: Invalid lobby ID: %v", lobby.ID)
 			continue
 		}
 		label := parts[1]
@@ -52,7 +52,7 @@ func Job_Lobby_Server_Provisioner() {
 
 			// Lock the lobby (30-second duration).
 			if err := cache.Set[string]("provisioner-lock-"+label, "true", 60*time.Second); err != nil {
-				log.Panicf("[Job_Lobby_Server_Provisioner]: Error locking lobby %s: %v", label, err)
+				log.Printf("[Job_Lobby_Server_Provisioner]ERROR: locking lobby %s: %v", label, err)
 				return
 			}
 			defer cache.Del("provisioner-lock-" + label)
@@ -64,7 +64,7 @@ func Job_Lobby_Server_Provisioner() {
 			if lobpod == nil && lobby.Lobby_Server != nil {
 				log.Printf("[Job_Lobby_Server_Provisioner]: Deleting lobby %s server", label)
 				if err := repository.DelServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
-					log.Panicf("[Job_Lobby_Server_Provisioner]: Error deleting lobby %s server: %v", label, err)
+					log.Printf("[Job_Lobby_Server_Provisioner]ERROR: deleting lobby %s server: %v", label, err)
 				}
 				lobby.Lobby_Server = nil
 			}
@@ -87,19 +87,19 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 	// Check if a server pod already exists.
 	_, lobpod, err := k8.LocateServerPod(label)
 	if lobpod != nil {
-		log.Println("[Job_Lobby_Server_Provisioner]: pod already exists for lobby %s: phase %s", label, lobpod.Status.Phase)
+		log.Printf("[Job_Lobby_Server_Provisioner]: pod already exists for lobby %s: phase %s", label, lobpod.Status.Phase)
 		return err
 	}
 
 	// Select an open node and port.
 	node, sPort, err := k8.FindOpenNodePort()
 	if err != nil {
-		log.Panicf("[Job_Lobby_Server_Provisioner]: Error picking node port for lobby %s: %w", label, err)
+		log.Printf("[Job_Lobby_Server_Provisioner]ERROR: picking node port for lobby %s: %w", label, err)
 		return err
 	}
 
 	if sPort <= 0 {
-		log.Println("[Job_Lobby_Server_Provisioner]: Error no open node port for lobby %s: %w", label)
+		log.Printf("[Job_Lobby_Server_Provisioner]ERROR: no open node port for lobby %s: %w", label)
 		return errors.New("no open node port")
 	}
 
@@ -107,7 +107,7 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 
 	aPort, err := strconv.ParseInt(lobby.Lobby_Application.Port, 10, 32)
 	if err != nil {
-		log.Panicf("[Job_Lobby_Server_Provisioner]: Error parsing application port for lobby %s: %w", label, err)
+		log.Printf("[Job_Lobby_Server_Provisioner]ERROR: parsing application port for lobby %s: %w", label, err)
 		return err
 	}
 
@@ -136,7 +136,7 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 	// Create the server pod.
 	lobpod, err = k8.CreateServerPod(label, node, int32(sPort), int32(aPort), image, cmd, env)
 	if err != nil {
-		log.Panicf("[Job_Lobby_Server_Provisioner]: Error creating server pod for lobby %s: %w", label, err)
+		log.Printf("[Job_Lobby_Server_Provisioner]ERROR: creating server pod for lobby %s: %w", label, err)
 		return err
 	}
 
@@ -151,7 +151,7 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 	if err != nil {
 		k8.DeleteServerPod(label)
 
-		log.Panicf("[Job_Lobby_Server_Provisioner]: Error creating server DB entry for lobby %s: %w", label, err)
+		log.Printf("[Job_Lobby_Server_Provisioner]ERROR: creating server DB entry for lobby %s: %w", label, err)
 		return err
 	}
 
@@ -160,7 +160,7 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 		k8.DeleteServerPod(label)
 		repository.DelServer(server.ID.String(), server)
 
-		log.Panicf("[Job_Lobby_Server_Provisioner]: Error linking lobby and server for lobby %s: %w", label, err)
+		log.Printf("[Job_Lobby_Server_Provisioner]ERROR: linking lobby and server for lobby %s: %w", label, err)
 		return err
 	}
 
@@ -169,7 +169,7 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 		"lobby":  strings.Split(lobby.ID.String(), ":")[1],
 		"server": strings.Split(server.ID.String(), ":")[1],
 	}); err != nil {
-		log.Panicf("[Job_Lobby_Server_Provisioner]: Error updating pod labels for lobby %s: %v", label, err)
+		log.Printf("[Job_Lobby_Server_Provisioner]ERROR: updating pod labels for lobby %s: %v", label, err)
 	}
 	return nil
 }

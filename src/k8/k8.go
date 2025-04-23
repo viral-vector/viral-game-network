@@ -507,7 +507,7 @@ func GetLogsCluster(tailLines *int64) ([]v1.Event, error) {
 
 	result, err := clientset.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		log.Fatalf("GetLogsCluster Error: %v", err)
+		return nil, fmt.Errorf("GetLogsCluster Error: %v", err)
 	}
 	// Sort events by EventTime (most recent first).
 	events := result.Items

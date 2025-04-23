@@ -33,7 +33,7 @@ func RUN_Monitoring_ClusterEvents() {
 	if cachedLastEventStr != "" {
 		cachedLastEvent, err = time.Parse(time.RFC3339, cachedLastEventStr)
 		if err != nil {
-			log.Panicf("[Job_Monitoring]: @ClusterEvents: %v", err)
+			log.Println("[Job_Monitoring]: @ClusterEvents: %v", err)
 		}
 	}
 	ctlines := int64(100)

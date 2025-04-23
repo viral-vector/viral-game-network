@@ -21,7 +21,7 @@ func Job_Lobby_Server_Stewardship() {
 	// Retrieve all server pods.
 	pods, _, err := k8.GetAllServerPodsList("", -1, "")
 	if err != nil {
-		log.Panicf("[Job_Lobby_Server_Stewardship]: %v", err)
+		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: %v", err)
 		return
 	}
 
@@ -47,7 +47,7 @@ func Job_Lobby_Server_Stewardship() {
 			defer func() { <-sem }() // release semaphore when done
 			// Lock the pod for stewardship.
 			if err := cache.Set[string]("server-stewardship-lock-"+podName, "true", 30*time.Second); err != nil {
-				log.Panicf("[Job_Lobby_Server_Stewardship]: Error locking pod %s: %v", podName, err)
+				log.Printf("[Job_Lobby_Server_Stewardship]ERROR: locking pod %s: %v", podName, err)
 				return
 			}
 			defer cache.Del("server-stewardship-lock-" + podName)
@@ -63,11 +63,11 @@ func Job_Lobby_Server_Stewardship() {
 func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 	node, lobpod, err := k8.LocateServerPod(pod.Name)
 	if err != nil {
-		log.Panicf("[Job_Lobby_Server_Stewardship]: Error locating server pod for %s: %v", pod.Name, err)
+		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: locating server pod for %s: %v", pod.Name, err)
 		return
 	}
 	if node == nil || lobpod == nil {
-		log.Printf("[Job_Lobby_Server_Stewardship]: Unable to locate node or pod for %s", pod.Name)
+		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: Unable to locate node or pod for %s", pod.Name)
 		return
 	}
 
@@ -80,7 +80,7 @@ func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 	// Get the corresponding lobby.
 	lobby, err := repository.GetLobby("Lobby:" + lobpod.Name)
 	if err != nil {
-		log.Panicf("[Job_Lobby_Server_Stewardship]: Error fetching lobby for %s: %v", lobpod.Name, err)
+		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: fetching lobby for %s: %v", lobpod.Name, err)
 		return
 	}
 
@@ -106,7 +106,7 @@ func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 		lobby.Lobby_Server.Status = string(lobpod.Status.Phase)
 
 		if _, err := repository.SetServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
-			log.Panicf("[Job_Lobby_Server_Stewardship]: Error updating server for lobby %s: %v", lobpod.Name, err)
+			log.Printf("[Job_Lobby_Server_Stewardship]ERROR: updating server for lobby %s: %v", lobpod.Name, err)
 			return
 		}
 	}
