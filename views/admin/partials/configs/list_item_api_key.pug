@@ -1,7 +1,7 @@
 .list-item
     .list-item-buttons
-        form(method="DELETE" action="/admin/config/" .ID, name="" data-confirm-message="Are you sure you want to delete")
-            button.button.is-text.has-text-danger(type="submit", data-action="submit->form#submit") 
+        form(method="DELETE" action="/admin/config/" .ID, name="" data-action="submit->form#submitForm" data-confirm-message="Are you sure you want to delete")
+            button.button.is-text.has-text-danger(type="submit") 
                 span.icon.is-small
                     i.fa.fa-trash
     .grid

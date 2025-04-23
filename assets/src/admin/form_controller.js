@@ -39,77 +39,85 @@ export default class extends Controller {
             })
 
             element.addEventListener('submit', async event => {
-                event.preventDefault();
-
-                let execute = true;
-                if (event.target.dataset.confirmMessage) {
-                    try {
-                        let prompt = {
-                            title: event.target.dataset.confirmTitle,
-                            message: event.target.dataset.confirmMessage,
-                            accept: event.target.dataset.confirmAccept,
-                            reject: event.target.dataset.confirmReject
-                        };
-                        await window.prompt.show(prompt);
-                    } catch (error) {
-                        execute = false;
-                    }
-                }
-                if (!execute) {
-                    return;
-                }
-
-                window.progress.show()
-                try {
-                    const action = event.target.getAttribute('action');
-                    const method = event.target.getAttribute('method');
-                    const formData = new FormData(event.target);
-                    const response = await fetch(action, {
-                        method: method,
-                        body: formData,
-                    });
-
-                    // Parse response JSON
-                    const data = await response.json();
-                    if (!response.ok) {
-                        data.status = response.status;
-                        throw new Error(`${response.status}: ${JSON.stringify(data) || ''}`);
-                    }
-
-                    if (data.redirect) {
-                        setTimeout(() => {
-                            window.location.href = data.redirect
-                        }, 500);
-                    }
-
-                    window.pushNotification({
-                        "type": "info",
-                        "message": data.message || "success",
-                        "priority": 0
-                    })
-                    element.dispatchEvent(new CustomEvent("form-process", {
-                        bubbles: true,
-                        detail: data
-                    }))
-                    
-                } catch (error) {
-                    window.pushNotification({
-                        "type": "danger",
-                        "message": error.message,
-                        "priority": 1
-                    })
-                    element.dispatchEvent(new CustomEvent("form-process", {
-                        bubbles: true,
-                        detail: {
-                            'error': error.message,
-                        }
-                    }))
-                }
-
-                setTimeout(() => {
-                    window.progress.hide()
-                }, 1000);
+                await this.submitForm(event);
             })
         })
+    }
+
+    async submitForm(event) {
+        event.preventDefault();
+
+
+        if (event.target.getAttribute('action') == "")
+            return;
+
+        let execute = true;
+        if (event.target.dataset.confirmMessage) {
+            try {
+                let prompt = {
+                    title: event.target.dataset.confirmTitle,
+                    message: event.target.dataset.confirmMessage,
+                    accept: event.target.dataset.confirmAccept,
+                    reject: event.target.dataset.confirmReject
+                };
+                await window.prompt.show(prompt);
+            } catch (error) {
+                execute = false;
+            }
+        }
+        if (!execute) {
+            return;
+        }
+
+        window.progress.show()
+        try {
+            const action = event.target.getAttribute('action');
+            const method = event.target.getAttribute('method');
+            const formData = new FormData(event.target);
+            const response = await fetch(action, {
+                method: method,
+                body: formData,
+            });
+
+            // Parse response JSON
+            const data = await response.json();
+            if (!response.ok) {
+                data.status = response.status;
+                throw new Error(`${response.status}: ${JSON.stringify(data) || ''}`);
+            }
+
+            if (data.redirect) {
+                setTimeout(() => {
+                    window.location.href = data.redirect
+                }, 500);
+            }
+
+            window.pushNotification({
+                "type": "info",
+                "message": data.message || "success",
+                "priority": 0
+            })
+            event.target.dispatchEvent(new CustomEvent("form-process", {
+                bubbles: true,
+                detail: data
+            }))
+
+        } catch (error) {
+            window.pushNotification({
+                "type": "danger",
+                "message": error.message,
+                "priority": 1
+            })
+            event.target.dispatchEvent(new CustomEvent("form-process", {
+                bubbles: true,
+                detail: {
+                    'error': error.message,
+                }
+            }))
+        }
+
+        setTimeout(() => {
+            window.progress.hide()
+        }, 1000);
     }
 }
