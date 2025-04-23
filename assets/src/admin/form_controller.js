@@ -87,7 +87,10 @@ export default class extends Controller {
                         "message": data.message || "success",
                         "priority": 0
                     })
-
+                    element.dispatchEvent(new CustomEvent("form-process", {
+                        bubbles: true,
+                        detail: data
+                    }))
                     
                 } catch (error) {
                     window.pushNotification({
@@ -95,6 +98,12 @@ export default class extends Controller {
                         "message": error.message,
                         "priority": 1
                     })
+                    element.dispatchEvent(new CustomEvent("form-process", {
+                        bubbles: true,
+                        detail: {
+                            'error': error.message,
+                        }
+                    }))
                 }
 
                 setTimeout(() => {

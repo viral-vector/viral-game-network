@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"time"
 	"strconv"
+	"strings"
 	"crypto/sha256"
     "crypto/subtle"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"viral-game-network/src/database/repository"
 )
@@ -27,7 +29,7 @@ func GenerateToken(username string) (string, error) {
 		app_name = "VNet"
 	}
 	if exp_time == "" {
-		exp_time = "30"
+		exp_time = os.Getenv("VNET_TOKEN_EXPIRE")
 	}
 
 	i, err := strconv.ParseInt(exp_time, 10, 64)
@@ -62,6 +64,11 @@ func ValidateToken(tokenString string) (*Claims, error) {
 	}
 	  
 	return claims, err
+}
+
+func GenerateAppKey(size int32) string {
+	key := strings.Replace(uuid.New().String(), "-", "", -1)
+	return key[0:size]
 }
 
 func ValidateAppKey(key string) (bool, error) {

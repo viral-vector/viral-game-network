@@ -22,7 +22,8 @@ func init() {
 			DEFINE FIELD date_created ON TABLE System_Config TYPE string;
 			DEFINE FIELD date_updated ON TABLE System_Config TYPE string;
 			DEFINE INDEX idx_system_config_id ON TABLE System_Config COLUMNS id UNIQUE;
-			DEFINE INDEX idx_system_config_key ON TABLE System_Config COLUMNS key UNIQUE;
+			DEFINE INDEX idx_system_config_key ON TABLE System_Config COLUMNS key;
+			DEFINE INDEX idx_system_config_key_version ON TABLE System_Config COLUMNS key,version UNIQUE;
 			`,
 		},
 		// System Event 

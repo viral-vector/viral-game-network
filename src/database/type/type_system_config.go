@@ -1,7 +1,6 @@
 package dbtype
 
 import (
-	"os"
 	"github.com/surrealdb/surrealdb.go/pkg/models"
 )
 
@@ -29,14 +28,6 @@ func (n SystemConfig) TableName() string {
 
 func (n SystemConfig) KeyValMap() map[string]SystemConfig {
 	return map[string]SystemConfig{
-		 "APP_ENV": {
-			Key:  "APP_ENV",
-			Val:  os.Getenv("APP_ENV"),
-			Name: "VNetwork Environment",
-			Type: "text",
-			ReadOnly: true,
-			SortOrder: 0,
-		},
 		"VNET_NAME": {
 			Key:  "VNET_NAME", 
 			Val:  "",

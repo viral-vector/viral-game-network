@@ -9,7 +9,6 @@ import (
 	"time"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
-	form_builder "viral-game-network/src/utils/form_builder"
 	"viral-game-network/src/k8"
 
 	"github.com/gofiber/fiber/v2"
@@ -97,65 +96,6 @@ func Handle_Cluster_Pods_Stop(c *fiber.Ctx) error {
 	}()
 	return c.JSON(fiber.Map{
 		"message": "Stopping all pods",
-	})
-}
-
-// ##> Configs
-func Handle_Configs(c *fiber.Ctx) error {
-	configs, _ := repository.GetSystemConfigs()
-
-	// Clear cache on view
-	if repository.DelSystemConfigsCache() != nil {
-		
-	}
-
-	fields := []form_builder.FormField{}
-	for _, cnfg := range configs {
-		fields = append(fields, form_builder.FormField{
-			Name: 		cnfg.Key,
-			Label:     	cnfg.Name,
-			Type:      	cnfg.Type,
-			Value: 		cnfg.Val,
-			Options:    cnfg.Options,
-			SortOrder:  cnfg.SortOrder,
-			ReadOnly:   cnfg.ReadOnly,
-			Required:  	true,
-		})
-	}
-
-	form := form_builder.Form{
-		Action: "/admin/configs",
-		Method: "POST",
-		Title:  "System Configurations",
-		Fields: fields,
-		Confirm: "Save Configurations?",
-		Submit: "Save",
-		CanReset: true,
-		
-	}
-
-	return c.Render("admin/configs", fiber.Map{
-		"form": form,
-	})
-}
-
-func Handle_Configs_Update_Crud(c *fiber.Ctx) error {
-	configs, _ := repository.GetSystemConfigs()
-	for i := range configs {
-		configs[i].Val = c.FormValue(configs[i].Key)
-	}
-
-	repository.PopSystemConfigs(&configs)
-
-	systemEvent := dbtype.SystemEvent{
-		Severity: "info",
-		Message:  "Settings Save: Success",
-		Ref_Source: "system",
-	}
-	repository.PutSystemEvent(&systemEvent)
-
-	return c.JSON(fiber.Map{
-		"message": "Settings Saved",
 	})
 }
 

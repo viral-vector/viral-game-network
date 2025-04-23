@@ -8,6 +8,51 @@ div#app.my-5.mx-3
                 include partials/modal_prompt.pug
                 include partials/notification.pug
                 section.content
-                    h3.subtitle Configurations
-                    hr
-                    include partials/form.pug
+                    h4.subtitle Configurations
+                hr
+                .tabs-group
+                    .tabs.is-centered.is-fullwidth.is-small
+                        ul
+                            li.is-active(data-tab="config")
+                                a
+                                    span.icon.is-small
+                                        i.fa.fa-gear(aria-hidden='true')
+                                    span Configs
+                            li(data-tab="keys")
+                                a
+                                    span.icon.is-small
+                                        i.fa.fa-key(aria-hidden='true')
+                                    span Api Keys
+                    .item#tab-config
+                        include partials/form.pug
+                    .item#tab-keys(style="display:none;", data-controller="api_key")
+                        p.p-3
+                            a.is-text.has-text-primary(data-api_key-target="addkey")
+                                span.icon
+                                    span.fas.fa-plus-circle
+                                | Add Key
+                        form.form.level(action="/admin/configs/apikey", method="post", data-api_key-target="addkeyForm", data-confirm-message="Are you sure you want to add the key?", style="display:none;")
+                            .level-item
+                                p Leave key blank for auto generated.
+                            .level-item
+                                .search.field.has-addons
+                                    p.control
+                                        input.input(type='text', name="name", value="", placeholder='name', required)
+                                    p.control
+                                        input.input(type='text', name="key",  value="", placeholder='key')
+                                    p.control
+                                        button.button.is-primary
+                                            span.icon.is-small
+                                                i.fa.fa-plus
+                        .box.list
+                            .grid.list-head
+                                .cell
+                                    strong Name
+                                .cell
+                                    strong Key
+                                .cell
+                                    strong Date Created
+                            .list-body(data-api_key-target="keylist")
+                                each key in .keys
+                                    include partials/configs/list_item_api_key.pug
+ 

@@ -16,7 +16,7 @@ func DelSystemConfigsCache() error {
 }
 
 func GetSystemConfigs() ([]dbtype.SystemConfig, error) {
-	// Check if we have a lock on the lobby
+	// Check if we have cache
 	if cached, _ := cache.Get[[]dbtype.SystemConfig]("system-configs"); cached != nil {
 		return cached, nil
 	}
@@ -94,4 +94,46 @@ func GetConfigValue(key string) *string {
 		}
 	}
 	return nil
+}
+
+func GetConfig(id string) (*dbtype.SystemConfig, error) {
+	// Get config.
+	configs, err := database.Query[dbtype.SystemConfig](
+		`SELECT * FROM type::record($id);`,
+		map[string]interface{}{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(configs) == 0 {
+		return nil, fmt.Errorf("Config not found")
+	}
+
+	return &configs[0], nil
+}
+
+func SelConfig(key string) (*dbtype.SystemConfig, error) {
+	// Sel config.
+	configs, err := database.Query[dbtype.SystemConfig](
+		`SELECT * FROM type::table(System_Config) WHERE key=$key;`,
+		map[string]interface{}{
+			"key": key,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(configs) == 0 {
+		return nil, fmt.Errorf("Config not found")
+	}
+
+	return &configs[0], nil
+}
+
+func DelConfig(id string, config *dbtype.SystemConfig) error {
+	return database.Delete(*config.ID)
 }
