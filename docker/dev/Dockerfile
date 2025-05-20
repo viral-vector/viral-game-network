@@ -33,11 +33,11 @@ WORKDIR /certs
 
 # Generate SSL certificates in a single layer
 RUN mkdir -p ./ssl && \
-    openssl genrsa -out ./ssl/vgn.server.key 2048 && \
-    openssl req -new -x509 -key ./ssl/vgn.server.key -out ./ssl/vgn.server.crt -days 365 -subj "/CN=vgn-server.local" && \
-    openssl genrsa -out ./ssl/vgn.client.key 2048 && \
-    openssl req -new -key ./ssl/vgn.client.key -subj "/CN=vgn-server.local" -out ./ssl/vgn.client.csr && \
-    openssl x509 -req -in ./ssl/vgn.client.csr -CA ./ssl/vgn.server.crt -CAkey ./ssl/vgn.server.key -CAcreateserial -out ./ssl/vgn.client.crt -days 365
+    openssl genrsa -out ./ssl/tls.key 2048 && \
+    openssl req -new -x509 -key ./ssl/tls.key -out ./ssl/tls.crt -days 365 -subj "/CN=vgn-server.local" && \
+    openssl genrsa -out ./ssl/tls.client.key 2048 && \
+    openssl req -new -key ./ssl/tls.client.key -subj "/CN=vgn-server.local" -out ./ssl/tls.client.csr && \
+    openssl x509 -req -in ./ssl/tls.client.csr -CA ./ssl/tls.crt -CAkey ./ssl/tls.key -CAcreateserial -out ./ssl/tls.client.crt -days 365
 
 # Stage 3: Runtime stage
 FROM golang:1.24-alpine

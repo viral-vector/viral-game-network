@@ -40,12 +40,12 @@ func ServeApp() {
 	go bootstrap()
 	// Serve static files from the public folder
 	app.Static("/", "./public")
-	// Register routes
+	// Register routes 
 	serve_routes(app)
 	// Start the job scheduler
 	job.Start()
 	// Log Errors
 	log.Fatal(app.ListenTLS(":" + os.Getenv("VNET_PORT"),
-	"/app/bin/ssl/vgn.server.crt",
-	"/app/bin/ssl/vgn.server.key"))
+	"/app/bin/ssl/tls.crt",
+	"/app/bin/ssl/tls.key"))
 }

@@ -20,7 +20,7 @@ import (
 
 var ctx = context.Background()
 var config *rest.Config
-var namespace = "viral-game-network"
+var namespace = "vgn-app"
 var clientset *kubernetes.Clientset
 var portRange = []int32{30000, 30030}
 var kubeconfig = "/root/.config/k3d/kubeconfig-viral-game-network.yaml"
