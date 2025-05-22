@@ -2,6 +2,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts');
+const WebpackPwaManifest = require('webpack-pwa-manifest');
 
 const path = require('path');
 
@@ -20,18 +21,6 @@ module.exports = (env, argv) => {
         },
         module: {
             rules: [
-                // Copy JSON manifest
-                {
-                    test: /pwa_manifest\.json$/,
-                    type: 'asset/resource',
-                    generator: { filename: 'manifest.json' }
-                },
-                // Copy service worker
-                {
-                    test: /pwa_service_worker\.js$/,
-                    type: 'asset/resource',
-                    generator: { filename: 'service_worker.js' }
-                },
                 {
                     test: /\.js$/,
                     loader: 'babel-loader',
@@ -83,6 +72,31 @@ module.exports = (env, argv) => {
                 filename: 'css/[name].css',
                 chunkFilename: 'css/[name].chunk.css',
             }),
+            new WebpackPwaManifest({
+                name: 'VGN',
+                short_name: 'VGN',
+                start_url: '.',
+                display: 'standalone',
+                theme_color: "#000000",
+                background_color: '#ffffff',
+                description: 'Viral Game Network manifest',
+                orientation: "portrait",
+                scope: "/",
+                lang: "en-US",
+                icons: [
+                    {
+                        src: path.resolve('./../public/images/vgn.webp'),
+                        sizes: [96, 128, 192, 256, 384, 512], // multiple image sizes
+                        destination: path.join('images')
+                    },
+                    {
+                        src: path.resolve('./../public/images/vgn.webp'),
+                        size: '1024x1024',                // generates one 1024×1024 icon
+                        purpose: 'maskable',
+                        destination: path.join('images')
+                    }
+                ]
+            }),
             ...(isProduction ? [
                 new CompressionPlugin({
                     test: /\.(js|css|html|svg)$/,
@@ -96,7 +110,6 @@ module.exports = (env, argv) => {
             },
             extensions: ['.js', '.scss']
         },
-
         optimization: {
             moduleIds: 'deterministic',
             runtimeChunk: 'single',
@@ -135,14 +148,11 @@ module.exports = (env, argv) => {
                 }),
             ],
         },
-
         performance: {
             hints: isProduction ? 'warning' : false,
             maxEntrypointSize: 512000,
             maxAssetSize: 512000
         },
-
-        // Control generation of source maps
         devtool: isProduction ? 'source-map' : 'eval-source-map',
     };
 };

@@ -1,6 +1,3 @@
-import './pwa_manifest.json';
-import './pwa_service_worker.js';
-
 import { Application } from '@hotwired/stimulus';
 import { IdleTimer } from './utils/IdleTimer'; 
 
@@ -19,17 +16,6 @@ const idle = new IdleTimer(1 * 60 * 1000, () => {
 }, () => {
     window.userIdle = false; // Set the user as active again
 });
-
-// Service worker registration
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service_worker.js')
-    .then(registration => {
-        console.log('Service Worker registered with scope:', registration.scope);
-    })
-    .catch(error => {
-        console.error(error);
-    });
-}
 
 // Automatically register Stimulus controllers
 ctx.keys().forEach((key) => {

@@ -16,8 +16,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 # Stage 2: Runtime with only the binary
 FROM scratch
 COPY --from=builder /app/app /app/app
-# Copy the views folder
+# Copy the public folders
 COPY --from=builder /app/views ./views
+COPY --from=builder /app/public ./public
 
 # Use an unprivileged user (65532 is “nobody” on many base images)
 USER 65532
