@@ -19,7 +19,7 @@ func serve_routes(app *fiber.App) {
 	app.Use(helmet.New())
 	app.Use(logger.New(logger.Config{
 		Format:     "${pid} ${status} - ${method} ${path}\n",
-		TimeFormat: "02-Jan-2006",
+		TimeFormat: "01-Jan-2000",
 		TimeZone:   "America/New_York",
 	}))
 	app.Use(func(c *fiber.Ctx) error {
@@ -65,7 +65,7 @@ func serve_routes(app *fiber.App) {
 	admin := app.Group("/admin")
 	// Rate Limit
 	admin.Use(limiter.New(limiter.Config{
-		Max:               30,
+		Max:               100,
 		Expiration:        1 * time.Second,
 		LimiterMiddleware: limiter.SlidingWindow{},
 		Storage: redis.New(redis.Config{
@@ -138,7 +138,7 @@ func serve_routes(app *fiber.App) {
 
 	// Rate Limit
 	gapi.Use(limiter.New(limiter.Config{
-		Max:               100,
+		Max:               250,
 		Expiration:        1 * time.Second,
 		LimiterMiddleware: limiter.SlidingWindow{},
 		Storage: redis.New(redis.Config{

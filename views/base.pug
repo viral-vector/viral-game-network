@@ -10,7 +10,7 @@ html(lang="en")
     link(rel="manifest", href="/manifest.json")
     link(rel="stylesheet", type="text/css", href="/css/admin.css")
     script(async="async", type="text/javascript", src="/vendors.js")
-    script(async="async", type="text/javascript", src="/runtime.js")
+    script(defer="defer", type="text/javascript", src="/runtime.js")
     script(defer="defer", type="text/javascript", src="/admin.js")
   body(data-controller="header_footer authentication tabs progress", data-header_footer-route-value=.route.path)
     | {{embed}}

@@ -7,10 +7,10 @@ import (
 	dbtype "viral-game-network/src/database/type"
 )
 
-func GenAdmin(password string) (*dbtype.Admin, error) {
+func GenAdmin(username string, password string) (*dbtype.Admin, error) {
 	admin, err := PutAdmin(&dbtype.Admin{
-		Name:     	"viral-vector",
-		Email: 		"vectorviral@gmail.com",
+		Name:     	username,
+		Email: 		username,
 		Phone: 		"1234567890",
 		Password: 	password,
 	})

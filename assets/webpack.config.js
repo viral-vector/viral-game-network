@@ -73,6 +73,7 @@ module.exports = (env, argv) => {
                 chunkFilename: 'css/[name].chunk.css',
             }),
             new WebpackPwaManifest({
+                filename: 'manifest.json',
                 name: 'VGN',
                 short_name: 'VGN',
                 start_url: '.',

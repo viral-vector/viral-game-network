@@ -37,7 +37,12 @@ func ServeApp() {
 	})
 
 	// bootstrap the application
-	go bootstrap()
+	go bootstrap(map[string]string{
+		"appKey": os.Getenv("VNET_KEY"),
+		"appName": os.Getenv("VNET_NAME"),
+		"adminUsername": os.Getenv("APP_ADMIN_USERNAME"),
+		"adminPassword": os.Getenv("APP_ADMIN_PASSWORD"),
+	})
 	// Serve static files from the public folder
 	app.Static("/", "./public")
 	// Register routes 
