@@ -7,7 +7,7 @@ Viral-Network (Viral Games Network Backend) is a game backend server written in 
 * Game Network Backend Server written in Golang 
 * 1.0.0
 
-## Commands
+## Operations & Commands
 1. VGN Image to registry
     * docker login -u [email] -p YOUR_DO_API_TOKEN registry.digitalocean.com
     * docker build -f docker/Dockerfile -t registry.digitalocean.com/vgn-global-registry/vgn:1.0.0 . 

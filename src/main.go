@@ -44,8 +44,11 @@ func ServeApp() {
 	serve_routes(app)
 	// Start the job scheduler
 	job.Start()
-	// Log Errors
-	log.Fatal(app.ListenTLS(":" + os.Getenv("VNET_PORT"),
-	"/app/bin/ssl/tls.crt",
-	"/app/bin/ssl/tls.key"))
+
+	// Listen & Log
+	log.Fatal(app.Listen(":" + os.Getenv("VNET_PORT")))
+	// Listen & Log TLS
+	// log.Fatal(app.Listen(":" + os.Getenv("VNET_PORT"),
+		// "/app/bin/ssl/tls.crt",
+		// "/app/bin/ssl/tls.key"))
 }
