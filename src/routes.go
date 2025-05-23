@@ -30,7 +30,7 @@ func serve_routes(app *fiber.App) {
 			"http": c.BaseURL() + c.Path(),
 		})
 		c.Locals("app_env", os.Getenv("APP_ENV"))
-		c.Locals("app_env_dev",strings.HasPrefix(os.Getenv("APP_ENV"), "dev"))
+		c.Locals("app_env_dev", strings.HasPrefix(os.Getenv("APP_ENV"), "dev"))
 		c.Locals("title", "VGN - " + c.Path())
 		return c.Next()
 	})

@@ -14,7 +14,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags="-s -w" -o /app/app ./src
 
 # Stage 2: Runtime with only the binary
-FROM scratch
+FROM alpine:3.21
 COPY --from=builder /app/app /app/app
 # Copy the public folders
 COPY --from=builder /app/views ./views
