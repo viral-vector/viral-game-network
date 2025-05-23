@@ -24,16 +24,17 @@
                     | #{.cluster.error}   
     footer.card-footer.py-5.px-3
         div.field.is-grouped
-            form.form(action="/admin/cluster/start", method="post", data-confirm-message="Start the Cluster?")
-                button.button.is-primary(type="submit") 
-                    i.fas.fa-play
-                    | &nbsp;
-                    | Start Cluster
-            form.form(action="/admin/cluster/stop", method="post",  data-confirm-message="Stop the Cluster?")
-                button.button.is-danger(type="submit") 
-                    i.fas.fa-ban
-                    | &nbsp;
-                    | Stop Cluster
+            if .app_env_dev 
+                form.form(action="/admin/cluster/start", method="post", data-confirm-message="Start the Cluster?")
+                    button.button.is-primary(type="submit") 
+                        i.fas.fa-play
+                        | &nbsp;
+                        | Start Cluster
+                form.form(action="/admin/cluster/stop", method="post",  data-confirm-message="Stop the Cluster?")
+                    button.button.is-danger(type="submit") 
+                        i.fas.fa-ban
+                        | &nbsp;
+                        | Stop Cluster
             form.form(action="/admin/cluster/pods/stop", method="post",  data-confirm-message="Stop all Pods?")
                 button.button.is-danger(type="submit") 
                     i.fas.fa-ban

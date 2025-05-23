@@ -26,7 +26,7 @@ func ServeApp() {
 	})
 	// Create a new Fiber app
 	app := fiber.New(fiber.Config{
-		Prefork:           os.Getenv("development") == "production",
+		Prefork:           false,
 		CaseSensitive:     true,
 		StrictRouting:     false,
 		ServerHeader:      "VGN",
@@ -49,11 +49,6 @@ func ServeApp() {
 	serve_routes(app)
 	// Start the job scheduler
 	job.Start()
-
 	// Listen & Log
 	log.Fatal(app.Listen(":" + os.Getenv("VNET_PORT")))
-	// Listen & Log TLS
-	// log.Fatal(app.Listen(":" + os.Getenv("VNET_PORT"),
-		// "/app/bin/ssl/tls.crt",
-		// "/app/bin/ssl/tls.key"))
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"time"
+	"strings"
 	"viral-game-network/src/handler"
 	handler_admin "viral-game-network/src/handler/admin"
 	"viral-game-network/src/middleware"
@@ -28,6 +29,8 @@ func serve_routes(app *fiber.App) {
 			"path": c.Path(),
 			"http": c.BaseURL() + c.Path(),
 		})
+		c.Locals("app_env", os.Getenv("APP_ENV"))
+		c.Locals("app_env_dev",strings.HasPrefix(os.Getenv("APP_ENV"), "dev"))
 		c.Locals("title", "VGN - " + c.Path())
 		return c.Next()
 	})
