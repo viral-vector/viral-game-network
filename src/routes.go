@@ -72,7 +72,7 @@ func serve_routes(app *fiber.App) {
 		Expiration:        1 * time.Second,
 		LimiterMiddleware: limiter.SlidingWindow{},
 		Storage: redis.New(redis.Config{
-			URL: "redis://root:@" + os.Getenv("CACHE_ENDPOINT") + "/0",
+			URL: "redis://:" + os.Getenv("CACHE_PASSWORD") + "@" + os.Getenv("CACHE_ENDPOINT") + "/0",
 		}),
 	}))
 	// Token Validation
@@ -145,7 +145,7 @@ func serve_routes(app *fiber.App) {
 		Expiration:        1 * time.Second,
 		LimiterMiddleware: limiter.SlidingWindow{},
 		Storage: redis.New(redis.Config{
-			URL: "redis://root:@" + os.Getenv("CACHE_ENDPOINT") + "/0",
+			URL: "redis://:" + os.Getenv("CACHE_PASSWORD") + "@" + os.Getenv("CACHE_ENDPOINT") + "/0",
 		}),
 	}))
 
