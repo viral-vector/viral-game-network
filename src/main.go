@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	cmd := os.Getenv("VGN_JOB_NAME")
+	cmd := os.Getenv("VNET_JOB_NAME")
 	// Start app in env
 	log.Println("Starting VGN", cmd)
 	if cmd != "" {
