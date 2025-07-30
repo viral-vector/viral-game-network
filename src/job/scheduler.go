@@ -12,7 +12,7 @@ type Entry struct {
 	Func func()
 }
 
-func stack() []Entry {
+func Stack() []Entry {
 	/**
 	 *
 	 */
@@ -42,7 +42,7 @@ func stack() []Entry {
 
 func Start() {
 	run := cron.New(cron.WithSeconds())
-	for _, v := range stack() {
+	for _, v := range Stack() {
 		log.Println("Scheduling Job: ", v.Name)
 		run.AddFunc(v.Time, v.Func)
 	}

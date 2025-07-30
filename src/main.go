@@ -11,7 +11,14 @@ import (
 )
 
 func main() {
-	ServeApp()
+	cmd := os.Getenv("VGN_JOB_NAME")
+	// Start app in env
+	log.Println("Starting VGN", cmd)
+	if cmd != "" {
+		ServeCMD(cmd)
+	} else {
+		ServeApp()
+	}
 }
 
 func ServeApp() {
@@ -47,8 +54,23 @@ func ServeApp() {
 	app.Static("/", "./public")
 	// Register routes 
 	serve_routes(app)
-	// Start the job scheduler
-	job.Start()
 	// Listen & Log
 	log.Fatal(app.Listen(":" + os.Getenv("VNET_PORT")))
+}
+
+func ServeCMD(name string) {
+	// Start the job
+	entries := job.Stack()
+
+	var selected *job.Entry
+    for i := range entries {
+        if entries[i].Name == name {
+            selected = &entries[i]
+            break
+        }
+    }
+    if selected == nil {
+        log.Fatalf("No job with name %q found", name)
+    }
+    selected.Func()
 }

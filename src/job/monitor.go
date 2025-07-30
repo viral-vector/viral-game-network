@@ -15,12 +15,10 @@ import (
 func Job_Monitoring() {
 	// Check if we have a monitoring lock
 	if cache_lock, _ := cache.Get[string]("monitoring-cluster-events"); cache_lock == "" {
-		go func() {
-			// Lock monitoring
-			cache.Set[string]("monitoring-cluster-events", "true", time.Second * 5)
-			// RUN
-			RUN_Monitoring_ClusterEvents()
-		}()
+		// Lock monitoring
+		cache.Set[string]("monitoring-cluster-events", "true", time.Second * 5)
+		// RUN
+		RUN_Monitoring_ClusterEvents()
 	}
 }
 
