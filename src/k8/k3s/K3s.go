@@ -23,3 +23,15 @@ func CheckCluster() (bool, error) {
 
 	return false, nil
 }
+
+func DeleteCluster() error {
+	return nil
+}
+
+func CreateCluster(portMin int32, portMax int32) error {
+	return nil
+}
+
+func CheckCluster() (bool, error) {
+	return false, nil
+}
