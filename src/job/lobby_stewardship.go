@@ -1,6 +1,7 @@
 package job
 
 import (
+	"context"
 	"log"
 	"strconv"
 	"strings"
@@ -37,11 +38,6 @@ func Job_Lobby_Stewardship() {
 		}
 		label := parts[1]
 
-		// Skip if there's already a lock for this lobby.
-		if lock, _ := cache.Get[string]("lobby-stewardship-lock-" + label); lock != "" {
-			continue
-		}
-
 		wg.Add(1)
 		sem <- struct{}{} // acquire a semaphore slot
 
@@ -49,16 +45,24 @@ func Job_Lobby_Stewardship() {
 			defer wg.Done()
 			defer func() { <-sem }() // release semaphore when done
 
-			// Lock the lobby for stewardship.
-			if err := cache.Set[string]("lobby-stewardship-lock-"+label, "true", 15*time.Second); err != nil {
-				log.Printf("[Job_Lobby_Stewardship]ERROR: locking lobby %s: %v", label, err)
-				return
+			_, lockErr := cache.WithLock(context.Background(), "lobby-lifecycle-lock-"+label, 60*time.Second, func(ctx context.Context) error {
+				if err := ctx.Err(); err != nil {
+					return err
+				}
+				// Run the stewardship logic.
+				fresh, err := repository.GetLobby(lobby.ModelID())
+				if err != nil {
+					return err
+				}
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				runLobbyStewardship(ctx, fresh)
+				return nil
+			})
+			if lockErr != nil {
+				log.Printf("lobby lifecycle: %v", lockErr)
 			}
-			// Ensure the lock is removed regardless of errors.
-			defer cache.Del("lobby-stewardship-lock-" + label)
-
-			// Run the stewardship logic.
-			RUN_Lobby_Stewardship(&lobby)
 		}(lobby, label)
 	}
 
@@ -67,6 +71,10 @@ func Job_Lobby_Stewardship() {
 
 // RUN_Lobby_Stewardship processes a single lobby to check its persistence and potentially purge it.
 func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
+	runLobbyStewardship(context.Background(), lobby)
+}
+
+func runLobbyStewardship(ctx context.Context, lobby *dbtype.Lobby) {
 	if lobby == nil || lobby.ID == nil || (lobby.Lobby_Application == nil || lobby.Lobby_Application.ID == nil) {
 		log.Println("[Job_Lobby_Stewardship]ERROR: missing lobby or application")
 		return
@@ -97,15 +105,25 @@ func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
 
 	// If the lobby has been active longer than allowed, purge it.
 	if diffMinutes > lobbyMaxPersist {
+		if ctx.Err() != nil {
+			return
+		}
 		// Notify lobby users.
 		msg := "Server:Lobby Closed"
 		ministration.Service_Lobby_Notify(lobby.ID.String(), msg, "")
 		log.Printf("[Job_Lobby_Stewardship]: Closing lobby %s", lobby.ID.String())
+		if ctx.Err() != nil {
+			return
+		}
 		// Delete the associated server, if it exists.
 		if lobby.Lobby_Server != nil {
 			if err := repository.DelServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
 				log.Printf("[Job_Lobby_Stewardship]ERROR: deleting server for lobby %s: %v", lobby.ID.String(), err)
+				return
 			}
+		}
+		if ctx.Err() != nil {
+			return
 		}
 		// Delete the lobby.
 		if err := repository.DelLobby(lobby.ID.String(), lobby); err != nil {

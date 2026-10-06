@@ -1,6 +1,7 @@
 package job
 
 import (
+	"context"
 	"errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"log"
@@ -40,46 +41,56 @@ func Job_Lobby_Server_Provisioner() {
 		}
 		label := parts[1]
 
-		// Check if a lock exists.
-		if lock, _ := cache.Get[string]("provisioner-lock-" + label); lock != "" {
-			continue
-		}
-
 		wg.Add(1)
 		sem <- struct{}{} // acquire semaphore
 		go func(lobby dbtype.Lobby, label string) {
 			defer wg.Done()
 			defer func() { <-sem }() // release semaphore
 
-			// Lock the lobby (30-second duration).
-			if err := cache.Set[string]("provisioner-lock-"+label, "true", 60*time.Second); err != nil {
-				log.Printf("[Job_Lobby_Server_Provisioner]ERROR: locking lobby %s: %v", label, err)
-				return
-			}
-			defer cache.Del("provisioner-lock-" + label)
-
-			// Locate existing server pod.
-			lobpod, podErr := k8.GetServerPod(label)
-			if podErr != nil && !apierrors.IsNotFound(podErr) {
-				log.Printf("[Job_Lobby_Server_Provisioner]ERROR: reading pod %s: %v", label, podErr)
-				return
-			}
-
-			// If no server pod exists, but a Server record is present, delete it.
-			if lobpod == nil && lobby.Lobby_Server != nil {
-				log.Printf("[Job_Lobby_Server_Provisioner]: Deleting lobby %s server", label)
-				if err := repository.DelServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
-					log.Printf("[Job_Lobby_Server_Provisioner]ERROR: deleting lobby %s server: %v", label, err)
-					return
+			_, lockErr := cache.WithLock(context.Background(), "lobby-lifecycle-lock-"+label, 60*time.Second, func(ctx context.Context) error {
+				if err := ctx.Err(); err != nil {
+					return err
 				}
-				lobby.Lobby_Server = nil
-			}
-
-			// If no server is provisioned, and criteria are met, run provisioning.
-			if lobby.Lobby_Server == nil {
-				if err := RUN_Lobby_Server_Provisioner(&lobby, label); err == nil {
-					log.Printf("[Job_Lobby_Server_Provisioner]: Server created for lobby %s", label)
+				fresh, err := repository.GetLobby(lobby.ModelID())
+				if err != nil {
+					return err
 				}
+				if fresh == nil {
+					return nil
+				}
+				lobby = *fresh
+				// Locate existing server pod.
+				lobpod, podErr := k8.GetServerPod(label)
+				if podErr != nil && !apierrors.IsNotFound(podErr) {
+					log.Printf("[Job_Lobby_Server_Provisioner]ERROR: reading pod %s: %v", label, podErr)
+					return nil
+				}
+
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				// If no server pod exists, but a Server record is present, delete it.
+				if lobpod == nil && lobby.Lobby_Server != nil {
+					log.Printf("[Job_Lobby_Server_Provisioner]: Deleting lobby %s server", label)
+					if err := repository.DelServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
+						log.Printf("[Job_Lobby_Server_Provisioner]ERROR: deleting lobby %s server: %v", label, err)
+						return nil
+					}
+					lobby.Lobby_Server = nil
+				}
+
+				// If no server is provisioned, and criteria are met, run provisioning.
+				if lobby.Lobby_Server == nil {
+					if err := provisionWithLock(ctx, &lobby, label); err == nil {
+						log.Printf("[Job_Lobby_Server_Provisioner]: Server created for lobby %s", label)
+					} else {
+						return err
+					}
+				}
+				return nil
+			})
+			if lockErr != nil {
+				log.Printf("lobby lifecycle: %v", lockErr)
 			}
 		}(lobby, label)
 	}
@@ -88,6 +99,21 @@ func Job_Lobby_Server_Provisioner() {
 }
 
 func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
+	return provisionWithLock(context.Background(), lobby, label)
+}
+
+func provisionWithLock(parent context.Context, lobby *dbtype.Lobby, label string) error {
+	held, err := cache.WithLock(parent, "server-port-allocation-lock", 60*time.Second, func(ctx context.Context) error { return provisionLobbyServer(ctx, lobby, label) })
+	if err != nil {
+		return err
+	}
+	if !held {
+		return errors.New("server port allocation busy; retry provisioning")
+	}
+	return nil
+}
+
+func provisionLobbyServer(ctx context.Context, lobby *dbtype.Lobby, label string) error {
 	if lobby == nil || lobby.ID == nil || (lobby.Lobby_Application == nil || lobby.Lobby_Application.ID == nil) {
 		return errors.New("missing lobby or application")
 	}
@@ -145,6 +171,9 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 		image += ":" + lobby.Lobby_Application.Version
 	}
 
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 	// Create the server pod.
 	lobpod, err = k8.CreateServerPod(label, node, int32(sPort), int32(aPort), image, cmd, env)
 	if err != nil {
@@ -152,6 +181,9 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 		return err
 	}
 
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 	// Create a server DB entry.
 	server, err := repository.PutServer(&dbtype.Server{
 		Name:    lobby.Name,
@@ -167,6 +199,9 @@ func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
 		return err
 	}
 
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 	// Link the lobby with the server.
 	if err := repository.LinkLobbyServer(lobby, server); err != nil {
 		k8.DeleteServerPod(label)

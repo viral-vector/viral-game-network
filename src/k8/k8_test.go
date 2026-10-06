@@ -90,6 +90,36 @@ func TestNodePortSelectionAndExhaustion(t *testing.T) {
 	}
 }
 
+func TestPendingAndOtherNamespacePodsReserveHostPorts(t *testing.T) {
+	oldRange := portRange
+	portRange = []int32{30000, 30000}
+	t.Cleanup(func() { portRange = oldRange })
+	for _, tc := range []struct {
+		name, namespace, node string
+		selector              map[string]string
+	}{
+		{"pending", namespace, "", map[string]string{"kubernetes.io/hostname": "worker"}},
+		{"other namespace", "another-app", "worker", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			pod := &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "reserved", Namespace: tc.namespace}, Spec: v1.PodSpec{NodeName: tc.node, NodeSelector: tc.selector, Containers: []v1.Container{{Ports: []v1.ContainerPort{{HostPort: 30000}}}}}}
+			client := fakeCluster(t, &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "worker"}}, pod)
+			// client-go's default fake ignores field selectors. Model real API filtering.
+			client.PrependReactor("list", "pods", func(action ktesting.Action) (bool, runtime.Object, error) {
+				list := action.(ktesting.ListAction)
+				items := []v1.Pod{}
+				if (action.GetNamespace() == "" || action.GetNamespace() == pod.Namespace) && (list.GetListRestrictions().Fields.Empty() || pod.Spec.NodeName == "worker") {
+					items = append(items, *pod)
+				}
+				return true, &v1.PodList{Items: items}, nil
+			})
+			if _, _, err := FindOpenNodePort(); err == nil {
+				t.Fatal("reserved host port allocated again")
+			}
+		})
+	}
+}
+
 func TestEmptyClusterAndMissingConfiguration(t *testing.T) {
 	fakeCluster(t)
 	if _, _, err := FindOpenNodePort(); err == nil {

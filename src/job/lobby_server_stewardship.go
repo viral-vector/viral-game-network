@@ -1,6 +1,7 @@
 package job
 
 import (
+	"context"
 	"fmt"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"log"
@@ -36,25 +37,23 @@ func Job_Lobby_Server_Stewardship() {
 		// Capture the pod value to avoid closure issues.
 		pod := pod
 
-		// Check if there's already a lock for this pod.
-		if lock, _ := cache.Get[string]("server-stewardship-lock-" + pod.Name); lock != "" {
-			continue
-		}
-
 		wg.Add(1)
 		sem <- struct{}{} // acquire a semaphore slot
 
 		go func(pod *v1.Pod, podName string) {
 			defer wg.Done()
 			defer func() { <-sem }() // release semaphore when done
-			// Lock the pod for stewardship.
-			if err := cache.Set[string]("server-stewardship-lock-"+podName, "true", 30*time.Second); err != nil {
-				log.Printf("[Job_Lobby_Server_Stewardship]ERROR: locking pod %s: %v", podName, err)
-				return
+			_, lockErr := cache.WithLock(context.Background(), "lobby-lifecycle-lock-"+podName, 60*time.Second, func(ctx context.Context) error {
+				if err := ctx.Err(); err != nil {
+					return err
+				}
+				// Run the main stewardship process.
+				runServerStewardship(ctx, pod)
+				return nil
+			})
+			if lockErr != nil {
+				log.Printf("lobby lifecycle: %v", lockErr)
 			}
-			defer cache.Del("server-stewardship-lock-" + podName)
-			// Run the main stewardship process.
-			RUN_Lobby_Server_Stewardship(pod)
 		}(pod, pod.Name)
 	}
 
@@ -63,6 +62,10 @@ func Job_Lobby_Server_Stewardship() {
 
 // RUN_Lobby_Server_Stewardship processes a single pod.
 func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
+	runServerStewardship(context.Background(), pod)
+}
+
+func runServerStewardship(ctx context.Context, pod *v1.Pod) {
 	if pod == nil {
 		return
 	}
@@ -79,15 +82,18 @@ func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: fetching lobby for %s: %v", lobpod.Name, err)
 		return
 	}
+	if ctx.Err() != nil {
+		return
+	}
 	// Pending and terminal pods can be cleaned up before a node is assigned.
 	if lobby == nil || lobby.Lobby_Server == nil {
-		if err := RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, nil); err != nil {
+		if err := purgeServer(ctx, lobby, lobpod); err != nil {
 			log.Printf("[Job_Lobby_Server_Stewardship]ERROR: purging orphan %s: %v", lobpod.Name, err)
 		}
 		return
 	}
 	if lobpod.Status.Phase == v1.PodFailed || lobpod.Status.Phase == v1.PodSucceeded {
-		if err := RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, nil); err != nil {
+		if err := purgeServer(ctx, lobby, lobpod); err != nil {
 			log.Printf("[Job_Lobby_Server_Stewardship]ERROR: purging pod %s: %v", lobpod.Name, err)
 			return
 		}
@@ -113,6 +119,9 @@ func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 	if server.Status == previousStatus && server.Address == previousAddress && server.Port == previousPort {
 		return
 	}
+	if ctx.Err() != nil {
+		return
+	}
 	if _, err := repository.SetServer(server.ModelID(), server); err != nil {
 		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: updating server for %s: %v", lobpod.Name, err)
 		return
@@ -128,6 +137,13 @@ func RUN_Lobby_Server_Stewardship_Running(lobby *dbtype.Lobby, pod *v1.Pod, node
 
 // RUN_Lobby_Server_Stewardship_Purger cleans up a server pod and server record.
 func RUN_Lobby_Server_Stewardship_Purger(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) error {
+	return purgeServer(context.Background(), lobby, pod)
+}
+
+func purgeServer(ctx context.Context, lobby *dbtype.Lobby, pod *v1.Pod) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 	if pod == nil {
 		return fmt.Errorf("missing server pod")
 	}
@@ -137,6 +153,9 @@ func RUN_Lobby_Server_Stewardship_Purger(lobby *dbtype.Lobby, pod *v1.Pod, node 
 	server, err := repository.GetServerByGuid(pod.Name)
 	if err != nil {
 		return err
+	}
+	if ctx.Err() != nil {
+		return ctx.Err()
 	}
 	if server != nil {
 		if server.ID == nil {

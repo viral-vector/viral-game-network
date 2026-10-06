@@ -227,64 +227,72 @@ func FindOpenNodePort() (*v1.Node, int32, error) {
 		return nil, -1, fmt.Errorf("error listing nodes: %s", err.Error())
 	}
 
-	// Final return values
-	nodeIndex := ""
-	portFinal := int32(-1)
-
-	// Create map of node ports
-	nodePorts := make(map[string][]int32)
-	for _, node := range nodes.Items {
-		nodePorts[node.Name] = []int32{}
-		// Get the list of pods on each node & Collect used ports
-		pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-			FieldSelector: "spec.nodeName=" + node.Name,
-		})
-		if err != nil {
-			log.Printf("FindOpenNodePort: @ Error %s: %s", node.Name, err.Error())
+	// Read all namespaces so ports used by other applications are reserved too.
+	pods, err := clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, -1, fmt.Errorf("list host port reservations: %w", err)
+	}
+	var selected *v1.Node
+	var available []int32
+	for i := range nodes.Items {
+		node := &nodes.Items[i]
+		if node.Spec.Unschedulable {
 			continue
 		}
-
-		usedPorts := map[string]bool{}
+		ready := true
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == v1.NodeReady && condition.Status != v1.ConditionTrue {
+				ready = false
+			}
+		}
+		if !ready {
+			continue
+		}
+		used := make(map[int32]bool)
 		for _, pod := range pods.Items {
-			// Iterate through each container and its ports.
+			if pod.Spec.NodeName != "" {
+				if pod.Spec.NodeName != node.Name {
+					continue
+				}
+			} else if !podCanUseNode(&pod, node) {
+				continue
+			}
 			for _, container := range pod.Spec.Containers {
 				for _, port := range container.Ports {
-					// If using hostPort, it will be set in this field.
 					if port.HostPort != 0 {
-						usedPorts[strconv.Itoa(int(port.HostPort))] = true
+						used[port.HostPort] = true
 					}
 				}
 			}
 		}
-
-		// Set unused ports
+		ports := []int32{}
 		for _, port := range GetPortRange(portRange[0], portRange[1]) {
-			if _, exists := usedPorts[strconv.Itoa(int(port))]; !exists {
-				nodePorts[node.Name] = append(nodePorts[node.Name], port)
+			if !used[port] {
+				ports = append(ports, port)
 			}
 		}
-	}
-
-	// Find the node with the most ports & select a random port
-	maxPorts := int32(0)
-	for node, ports := range nodePorts {
-		if int32(len(ports)) > maxPorts {
-			maxPorts = int32(len(ports))
-			nodeIndex = node
+		if len(ports) > len(available) {
+			selected = node.DeepCopy()
+			available = ports
 		}
 	}
-	if maxPorts == 0 {
+	if len(available) == 0 {
 		return nil, -1, fmt.Errorf("no open node ports")
 	}
-	portFinal = nodePorts[nodeIndex][rand.Intn(len(nodePorts[nodeIndex]))]
+	return selected, available[rand.Intn(len(available))], nil
+}
 
-	// Get the node
-	nodeFinal, err := GetNode(nodeIndex)
-	if err != nil {
-		return nil, -1, fmt.Errorf("error getting node: %s", err.Error())
+func podCanUseNode(pod *v1.Pod, node *v1.Node) bool {
+	for key, value := range pod.Spec.NodeSelector {
+		actual := node.Labels[key]
+		if key == "kubernetes.io/hostname" && actual == "" {
+			actual = node.Name
+		}
+		if actual != value {
+			return false
+		}
 	}
-
-	return nodeFinal, portFinal, nil
+	return true
 }
 
 // Kill all server pods
