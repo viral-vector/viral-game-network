@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 	"time"
 	"viral-game-network/src/database"
@@ -40,9 +41,7 @@ func AllApplication(count int, pager int, search string) ([]dbtype.Application, 
 	// Count all Applications.
 	total, err := database.Query[dbtype.Total](
 		"SELECT count() AS total FROM type::table(Application) GROUP ALL;",
-		map[string]interface{}{
-			
-		},
+		map[string]interface{}{},
 	)
 	if err != nil || len(total) == 0 {
 		return apps, 0, err
@@ -105,4 +104,20 @@ func PutApplication(app *dbtype.Application) (*dbtype.Application, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	app.Date_Created = now
 	return database.Create[dbtype.Application](app)
+}
+
+var ErrApplicationInUse = errors.New("application is used by a lobby")
+
+func DelApplication(id string, application *dbtype.Application) error {
+	if application == nil || application.ID == nil {
+		return fmt.Errorf("application not found")
+	}
+	links, err := database.Query[dbtype.Total]("SELECT count() AS total FROM Lobby_Application WHERE out=type::record($id) GROUP ALL;", map[string]interface{}{"id": application.ModelID()})
+	if err != nil {
+		return err
+	}
+	if len(links) > 0 && links[0].Total > 0 {
+		return ErrApplicationInUse
+	}
+	return database.Delete(*application.ID)
 }

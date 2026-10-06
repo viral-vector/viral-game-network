@@ -14,9 +14,7 @@ func AllServer(count int, pager int, search string) ([]dbtype.Server, int, error
 		{array::first(SELECT * FROM <-Lobby_Server.in)} ELSE {NULL}) AS lobby 
 	FROM type::table(Server)`
 
-	params := map[string]interface{}{
-		
-	}
+	params := map[string]interface{}{}
 
 	// Search
 	if search != "" {
@@ -42,9 +40,7 @@ func AllServer(count int, pager int, search string) ([]dbtype.Server, int, error
 	// Count all servers.
 	total, err := database.Query[dbtype.Total](
 		"SELECT count() AS total FROM type::table(Server) GROUP ALL;",
-		map[string]interface{}{
-			
-		},
+		map[string]interface{}{},
 	)
 	if err != nil || len(total) == 0 {
 		return servers, 0, err
@@ -59,10 +55,10 @@ func GetServerByGuid(guid string) (*dbtype.Server, error) {
 		map[string]interface{}{
 			"guid": guid,
 		})
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
-	if(len(results) == 0){
+	if len(results) == 0 {
 		return nil, nil
 	}
 	return &results[0], nil
@@ -81,7 +77,7 @@ func GetServer(id string) (*dbtype.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(servers) == 0 { 
+	if len(servers) == 0 {
 		return nil, nil
 	}
 	return &servers[0], nil
@@ -123,6 +119,10 @@ func TickServer(id string) (*dbtype.Server, error) {
 	server, err := GetServer(id)
 	if err != nil {
 		return nil, fmt.Errorf("TickServer Error: %v", err)
+	}
+
+	if server == nil || server.ID == nil {
+		return nil, fmt.Errorf("server not found")
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)

@@ -1,6 +1,7 @@
 package handler_admin
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -19,17 +20,17 @@ func Handle_Applications(c *fiber.Ctx) error {
 	apps, total, _ := repository.AllApplication(perPage, curPage, search)
 
 	return c.Render("admin/applications", fiber.Map{
-		"apps" : apps,
-		"total": total,
-		"pages": int(math.Ceil(float64(total) / float64(perPage))),
-		"paged": curPage,
+		"apps":   apps,
+		"total":  total,
+		"pages":  int(math.Ceil(float64(total) / float64(perPage))),
+		"paged":  curPage,
 		"search": search,
 	})
 }
 
 func Handle_Applications_Create_View(c *fiber.Ctx) error {
 	form, _ := form_builder.GenerateForm(
-		"POST", 
+		"POST",
 		"/admin/application",
 		"create",
 		dbtype.Application{},
@@ -39,7 +40,7 @@ func Handle_Applications_Create_View(c *fiber.Ctx) error {
 	form.Confirm = "Save Application Config?"
 
 	return c.Render("admin/applications", fiber.Map{
-		"form" : form,
+		"form": form,
 	})
 }
 
@@ -63,8 +64,8 @@ func Handle_Applications_Create_Crud(c *fiber.Ctx) error {
 	}
 
 	repository.PutSystemEvent(&dbtype.SystemEvent{
-		Severity: "info",
-		Message:  fmt.Sprintf("Application Create: Success %s", app.Guid) ,
+		Severity:   "info",
+		Message:    fmt.Sprintf("Application Create: Success %s", app.Guid),
 		Ref_Source: "system",
 	})
 
@@ -83,9 +84,9 @@ func Handle_Applications_Update_View(c *fiber.Ctx) error {
 	}
 
 	form, _ := form_builder.GenerateForm(
-		"POST", 
-		"/admin/application/" + application.ID.String(),
-		"update", 
+		"POST",
+		"/admin/application/"+application.ID.String(),
+		"update",
 		application,
 		"Update Application",
 		"Update Application",
@@ -93,7 +94,7 @@ func Handle_Applications_Update_View(c *fiber.Ctx) error {
 	form.Confirm = "Save Application Config?"
 
 	return c.Render("admin/applications", fiber.Map{
-		"form" : form,
+		"form": form,
 	})
 }
 
@@ -122,7 +123,7 @@ func Handle_Applications_Update_Crud(c *fiber.Ctx) error {
 	// Prop Merge
 	dto.ID = application.ID
 	dto.Date_Created = application.Date_Created
- 
+
 	if err := struct_merge.Merge[dbtype.Application](application, dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -131,7 +132,7 @@ func Handle_Applications_Update_Crud(c *fiber.Ctx) error {
 		})
 	}
 	// Set
-	_, err = repository.SetApplication(application.ID.String(), dto)
+	_, err = repository.SetApplication(application.ID.String(), application)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -141,8 +142,8 @@ func Handle_Applications_Update_Crud(c *fiber.Ctx) error {
 	}
 
 	repository.PutSystemEvent(&dbtype.SystemEvent{
-		Severity: "info",
-		Message:  fmt.Sprintf("Application Update: Success %s", application.Name) ,
+		Severity:   "info",
+		Message:    fmt.Sprintf("Application Update: Success %s", application.Name),
 		Ref_Source: "system",
 	})
 
@@ -153,5 +154,19 @@ func Handle_Applications_Update_Crud(c *fiber.Ctx) error {
 }
 
 func Handle_Applications_Delete_Crud(c *fiber.Ctx) error {
-	return nil
+	application, err := repository.GetApplication(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "Application lookup failed"})
+	}
+	if application == nil {
+		return fiber.ErrNotFound
+	}
+	if err := repository.DelApplication(application.ModelID(), application); err != nil {
+		status := fiber.StatusInternalServerError
+		if errors.Is(err, repository.ErrApplicationInUse) {
+			status = fiber.StatusConflict
+		}
+		return c.Status(status).JSON(fiber.Map{"status": "error", "message": err.Error()})
+	}
+	return c.JSON(fiber.Map{"status": "success", "message": "Application deleted", "redirect": "/admin/applications"})
 }

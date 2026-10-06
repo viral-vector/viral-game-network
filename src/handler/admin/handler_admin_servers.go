@@ -2,11 +2,11 @@ package handler_admin
 
 import (
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"math"
 	"strconv"
 	"viral-game-network/src/database/repository"
 	form_builder "viral-game-network/src/utils/form_builder"
-	"github.com/gofiber/fiber/v2"
 )
 
 func Handle_Servers(c *fiber.Ctx) error {
@@ -33,9 +33,9 @@ func Handle_Servers_Update_View(c *fiber.Ctx) error {
 	}
 
 	form, _ := form_builder.GenerateForm(
-		"", 
 		"",
-		"update", 
+		"",
+		"update",
 		server,
 		"View Server",
 		"",
@@ -43,7 +43,7 @@ func Handle_Servers_Update_View(c *fiber.Ctx) error {
 	form.DisableSubmit = true
 
 	return c.Render("admin/servers", fiber.Map{
-		"form" : form,
+		"form": form,
 	})
 }
 
@@ -60,7 +60,11 @@ func Handle_Servers_Delete_Crud(c *fiber.Ctx) error {
 		})
 	}
 
-	repository.DelServer(server.ID.String(), server)
+	if server == nil {
+		return fiber.ErrNotFound
+	}
+
+	err = repository.DelServer(server.ID.String(), server)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -68,10 +72,10 @@ func Handle_Servers_Delete_Crud(c *fiber.Ctx) error {
 			"message": fmt.Sprintf("Server Delete: %s", err),
 		})
 	}
-	
+
 	return c.JSON(fiber.Map{
-		"status":  "success",
+		"status":   "success",
 		"redirect": "/admin/servers",
-		"message": fmt.Sprintf("Server Delete: Success %s", server.Guid),
+		"message":  fmt.Sprintf("Server Delete: Success %s", server.Guid),
 	})
 }

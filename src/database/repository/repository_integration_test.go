@@ -193,3 +193,10 @@ func TestConfigurationAdminsAndEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestMissingServerHeartbeatReturnsError(t *testing.T) {
+	support.Storage(t)
+	if server, err := TickServer("Server:missing"); err == nil || server != nil {
+		t.Fatalf("missing server heartbeat: %+v %v", server, err)
+	}
+}

@@ -19,20 +19,21 @@ func Handle_Lobbies(c *fiber.Ctx) error {
 	lobbies, total, _ := repository.AllLobby(perPage, curPage, search)
 
 	return c.Render("admin/lobbies", fiber.Map{
-		"lobbies" : lobbies,
-		"total": total,
-		"pages": int(math.Ceil(float64(total) / float64(perPage))),
-		"paged": curPage,
-		"search": search,
+		"lobbies": lobbies,
+		"total":   total,
+		"pages":   int(math.Ceil(float64(total) / float64(perPage))),
+		"paged":   curPage,
+		"search":  search,
 	})
 }
 
 func Handle_Lobbies_Create_View(c *fiber.Ctx) error {
 	apps, _, err := repository.AllApplication(-1, 1, "")
-	if err != nil {}
+	if err != nil {
+	}
 
 	form, _ := form_builder.GenerateForm(
-		"POST", 
+		"POST",
 		"/admin/lobby",
 		"create",
 		dbtype.Lobby{},
@@ -47,7 +48,7 @@ func Handle_Lobbies_Create_View(c *fiber.Ctx) error {
 			form.Fields[field].Options = []map[string]string{}
 			for _, app := range apps {
 				form.Fields[field].Options = append(form.Fields[field].Options, map[string]string{
-					"label": app.Name,	
+					"label": app.Name,
 					"value": app.ID.String(),
 				})
 			}
@@ -55,7 +56,7 @@ func Handle_Lobbies_Create_View(c *fiber.Ctx) error {
 	}
 
 	return c.Render("admin/lobbies", fiber.Map{
-		"form" : form,
+		"form": form,
 	})
 }
 
@@ -67,6 +68,10 @@ func Handle_Lobbies_Create_Crud(c *fiber.Ctx) error {
 			"status":  "error",
 			"message": fmt.Sprintf("Lobby Create: %s", err),
 		})
+	}
+
+	if dto.Lobby_Application == nil || dto.Lobby_Application.ID == nil {
+		return fiber.ErrBadRequest
 	}
 
 	// Fetch Application
@@ -106,12 +111,13 @@ func Handle_Lobbies_Update_View(c *fiber.Ctx) error {
 	}
 
 	apps, _, err := repository.AllApplication(-1, 1, "")
-	if err != nil {}	
+	if err != nil {
+	}
 
 	form, _ := form_builder.GenerateForm(
-		"POST", 
-		"/admin/lobby/" + lobby.ID.String(),
-		"update", 
+		"POST",
+		"/admin/lobby/"+lobby.ID.String(),
+		"update",
 		lobby,
 		"Update Lobby",
 		"Update Lobby",
@@ -124,7 +130,7 @@ func Handle_Lobbies_Update_View(c *fiber.Ctx) error {
 			form.Fields[field].Options = []map[string]string{}
 			for _, app := range apps {
 				form.Fields[field].Options = append(form.Fields[field].Options, map[string]string{
-					"label": app.Name,	
+					"label": app.Name,
 					"value": app.ID.String(),
 				})
 			}
@@ -132,7 +138,7 @@ func Handle_Lobbies_Update_View(c *fiber.Ctx) error {
 	}
 
 	return c.Render("admin/lobbies", fiber.Map{
-		"form" : form,
+		"form": form,
 	})
 }
 
@@ -158,10 +164,14 @@ func Handle_Lobbies_Update_Crud(c *fiber.Ctx) error {
 		})
 	}
 
+	if lobby == nil {
+		return fiber.ErrNotFound
+	}
+
 	// Prop Merge
 	dto.ID = lobby.ID
 	dto.Date_Created = lobby.Date_Created
- 
+
 	if err := struct_merge.Merge[dbtype.Lobby](lobby, dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -198,7 +208,11 @@ func Handle_Lobbies_Delete_Crud(c *fiber.Ctx) error {
 		})
 	}
 
-	repository.DelLobby(lobby.ID.String(), lobby)
+	if lobby == nil {
+		return fiber.ErrNotFound
+	}
+
+	err = repository.DelLobby(lobby.ID.String(), lobby)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -206,10 +220,10 @@ func Handle_Lobbies_Delete_Crud(c *fiber.Ctx) error {
 			"message": fmt.Sprintf("Lobby Delete: %s", err),
 		})
 	}
-	
+
 	return c.JSON(fiber.Map{
-		"status":  "success",
+		"status":   "success",
 		"redirect": "/admin/lobbies",
-		"message": fmt.Sprintf("Lobby Delete: Success %s", lobby.Guid),
+		"message":  fmt.Sprintf("Lobby Delete: Success %s", lobby.Guid),
 	})
 }

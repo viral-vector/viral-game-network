@@ -19,19 +19,19 @@ func Handle_Users(c *fiber.Ctx) error {
 	users, total, _ := repository.AllUser(perPage, curPage, search)
 
 	return c.Render("admin/users", fiber.Map{
-		"users" : users,
-		"total": total,
-		"pages": int(math.Ceil(float64(total) / float64(perPage))),
-		"paged": curPage,
+		"users":  users,
+		"total":  total,
+		"pages":  int(math.Ceil(float64(total) / float64(perPage))),
+		"paged":  curPage,
 		"search": search,
 	})
 }
 
 func Handle_Users_Create_View(c *fiber.Ctx) error {
 	form, _ := form_builder.GenerateForm(
-		"POST", 
+		"POST",
 		"/admin/user",
-		"create",  
+		"create",
 		dbtype.User{},
 		"Create User",
 		"Create User",
@@ -39,7 +39,7 @@ func Handle_Users_Create_View(c *fiber.Ctx) error {
 	form.Confirm = "Save User Config?"
 
 	return c.Render("admin/users", fiber.Map{
-		"form" : form,
+		"form": form,
 	})
 }
 
@@ -52,7 +52,7 @@ func Handle_Users_Create_Crud(c *fiber.Ctx) error {
 			"message": fmt.Sprintf("User Create: Failed %s", err),
 		})
 	}
-	
+
 	user, err := repository.PutUser(dto)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -63,15 +63,15 @@ func Handle_Users_Create_Crud(c *fiber.Ctx) error {
 	}
 
 	repository.PutSystemEvent(&dbtype.SystemEvent{
-		Severity: "info",
-		Message:  fmt.Sprintf("User Create: Success %s", user.Name) ,
+		Severity:   "info",
+		Message:    fmt.Sprintf("User Create: Success %s", user.Name),
 		Ref_Source: "system",
 	})
 
 	return c.JSON(fiber.Map{
-		"status":  "success",
+		"status":   "success",
 		"redirect": "/admin/users",
-		"message": fmt.Sprintf("User Create: Success %s", user.Name),
+		"message":  fmt.Sprintf("User Create: Success %s", user.Name),
 	})
 }
 
@@ -84,9 +84,9 @@ func Handle_Users_Update_View(c *fiber.Ctx) error {
 	}
 
 	form, _ := form_builder.GenerateForm(
-		"POST", 
-		"/admin/user/" + user.ID.String(),
-		"update", 
+		"POST",
+		"/admin/user/"+user.ID.String(),
+		"update",
 		user,
 		"Update User",
 		"Update User",
@@ -94,7 +94,7 @@ func Handle_Users_Update_View(c *fiber.Ctx) error {
 	form.Confirm = "Save User Config?"
 
 	return c.Render("admin/users", fiber.Map{
-		"form" : form,
+		"form": form,
 	})
 }
 
@@ -124,7 +124,7 @@ func Handle_Users_Update_Crud(c *fiber.Ctx) error {
 	dto.ID = user.ID
 	dto.Date_Created = user.Date_Created
 	dto.Date_LastLogin = user.Date_LastLogin
- 
+
 	if err := struct_merge.Merge[dbtype.User](user, dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -133,7 +133,7 @@ func Handle_Users_Update_Crud(c *fiber.Ctx) error {
 		})
 	}
 	// Set
-	_, err = repository.SetUser(user.ID.String(), dto)
+	_, err = repository.SetUser(user.ID.String(), user)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -143,8 +143,8 @@ func Handle_Users_Update_Crud(c *fiber.Ctx) error {
 	}
 
 	repository.PutSystemEvent(&dbtype.SystemEvent{
-		Severity: "info",
-		Message:  fmt.Sprintf("User Update: Success %s", user.Name) ,
+		Severity:   "info",
+		Message:    fmt.Sprintf("User Update: Success %s", user.Name),
 		Ref_Source: "system",
 	})
 
@@ -167,7 +167,7 @@ func Handle_Users_Delete_Crud(c *fiber.Ctx) error {
 		})
 	}
 
-	repository.DelUser(user.ID.String(), user)
+	err = repository.DelUser(user.ID.String(), user)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -175,10 +175,10 @@ func Handle_Users_Delete_Crud(c *fiber.Ctx) error {
 			"message": fmt.Sprintf("User Update: Failed %s", err),
 		})
 	}
-	
+
 	return c.JSON(fiber.Map{
-		"status":  "success",
+		"status":   "success",
 		"redirect": "/admin/users",
-		"message": fmt.Sprintf("User Delete: Success %s", user.Name),
+		"message":  fmt.Sprintf("User Delete: Success %s", user.Name),
 	})
 }

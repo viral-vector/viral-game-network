@@ -20,19 +20,19 @@ func Handle_Admins(c *fiber.Ctx) error {
 	admins, total, _ := repository.AllAdmin(perPage, curPage, search)
 
 	return c.Render("admin/admins", fiber.Map{
-		"admins" : admins,
-		"total": total,
-		"pages": int(math.Ceil(float64(total) / float64(perPage))),
-		"paged": curPage,
+		"admins": admins,
+		"total":  total,
+		"pages":  int(math.Ceil(float64(total) / float64(perPage))),
+		"paged":  curPage,
 		"search": search,
 	})
 }
 
 func Handle_Admins_Create_View(c *fiber.Ctx) error {
 	form, _ := form_builder.GenerateForm(
-		"POST", 
+		"POST",
 		"/admin/admin",
-		"create",  
+		"create",
 		dbtype.Admin{},
 		"Create Admin",
 		"Create Admin",
@@ -40,7 +40,7 @@ func Handle_Admins_Create_View(c *fiber.Ctx) error {
 	form.Confirm = "Save Admin Config?"
 
 	return c.Render("admin/admins", fiber.Map{
-		"form" : form,
+		"form": form,
 	})
 }
 
@@ -64,7 +64,7 @@ func Handle_Admins_Create_Crud(c *fiber.Ctx) error {
 		})
 	}
 	dto.Password = password
-	
+
 	admin, err := repository.PutAdmin(dto)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -75,15 +75,15 @@ func Handle_Admins_Create_Crud(c *fiber.Ctx) error {
 	}
 
 	repository.PutSystemEvent(&dbtype.SystemEvent{
-		Severity: "info",
-		Message:  fmt.Sprintf("Admin Create: Success %s", admin.Name) ,
+		Severity:   "info",
+		Message:    fmt.Sprintf("Admin Create: Success %s", admin.Name),
 		Ref_Source: "system",
 	})
 
 	return c.JSON(fiber.Map{
-		"status":  "success",
+		"status":   "success",
 		"redirect": "/admin/admins",
-		"message": fmt.Sprintf("Admin Create: Success %s", admin.Name),
+		"message":  fmt.Sprintf("Admin Create: Success %s", admin.Name),
 	})
 }
 
@@ -98,9 +98,9 @@ func Handle_Admins_Update_View(c *fiber.Ctx) error {
 	admin.Password = ""
 
 	form, _ := form_builder.GenerateForm(
-		"POST", 
-		"/admin/admin/" + admin.ID.String(),
-		"update", 
+		"POST",
+		"/admin/admin/"+admin.ID.String(),
+		"update",
 		admin,
 		"Update Admin",
 		"Update Admin",
@@ -108,7 +108,7 @@ func Handle_Admins_Update_View(c *fiber.Ctx) error {
 	form.Confirm = "Save Admin Config?"
 
 	return c.Render("admin/admins", fiber.Map{
-		"form" : form,
+		"form": form,
 	})
 }
 
@@ -149,9 +149,9 @@ func Handle_Admins_Update_Crud(c *fiber.Ctx) error {
 			})
 		}
 		dto.Password = password
-	}else{
+	} else {
 		dto.Password = admin.Password
-	} 
+	}
 	if err := struct_merge.Merge[dbtype.Admin](admin, dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -160,7 +160,7 @@ func Handle_Admins_Update_Crud(c *fiber.Ctx) error {
 		})
 	}
 	// Set
-	_, err = repository.SetAdmin(admin.ID.String(), dto)
+	_, err = repository.SetAdmin(admin.ID.String(), admin)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -170,8 +170,8 @@ func Handle_Admins_Update_Crud(c *fiber.Ctx) error {
 	}
 
 	repository.PutSystemEvent(&dbtype.SystemEvent{
-		Severity: "info",
-		Message:  fmt.Sprintf("Admin Update: Success %s", admin.Name) ,
+		Severity:   "info",
+		Message:    fmt.Sprintf("Admin Update: Success %s", admin.Name),
 		Ref_Source: "system",
 	})
 
@@ -203,7 +203,7 @@ func Handle_Admins_Delete_Crud(c *fiber.Ctx) error {
 		})
 	}
 
-	repository.DelAdmin(admin.ID.String(), admin)
+	err = repository.DelAdmin(admin.ID.String(), admin)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -211,10 +211,10 @@ func Handle_Admins_Delete_Crud(c *fiber.Ctx) error {
 			"message": fmt.Sprintf("Admin Update: Failed %s", err),
 		})
 	}
-	
+
 	return c.JSON(fiber.Map{
-		"status":  "success",
+		"status":   "success",
 		"redirect": "/admin/admins",
-		"message": fmt.Sprintf("Admin Delete: Success %s", admin.Name),
+		"message":  fmt.Sprintf("Admin Delete: Success %s", admin.Name),
 	})
 }
