@@ -56,6 +56,7 @@ func Handle_ValidateTokenAdmin(c *fiber.Ctx) error {
 	}
 	c.Locals("admin", admin)
 	c.Locals("session_expires", claims.ExpiresAt.Time)
+	c.Locals("session_expires_unix", claims.ExpiresAt.Unix())
 
 	return c.Next()
 }
@@ -99,6 +100,7 @@ func Handle_ValidateTokenUsers(c *fiber.Ctx) error {
 	}
 	c.Locals("user", user)
 	c.Locals("session_expires", claims.ExpiresAt.Time)
+	c.Locals("session_expires_unix", claims.ExpiresAt.Unix())
 
 	return c.Next()
 }
@@ -249,15 +251,16 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 	cookie.Path = "/"
 	cookie.Secure = c.Secure()
 	cookie.SameSite = "Strict"
+	cookie.HTTPOnly = true
 
 	// Set cookie
 	c.Cookie(cookie)
 
 	return c.JSON(fiber.Map{
-		"message":      "Welcome back " + admin.Name,
-		"redirect":     "/admin",
-		"status":       "success",
-		"access_token": access_token,
+		"message":    "Welcome back " + admin.Name,
+		"redirect":   "/admin",
+		"status":     "success",
+		"expires_at": claims.ExpiresAt.Unix(),
 	})
 }
 
@@ -294,14 +297,15 @@ func Handle_AuthAdminRefresh(c *fiber.Ctx) error {
 	cookie.Path = "/"
 	cookie.Secure = c.Secure()
 	cookie.SameSite = "Strict"
+	cookie.HTTPOnly = true
 
 	// Set cookie
 	c.Cookie(cookie)
 
 	return c.JSON(fiber.Map{
-		"message":      "Authorized " + admin.Name,
-		"status":       "success",
-		"access_token": access_token,
+		"message":    "Authorized " + admin.Name,
+		"status":     "success",
+		"expires_at": claims.ExpiresAt.Unix(),
 	})
 
 }
@@ -316,6 +320,7 @@ func Handle_AuthAdminLogout(c *fiber.Ctx) error {
 	cookie.Path = "/"
 	cookie.Secure = c.Secure()
 	cookie.SameSite = "Strict"
+	cookie.HTTPOnly = true
 
 	// Set cookie
 	c.Cookie(cookie)

@@ -2,10 +2,6 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import Authentication from '../src/admin/authentication_controller';
 import { mount } from './stimulus';
 
-function token(expires) {
-  return `header.${btoa(JSON.stringify({ exp: expires }))}.signature`;
-}
-
 describe('authentication', () => {
   beforeEach(() => vi.useFakeTimers());
 
@@ -13,15 +9,15 @@ describe('authentication', () => {
     const controller = await mount('authentication', Authentication, '<div data-controller="authentication"></div>');
     const now = Math.floor(Date.now() / 1000);
     for (const [expires, expected] of [[now + 60, true], [now + 600, false], [now - 60, false]]) {
-      document.cookie = `VNET_SESSION=${token(expires)}; path=/`;
+      controller.expiresValue = expires;
       expect(controller.isJWTTokenExpire()).toBe(expected);
     }
   });
 
-  it('handles missing and malformed cookies without throwing', async () => {
+  it('handles missing and invalid expiry metadata without throwing', async () => {
     const controller = await mount('authentication', Authentication, '<div data-controller="authentication"></div>');
     expect(controller.isJWTTokenExpire()).toBeFalsy();
-    document.cookie = 'VNET_SESSION=invalid; path=/';
+    controller.expiresValue = NaN;
     expect(controller.isJWTTokenExpire()).toBeFalsy();
   });
 
@@ -43,11 +39,34 @@ describe('authentication', () => {
     expect(check).not.toHaveBeenCalled();
   });
 
-  it('reads encoded cookies without matching similar names', async () => {
+  it('refreshes expiry metadata without reading or rewriting the session cookie', async () => {
     const controller = await mount('authentication', Authentication, '<div data-controller="authentication"></div>');
-    document.cookie = 'otherVNET_SESSION=wrong; path=/';
-    document.cookie = 'VNET_SESSION=hello%20world; path=/';
-    expect(controller.getCookie('VNET_SESSION')).toBe('hello world');
-    expect(controller.getCookie('missing')).toBeUndefined();
+    const expires = Math.floor(Date.now() / 1000) + 3600;
+    document.cookie = 'VNET_SESSION=opaque; path=/';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ expires_at: expires }) }));
+    expect(await controller.getFreshJWTToken()).toBe(true);
+    expect(controller.expiresValue).toBe(expires);
+    expect(document.cookie).toContain('VNET_SESSION=opaque');
+  });
+
+  it('handles failed network requests and allows a later retry', async () => {
+    const controller = await mount('authentication', Authentication, '<div data-controller="authentication"></div>');
+    const request = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ ok: true, json: async () => ({ expires_at: Math.floor(Date.now() / 1000) + 3600 }) });
+    vi.stubGlobal('fetch', request);
+    expect(await controller.getFreshJWTToken()).toBe(false);
+    expect(await controller.getFreshJWTToken()).toBe(true);
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it('deduplicates overlapping refresh requests', async () => {
+    const controller = await mount('authentication', Authentication, '<div data-controller="authentication"></div>');
+    let resolve;
+    const request = vi.fn().mockReturnValue(new Promise(done => { resolve = done; }));
+    vi.stubGlobal('fetch', request);
+    const first = controller.getFreshJWTToken();
+    expect(await controller.getFreshJWTToken()).toBe(false);
+    resolve({ ok: true, json: async () => ({ expires_at: Math.floor(Date.now() / 1000) + 3600 }) });
+    expect(await first).toBe(true);
+    expect(request).toHaveBeenCalledOnce();
   });
 });

@@ -32,6 +32,8 @@ repeat. To renew that identity, send a valid `Viral-Game-Network-Token`, an app 
 and a JSON body to `POST /auth/lobby` before the token expires. That endpoint
 refreshes the current player session; a supplied name cannot select another user.
 Admin cookies and player tokens have separate audiences and use stable record IDs.
+Admin cookies are HttpOnly; login and refresh responses expose expiry metadata
+(`expires_at`) instead of the session token.
 
 Private joins accept a JSON body such as `{"code":"your-invitation-code"}` at
 `POST /api/lobby/:id/join`. Only the host can retrieve the invitation code from

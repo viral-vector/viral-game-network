@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -170,14 +171,24 @@ func TestBootstrapAndAdminSessionViews(t *testing.T) {
 	request(t, app, "GET", "/auth/admin", nil, "", "", 200)
 	request(t, app, "POST", "/auth/admin", map[string]string{"username": "admin", "password": "wrong"}, "", "", 400)
 	response := request(t, app, "POST", "/auth/admin", map[string]string{"username": "admin", "password": "password"}, "", "", 200)
+	var sessionResponse map[string]interface{}
+	decode(t, response, &sessionResponse)
+	if _, exposed := sessionResponse["access_token"]; exposed {
+		t.Fatal("admin login exposes its session token to JavaScript")
+	}
+	if _, exists := sessionResponse["expires_at"]; !exists {
+		t.Fatal("admin login has no expiry metadata")
+	}
 	cookie := ""
+	var sessionExpiry int64
 	for _, item := range response.Cookies() {
 		if item.Name == "VNET_SESSION" {
 			cookie = item.Name + "=" + item.Value
 			claims, err := auth.ValidateTokenFor(item.Value, auth.AdminAudience)
-			if err != nil || !item.Expires.Equal(claims.ExpiresAt.Time) || item.Path != "/" || item.SameSite != http.SameSiteStrictMode {
+			if err != nil || !item.Expires.Equal(claims.ExpiresAt.Time) || item.Path != "/" || !item.HttpOnly || item.SameSite != http.SameSiteStrictMode {
 				t.Fatalf("invalid session cookie: %v", err)
 			}
+			sessionExpiry = claims.ExpiresAt.Unix()
 			request(t, app, "GET", "/api/lobby", nil, item.Value, "", 403)
 		}
 	}
@@ -187,11 +198,23 @@ func TestBootstrapAndAdminSessionViews(t *testing.T) {
 	for _, path := range []string{"/admin", "/admin/admins", "/admin/applications", "/admin/users", "/admin/lobbies", "/admin/servers", "/admin/configs", "/admin/events", "/admin/metrics", "/admin/admin", "/admin/application", "/admin/user", "/admin/lobby"} {
 		response = request(t, app, "GET", path, nil, "", cookie, 200)
 		body, err := io.ReadAll(response.Body)
+		if !strings.Contains(string(body), `data-authentication-expires-value="`+strconv.FormatInt(sessionExpiry, 10)+`"`) {
+			t.Fatalf("view %s missing session expiry metadata", path)
+		}
 		if err != nil || !strings.Contains(response.Header.Get("Content-Type"), "text/html") || len(body) == 0 {
 			t.Fatalf("invalid view %s: %v", path, err)
 		}
 	}
-	request(t, app, "GET", "/auth/admin/refresh", nil, "", cookie, 200)
+	refresh := request(t, app, "GET", "/auth/admin/refresh", nil, "", cookie, 200)
+	decode(t, refresh, &sessionResponse)
+	if _, exposed := sessionResponse["access_token"]; exposed {
+		t.Fatal("admin refresh exposes its session token")
+	}
+	for _, item := range refresh.Cookies() {
+		if item.Name == "VNET_SESSION" && !item.HttpOnly {
+			t.Fatal("refresh removed HttpOnly")
+		}
+	}
 	response = request(t, app, "GET", "/auth/admin/logout", nil, "", cookie, 302)
 	for _, item := range response.Cookies() {
 		if item.Name == "VNET_SESSION" && item.Value != "" {
