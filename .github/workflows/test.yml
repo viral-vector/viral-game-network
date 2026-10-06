@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      - run: mkdir -p coverage
+      - name: Go tests with isolated database and race detection
+        run: sh scripts/test-integration.sh -race -coverpkg=./src/... -coverprofile=coverage/backend.out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: coverage/backend.out
+
+  admin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: assets
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: assets/package-lock.json
+      - run: npm ci
+      - run: npm run test:coverage
+      - name: Verify production asset build
+        run: npm run build -- --output-path "$RUNNER_TEMP/vgn-assets"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: admin-coverage
+          path: assets/coverage

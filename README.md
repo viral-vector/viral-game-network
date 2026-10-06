@@ -7,9 +7,10 @@ The administration interface uses Pug templates and Stimulus controllers.
 ## Project layout
 
 - `src/`: backend, API handlers, repositories, scheduled jobs, and Kubernetes integration.
-- `assets/`: admin JavaScript and styles.
+- `assets/`: admin JavaScript, styles, and browser tests.
 - `views/` and `public/`: templates and static assets.
 - `docker/`: production and development container definitions.
+- `tests/`: shared test fixtures.
 
 Operations commands and local tooling documentation live in [bin/README.md](bin/README.md).
 That directory is maintained separately and is available only in local checkouts that include it.
@@ -35,3 +36,7 @@ work as your own. See LICENSE for the full terms.
 This is a source-available license with redistribution restrictions.
 Third-party dependencies and files carrying their own license notices remain subject
 to those licenses.
+
+## Tests
+
+Run `make test` for Go, admin, and optional local prototype tests. Run `make test-all` to include isolated database integration tests. See [TESTING.md](TESTING.md) for setup, coverage, and CI details. IOC is excluded.

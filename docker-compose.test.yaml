@@ -1,0 +1,11 @@
+services:
+  store:
+    image: surrealdb/surrealdb:v2.2.2
+    command: start --bind 0.0.0.0:8000 --user test --pass test memory
+    ports:
+      - "127.0.0.1:18000:8000"
+    healthcheck:
+      test: ["CMD", "/surreal", "is-ready", "--endpoint", "http://localhost:8000"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
