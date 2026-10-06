@@ -1,0 +1,13 @@
+# Keep local Git history and generated files out of build contexts.
+.git
+**/.git
+.env
+**/.env
+**/node_modules
+**/coverage
+tmp/
+
+# Development images require only the local Kubernetes configuration.
+bin/*
+!bin/k8/
+!bin/k8/**

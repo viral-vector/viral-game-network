@@ -1,20 +1,25 @@
-# README #
+# Viral Game Network
 
-Viral-Network (Viral Games Network Backend) is a game backend server written in Golang.
+Viral Game Network is a game backend written in Go. It manages authentication,
+lobbies, and game server lifecycles using Fiber, SurrealDB, Redis, and Kubernetes.
+The administration interface uses Pug templates and Stimulus controllers.
 
-### What is this repository for? ###
+## Project layout
 
-* Game Network Backend Server written in Golang 
-* 1.0.0
+- `src/`: backend, API handlers, repositories, scheduled jobs, and Kubernetes integration.
+- `assets/`: admin JavaScript and styles.
+- `views/` and `public/`: templates and static assets.
+- `docker/`: production and development container definitions.
 
-## Operations & Commands
-1. VGN Image to registry
-    * docker login -u [email] -p YOUR_DO_API_TOKEN registry.digitalocean.com
-    * docker build -f docker/Dockerfile -t registry.digitalocean.com/vgn-global-registry/vgn:1.0.0 . 
-    * docker push registry.digitalocean.com/vgn-global-registry/vgn:1.0.0
-    B. Local registry
-        * docker build -t localhost:5000/viral-game-network/bbserver:1.0.0 .
-        * docker push localhost:5000/viral-game-network/bbserver:1.0.0
+Operations commands and local tooling documentation live in [bin/README.md](bin/README.md).
+That directory is maintained separately and is available only in local checkouts that include it.
+
+## Configuration
+
+Copy [.env.example](.env.example) to `.env` and replace the password and signing-key
+placeholders before running the application. The example uses local Docker Compose
+service addresses; adjust them when running outside that network. `.env` is ignored
+by Git and excluded from Docker build contexts.
 
 ## License
 
@@ -29,14 +34,4 @@ work as your own. See LICENSE for the full terms.
 
 This is a source-available license with redistribution restrictions.
 Third-party dependencies and files carrying their own license notices remain subject
-to those licenses, including the HashiCorp MPL-2.0 test template in bin/ioc/__tests__.
-
-## Local tooling
-
-The root `bin/` directory is ignored by this repository and has its own local Git history.
-It contains infrastructure tooling, the prototype server, VM images, and Kubernetes
-configuration at `bin/k8/`. The backend Kubernetes package remains at `src/k8/`.
-
-Use `git -C bin status` and `git -C bin commit` to manage tooling changes separately.
-The development Docker build requires the local `bin/k8/` configuration. A fresh clone
-of the main repository does not include `bin/`; restore it from its separate repository.
+to those licenses.

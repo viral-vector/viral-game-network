@@ -54,3 +54,6 @@ Thumbs.db
 # Locally versioned tooling and Kubernetes configuration
 /bin/
 /k8/
+
+# Local environment configuration; keep the example tracked.
+.env
