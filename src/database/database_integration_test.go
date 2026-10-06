@@ -5,6 +5,7 @@ package database_test
 import (
 	"testing"
 	"viral-game-network/src/database"
+	"viral-game-network/src/database/migrations"
 	dbtype "viral-game-network/src/database/type"
 	"viral-game-network/tests/support"
 )
@@ -52,5 +53,46 @@ func TestDatabaseCRUDAndQueryResults(t *testing.T) {
 	}
 	if _, err := database.Query[dbtype.User]("INVALID QUERY;", nil); err == nil {
 		t.Fatal("invalid query accepted")
+	}
+}
+
+func TestQueryReportsStatementErrorsAndRollback(t *testing.T) {
+	support.Storage(t)
+	for _, query := range []string{
+		"THROW 'rejected';",
+		"BEGIN TRANSACTION; CREATE User CONTENT {name:'Rolled back', guid:'rolled-back', date_created:'2026-01-01T00:00:00Z'}; THROW 'rejected'; COMMIT TRANSACTION;",
+	} {
+		if _, err := database.Query[any](query, nil); err == nil {
+			t.Fatal("failed SQL statement reported success")
+		}
+	}
+	users, err := database.Query[dbtype.User]("SELECT * FROM User;", nil)
+	if err != nil || len(users) != 0 {
+		t.Fatalf("failed transaction committed: %+v %v", users, err)
+	}
+}
+
+func TestFailedMigrationIsNotRecorded(t *testing.T) {
+	support.Storage(t)
+	previous := migrations.AllMigrations
+	t.Cleanup(func() { migrations.AllMigrations = previous })
+	migrations.AllMigrations = append(append([]dbtype.Migration(nil), previous...), dbtype.Migration{Name: "test-failed-migration", SQL: "DEFINE TABLE TestFailedMigration SCHEMAFULL; THROW 'rejected migration';"})
+	if err := migrations.Migrations_Run(database.DBS); err == nil {
+		t.Fatal("failed migration reported success")
+	}
+	rows, err := database.Query[dbtype.Migration]("SELECT * FROM Migrations WHERE name='test-failed-migration';", nil)
+	if err != nil || len(rows) != 0 {
+		t.Fatalf("failed migration marked applied: %+v %v", rows, err)
+	}
+	if _, err := database.Query[any]("DEFINE TABLE TestFailedMigration SCHEMAFULL;", nil); err != nil {
+		t.Fatalf("failed migration left partial schema: %v", err)
+	}
+}
+
+func TestSelectMissingRecord(t *testing.T) {
+	support.Storage(t)
+	user, err := database.Select[dbtype.User]("User:missing")
+	if err != nil || user != nil {
+		t.Fatalf("missing record: %+v %v", user, err)
 	}
 }

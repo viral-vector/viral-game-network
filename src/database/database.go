@@ -2,11 +2,11 @@ package database
 
 import (
 	"fmt"
-	"github.com/fxamacker/cbor/v2"
 	"github.com/google/uuid"
 	"github.com/surrealdb/surrealdb.go"
 	"github.com/surrealdb/surrealdb.go/pkg/models"
 	migrations "viral-game-network/src/database/migrations"
+	"viral-game-network/src/database/sqlquery"
 	dbtype "viral-game-network/src/database/type"
 )
 
@@ -43,66 +43,74 @@ func Close() {
 }
 
 func Query[T any](query string, params map[string]interface{}) ([]T, error) {
-	if DBS == nil {
-		return nil, fmt.Errorf("database is not connected")
-	}
-	results, err := surrealdb.Query[cbor.RawMessage](DBS, query, params)
-	if err != nil {
-		return nil, err
-	}
-	var output []T
-	for _, result := range *results {
-		var rows []T
-		if err := cbor.Unmarshal(result.Result, &rows); err == nil {
-			output = append(output, rows...)
-			continue
-		}
-		var row T
-		if err := cbor.Unmarshal(result.Result, &row); err != nil {
-			return nil, fmt.Errorf("decode query result: %w", err)
-		}
-		output = append(output, row)
-	}
-	return output, nil
+	return sqlquery.Query[T](DBS, query, params)
 }
 
 func Create[T dbtype.Model](record *T) (*T, error) {
+	if DBS == nil {
+		return nil, fmt.Errorf("database is not connected")
+	}
+	if record == nil {
+		return nil, fmt.Errorf("missing record")
+	}
 	table := (*record).TableName()
 	return surrealdb.Create[T](DBS, models.Table(table), record)
 }
 
 func Update[T dbtype.Model](id models.RecordID, record *T) (*T, error) {
+	if DBS == nil {
+		return nil, fmt.Errorf("database is not connected")
+	}
+	if record == nil {
+		return nil, fmt.Errorf("missing record")
+	}
 	return surrealdb.Update[T](DBS, id, record)
 }
 
 func Upsert[T dbtype.Model](record *T) (*T, error) {
+	if DBS == nil {
+		return nil, fmt.Errorf("database is not connected")
+	}
+	if record == nil {
+		return nil, fmt.Errorf("missing record")
+	}
 	table := (*record).TableName()
 	queryResultsSingle, err := surrealdb.Upsert[[]T](DBS, models.Table(table), record)
 	if err != nil {
 		return nil, err
 	}
 
+	if queryResultsSingle == nil || len(*queryResultsSingle) == 0 {
+		return nil, fmt.Errorf("database returned no upserted record")
+	}
 	return &(*queryResultsSingle)[0], nil
 }
 
 func Delete[T models.RecordID](id models.RecordID) error {
-	_, err := surrealdb.Query[any](DBS, "DELETE type::record($id);", map[string]interface{}{
+	_, err := Query[any]("DELETE type::record($id);", map[string]interface{}{
 		"id": id.String(),
 	})
 	return err
 }
 
 func Select[T any](id string) (*T, error) {
-	result, err := surrealdb.Query[T](DBS, "SELECT * FROM ONLY type::record($id);", map[string]interface{}{
-		"id": id,
-	})
+	result, err := Query[T]("SELECT * FROM type::record($id);", map[string]interface{}{"id": id})
 	if err != nil {
 		return nil, err
 	}
-	return &(*result)[0].Result, err
+	if len(result) == 0 {
+		return nil, nil
+	}
+	return &result[0], nil
 }
 
 func Relate(in *models.RecordID, out *models.RecordID, table string, data map[string]interface{}) error {
+	if DBS == nil {
+		return fmt.Errorf("database is not connected")
+	}
+	if in == nil || out == nil {
+		return fmt.Errorf("missing relationship endpoint")
+	}
 	// Create a new relationship.
 	relationship := &surrealdb.Relationship{
 		In:       *in,
