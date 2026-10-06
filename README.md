@@ -1,78 +1,65 @@
 # Viral Game Network
 
-Viral Game Network is a game backend written in Go. It manages authentication,
-lobbies, and game server lifecycles using Fiber, SurrealDB, Redis, and Kubernetes.
-The administration interface uses Pug templates and Stimulus controllers.
+Viral Game Network is a game backend for managing players, multiplayer lobbies,
+and game-server pods. It includes a web administration panel and uses Kubernetes
+to provision game servers, SurrealDB for storage, and Redis for messaging.
+See [LICENSE](LICENSE) for permitted use.
 
-## Project layout
+## Features
 
-- `src/`: backend, API handlers, repositories, scheduled jobs, and Kubernetes integration.
-- `assets/`: admin JavaScript, styles, and browser tests.
-- `views/` and `public/`: templates and static assets.
-- `docker/`: production and development container definitions.
-- `tests/`: shared test fixtures.
+- Guest player sessions and a separate administrator login.
+- Public and private lobbies with invitation codes and player limits.
+- Game-server provisioning, heartbeat readiness, and lifecycle cleanup.
+- Lobby chat and live status notifications.
+- Web administration for applications, players, lobbies, servers, and settings.
 
-Operations commands and local tooling documentation live in [bin/README.md](bin/README.md).
-That directory is maintained separately and is available only in local checkouts that include it.
+## Boot and deploy
 
-## Configuration
+You need Docker, reachable Redis and SurrealDB services, and a Kubernetes cluster
+for running game servers. SurrealDB 2.2.2 is the version verified with this app.
 
-Copy [.env.example](.env.example) to `.env` and replace the password and signing-key
-placeholders before running the application. The example uses local Docker Compose
-service addresses; adjust them when running outside that network. `.env` is ignored
-by Git and excluded from Docker build contexts.
+1. Clone the repository and create your configuration:
 
-Set `VNET_TOKEN_KEY` to a private random value of at least 32 bytes, distinct from
-`VNET_KEY`, which is shared as an API key. Use the same signing key across backend
-replicas and jobs; never pass it to game clients or game-server pods. Existing
-installations need this new variable, and old sessions must sign in again.
+   ```sh
+   git clone https://github.com/viral-vector/viral-game-network.git
+   cd viral-game-network
+   cp .env.example .env
+   ```
 
-Guest login (`POST /auth/guest`) creates a new player identity; display names may
-repeat. To renew that identity, send a valid `Viral-Game-Network-Token`, an app key,
-and a JSON body to `POST /auth/lobby` before the token expires. That endpoint
-refreshes the current player session; a supplied name cannot select another user.
-Admin cookies and player tokens have separate audiences and use stable record IDs.
-Admin cookies are HttpOnly; login and refresh responses expose expiry metadata
-(`expires_at`) instead of the session token.
+2. Edit `.env`: replace the admin and database passwords, set a random API key,
+   and set a separate private `VNET_TOKEN_KEY` containing at least 32 random bytes.
+   Configure the Redis and SurrealDB endpoints for your deployment. Set
+   `VNET_HOST` to an address your game pods can reach, and leave `VNET_JOB_NAME`
+   empty to start the web application. Keep `.env` private.
 
-Private joins accept a JSON body such as `{"code":"your-invitation-code"}` at
-`POST /api/lobby/:id/join`. Only the host can retrieve the invitation code from
-the lobby API. Repeating an accepted join preserves membership and host ownership.
-Lobby patches support explicit `false` and empty values without changing record
-IDs, GUIDs, or creation dates.
+3. Build the application image:
 
-Provisioned game pods receive `VNET_SERVER_TOKEN`, a token bound to their lobby.
-Use it in `Viral-Game-Network-Token` for `GET /api/host/:id/tick`. Renew it with
-`POST /api/host/:id/refresh` before expiry, and use the returned `access_token` for
-subsequent requests. Other player tokens can heartbeat only the lobby they host.
-Server tokens cannot authorize player or admin APIs.
+   ```sh
+   docker build -f docker/Dockerfile -t viral-game-network .
+   ```
 
-The project is not deployed, so schema changes are folded into the existing
-migrations. Use a fresh development database to apply revised initial schemas.
+4. Run it with your configured services:
 
-After changing admin source files, run `npm ci --prefix assets` and
-`npm --prefix assets run build` before running the Go app directly. The production
-Dockerfile builds the admin assets automatically. Kubernetes uses its service
-account configuration when running inside a cluster, or an explicit `KUBECONFIG`
-when provided; local k3d configuration is the development fallback.
-Port allocation requires permission to list nodes and pods across namespaces so
-other applications' host-port reservations are respected.
+   ```sh
+   docker run --rm --name viral-game-network --env-file .env \
+     -p 3000:3000 viral-game-network
+   ```
 
-## License
+   The service addresses in `.env` must be reachable from the container. The
+   example uses `cache` and `store` as hostnames; replace them or attach the
+   container to the Docker network containing those services.
 
-Project code is licensed under the custom [Viral Game Network Use-Only License](LICENSE),
-copyright (c) 2026 Viral Vector.
+5. Open `http://localhost:3000/auth/admin` and sign in with the admin credentials
+   configured in `.env`. Register your game applications through the admin panel.
 
-You may use and modify it for your own personal, organizational, or commercial use.
-You may not redistribute the original or modified software, source code, binaries,
-packages, or container images without prior written permission from Viral Vector,
-even if you provide credit. You must retain notices and must not claim the original
-work as your own. See LICENSE for the full terms.
+Schedule recurring workers using the same image and service configuration, with
+`VNET_JOB_NAME` set to `monitoring`, `lobby_server_provisioner`,
+`lobby_server_stewardship`, or `lobby_stewardship`. Each worker invocation runs
+once and exits; the web container does not run them automatically.
 
-This is a source-available license with redistribution restrictions.
-Third-party dependencies and files carrying their own license notices remain subject
-to those licenses.
-
-## Tests
-
-Run `make test` for Go, admin, and optional local prototype tests. Run `make test-all` to include isolated database integration tests. See [TESTING.md](TESTING.md) for setup, coverage, and CI details. IOC is excluded.
+For game-server provisioning, create the `vgn-app` namespace and give the backend
+Kubernetes credentials that can manage game pods and read nodes and pods across
+namespaces. Run the image in Kubernetes with a service account, or mount a readable
+kubeconfig into the container and set `KUBECONFIG` to its path. Expose public
+installations through an HTTPS ingress or reverse proxy, and persist your database
+and Redis data in the services hosting them.

@@ -60,3 +60,6 @@ Thumbs.db
 
 # Test coverage artifacts
 coverage/
+
+# Local development documentation
+/README-DEV.md

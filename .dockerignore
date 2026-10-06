@@ -11,3 +11,6 @@ tmp/
 bin/*
 !bin/k8/
 !bin/k8/**
+
+# Local development documentation
+README-DEV.md
