@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
-	"sync"
 	"time"
 	"viral-game-network/src/cache"
 	"viral-game-network/src/database/repository"
@@ -193,13 +192,10 @@ func Handle_SocketLobby(c *websocket.Conn) {
 	}
 
 	// WebSocket connections allow only one writer at a time.
-	var writer sync.Mutex
-	write := func(message []byte) error {
-		writer.Lock()
-		defer writer.Unlock()
+	write := lobbyLiveWriter(history, func(message []byte) error {
 		conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 		return conn.WriteMessage(websocket.TextMessage, message)
-	}
+	})
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
