@@ -55,6 +55,7 @@ func Handle_ValidateTokenAdmin(c *fiber.Ctx) error {
 		return fiber.ErrForbidden
 	}
 	c.Locals("admin", admin)
+	c.Locals("session_expires", claims.ExpiresAt.Time)
 
 	return c.Next()
 }
@@ -97,6 +98,7 @@ func Handle_ValidateTokenUsers(c *fiber.Ctx) error {
 		return fiber.ErrForbidden
 	}
 	c.Locals("user", user)
+	c.Locals("session_expires", claims.ExpiresAt.Time)
 
 	return c.Next()
 }

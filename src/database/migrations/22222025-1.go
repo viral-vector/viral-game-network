@@ -22,7 +22,7 @@ func init() {
 			DEFINE FIELD group ON TABLE Application TYPE option<string>;
 			DEFINE FIELD image ON TABLE Application TYPE string;
 			DEFINE FIELD port ON TABLE Application TYPE string;
-			DEFINE FIELD version ON TABLE Application TYPE string;
+			DEFINE FIELD version ON TABLE Application TYPE option<string>;
 			DEFINE FIELD command ON TABLE Application TYPE string;
 			DEFINE FIELD lobby_max_players ON TABLE Application TYPE string;
 			DEFINE FIELD lobby_max_persist ON TABLE Application TYPE string;
@@ -84,7 +84,7 @@ func init() {
 		dbtype.Migration{
 			SQL: `
 			DEFINE TABLE Lobby_Application SCHEMAFULL TYPE RELATION IN Lobby OUT Application ENFORCED;
-			DEFINE INDEX idx_lobby_application_in ON TABLE Lobby_Application COLUMNS in;
+			DEFINE INDEX idx_lobby_application_in ON TABLE Lobby_Application COLUMNS in UNIQUE;
 			DEFINE INDEX idx_lobby_application_out ON TABLE Lobby_Application COLUMNS out;
 			`,
 		},
@@ -111,7 +111,7 @@ func init() {
 			DEFINE FIELD user_type ON TABLE Lobby_Users TYPE string;
 			DEFINE INDEX idx_lobby_users_user_type ON TABLE Lobby_Users COLUMNS user_type;
 			DEFINE INDEX idx_lobby_users_host_in ON TABLE Lobby_Users COLUMNS in;
-			DEFINE INDEX idx_lobby_users_host_out ON TABLE Lobby_Users COLUMNS out;
+			DEFINE INDEX idx_lobby_users_host_out ON TABLE Lobby_Users COLUMNS out UNIQUE;
 			`,
 		},
 	}

@@ -37,6 +37,10 @@ func Handle_AllLobby(c *fiber.Ctx) error {
 		})
 	}
 
+	user := c.Locals("user").(*dbtype.User)
+	for i := range data {
+		redactLobbyCode(&data[i], user)
+	}
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   data,
@@ -46,7 +50,7 @@ func Handle_AllLobby(c *fiber.Ctx) error {
 
 // Handle_SetLobby
 func Handle_SetLobby(c *fiber.Ctx) error {
-	record := new(dbtype.Lobby)
+	record := new(repository.LobbyPatch)
 	err := json.Unmarshal(c.Body(), record)
 
 	if err != nil {
@@ -57,7 +61,7 @@ func Handle_SetLobby(c *fiber.Ctx) error {
 		})
 	}
 
-	lobby, err := repository.SetLobby(c.Params("id"), record)
+	lobby, err := repository.PatchLobby(c.Params("id"), record)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -74,79 +78,38 @@ func Handle_SetLobby(c *fiber.Ctx) error {
 }
 
 // Handle_GetLobby
-func Handle_GetLobby(c *fiber.Ctx) error {
-	lobby, err := repository.GetLobby(c.Params("id"))
-
-	if err != nil || lobby == nil {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"status":  "error",
-			"message": "Error fetching lobby",
-		})
+func redactLobbyCode(lobby *dbtype.Lobby, user *dbtype.User) {
+	if lobby != nil && (lobby.Lobby_Host == nil || user == nil || lobby.Lobby_Host.ModelID() != user.ModelID()) {
+		lobby.Code = ""
 	}
-
-	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   lobby,
-	})
 }
 
-// Handle_JoinLobby
-func Handle_JoinLobby(c *fiber.Ctx) error {
+func Handle_GetLobby(c *fiber.Ctx) error {
 	lobby, err := repository.GetLobby(c.Params("id"))
-
 	if err != nil || lobby == nil {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"status":  "error",
-			"message": "Error fetching lobby",
-		})
+		return fiber.ErrBadRequest
 	}
+	redactLobbyCode(lobby, c.Locals("user").(*dbtype.User))
+	return c.JSON(fiber.Map{"status": "success", "data": lobby})
+}
 
-	max_players, err := strconv.ParseInt(lobby.Lobby_Application.Lobby_Max_Players, 0, 0)
+// Handle_JoinLobby accepts an optional JSON/form invitation code.
+func Handle_JoinLobby(c *fiber.Ctx) error {
+	var dto struct {
+		Code string `json:"code" form:"code"`
+	}
+	if len(c.Body()) > 0 {
+		if err := c.BodyParser(&dto); err != nil {
+			return fiber.ErrBadRequest
+		}
+	}
+	user := c.Locals("user").(*dbtype.User)
+	lobby, err := repository.JoinLobby(c.Params("id"), user, dto.Code)
 	if err != nil {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"status":  "error",
-			"message": "Server error fetching lobby max players",
-		})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "Error joining lobby: " + err.Error()})
 	}
-
-	if len(lobby.Lobby_Users) >= int(max_players) {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"status":  "error",
-			"message": "Lobby is full",
-		})
-	}
-
-	if lobby.Private && lobby.Code != c.Params("code") {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"status":  "error",
-			"message": "Invalid lobby code",
-		})
-	}
-
-	req_user := c.Locals("user").(*dbtype.User)
-
-	// Link User to lobby
-	err = repository.LinkLobbyUser(lobby, req_user, "user")
-
-	if err != nil {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"status":  "error",
-			"message": "Error joining lobby: " + err.Error(),
-		})
-	}
-
-	lobby, _ = repository.GetLobby(lobby.ID.String())
-
-	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   lobby,
-	})
+	redactLobbyCode(lobby, user)
+	return c.JSON(fiber.Map{"status": "success", "data": lobby})
 }
 
 // Handle_HostLobby
@@ -201,6 +164,12 @@ func Handle_SocketLobby(c *websocket.Conn) {
 	user := c.Locals("user").(*dbtype.User)
 	conn := c.Conn
 	defer conn.Close()
+	expires, ok := c.Locals("session_expires").(time.Time)
+	if !ok || !expires.After(time.Now()) {
+		return
+	}
+	conn.SetReadLimit(4096)
+	conn.SetReadDeadline(expires)
 
 	subscription := pubsub.Sub(channel)
 	defer pubsub.Close(subscription)
@@ -217,6 +186,7 @@ func Handle_SocketLobby(c *websocket.Conn) {
 		return
 	}
 	for _, message := range history {
+		conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 		if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
 			return
 		}
@@ -227,6 +197,7 @@ func Handle_SocketLobby(c *websocket.Conn) {
 	write := func(message []byte) error {
 		writer.Lock()
 		defer writer.Unlock()
+		conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 		return conn.WriteMessage(websocket.TextMessage, message)
 	}
 	done := make(chan struct{})

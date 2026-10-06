@@ -7,7 +7,6 @@ import (
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
 	form_builder "viral-game-network/src/utils/form_builder"
-	struct_merge "viral-game-network/src/utils/struct_merge"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -145,7 +144,7 @@ func Handle_Lobbies_Update_View(c *fiber.Ctx) error {
 func Handle_Lobbies_Update_Crud(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	dto := new(dbtype.Lobby)
+	dto := new(repository.LobbyPatch)
 	if err := c.BodyParser(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -168,19 +167,7 @@ func Handle_Lobbies_Update_Crud(c *fiber.Ctx) error {
 		return fiber.ErrNotFound
 	}
 
-	// Prop Merge
-	dto.ID = lobby.ID
-	dto.Date_Created = lobby.Date_Created
-
-	if err := struct_merge.Merge[dbtype.Lobby](lobby, dto); err != nil {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"status":  "error",
-			"message": fmt.Sprintf("Lobby Update: Failed %s", err),
-		})
-	}
-	// Set
-	_, err = repository.SetLobby(lobby.ID.String(), dto)
+	lobby, err = repository.PatchLobby(lobby.ModelID(), dto)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{

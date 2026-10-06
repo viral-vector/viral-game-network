@@ -2,10 +2,10 @@ package repository
 
 import (
 	"fmt"
+	"strings"
 	"time"
 	"viral-game-network/src/database"
 	dbtype "viral-game-network/src/database/type"
-	"viral-game-network/src/utils/struct_merge"
 )
 
 func AllLobby(count int, pager int, search string) ([]dbtype.Lobby, int, error) {
@@ -117,24 +117,103 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
 	return &lobbies[0], nil
 }
 
-func SetLobby(id string, lobby *dbtype.Lobby) (*dbtype.Lobby, error) {
+// LobbyPatch includes editable fields only. Pointers distinguish omitted values
+// from explicit false/empty values in JSON and admin form submissions.
+type LobbyPatch struct {
+	Name              *string             `json:"name" form:"name"`
+	Private           *bool               `json:"private" form:"private"`
+	Code              *string             `json:"code" form:"code"`
+	Lobby_Application *dbtype.Application `json:"lobby_application" form:"lobby_application"`
+}
+
+func PatchLobby(id string, patch *LobbyPatch) (*dbtype.Lobby, error) {
 	current, err := GetLobby(id)
 	if err != nil {
 		return nil, err
 	}
-	if current == nil || lobby == nil {
+	if current == nil || patch == nil {
 		return nil, fmt.Errorf("lobby not found")
 	}
-	// The route selects the record; preserve fields omitted from the request.
-	lobby.ID = current.ID
-	if err := struct_merge.Merge(current, lobby); err != nil {
+	fields := map[string]interface{}{"date_updated": time.Now().UTC().Format(time.RFC3339)}
+	if patch.Name != nil {
+		name := strings.TrimSpace(*patch.Name)
+		if name == "" || len(name) > 128 {
+			return nil, fmt.Errorf("invalid lobby name")
+		}
+		fields["name"] = name
+	}
+	if patch.Private != nil {
+		current.Private = *patch.Private
+		fields["private"] = *patch.Private
+	}
+	if patch.Code != nil {
+		current.Code = *patch.Code
+		fields["code"] = *patch.Code
+	}
+	if current.Private && current.Code == "" {
+		return nil, fmt.Errorf("private lobby requires a code")
+	}
+	query := `BEGIN TRANSACTION; UPDATE type::record($lobby) MERGE $fields;`
+	params := map[string]interface{}{"lobby": id, "fields": fields}
+	if patch.Lobby_Application != nil {
+		if patch.Lobby_Application.ID == nil {
+			return nil, fmt.Errorf("missing application")
+		}
+		app, err := GetApplication(patch.Lobby_Application.ModelID())
+		if err != nil {
+			return nil, err
+		}
+		if app == nil || app.ID == nil {
+			return nil, fmt.Errorf("application not found")
+		}
+		if current.Lobby_Server != nil && (current.Lobby_Application == nil || app.ModelID() != current.Lobby_Application.ModelID()) {
+			return nil, fmt.Errorf("stop the lobby server before changing application")
+		}
+		params["application"] = app.ModelID()
+		query += ` DELETE FROM Lobby_Application WHERE in=type::record($lobby);
+   RELATE (type::record($lobby))->Lobby_Application->(type::record($application));`
+	}
+	query += ` COMMIT TRANSACTION;`
+	if _, err := database.Query[any](query, params); err != nil {
 		return nil, err
 	}
-	current.Date_Updated = time.Now().UTC().Format(time.RFC3339)
-	return database.Update[dbtype.Lobby](*current.ID, current)
+	return GetLobby(id)
+}
+
+// JoinLobby checks capacity and the invitation inside the same transaction as
+// membership replacement. Existing members keep their role when retrying a join.
+func JoinLobby(id string, user *dbtype.User, code string) (*dbtype.Lobby, error) {
+	if user == nil || user.ID == nil {
+		return nil, fmt.Errorf("missing user")
+	}
+	_, err := database.Query[any](`
+ BEGIN TRANSACTION;
+ LET $room = SELECT * FROM ONLY type::record($lobby);
+ IF $room = NONE { THROW 'Lobby not found'; };
+ LET $members = SELECT * FROM Lobby_Users WHERE in=type::record($lobby);
+ IF array::len($members[WHERE out=type::record($user)]) = 0 {
+  IF $room.private AND $room.code != $code { THROW 'Invalid lobby code'; };
+  LET $app = array::first(SELECT * FROM (type::record($lobby))->Lobby_Application.out);
+  IF $app = NONE { THROW 'Lobby application not found'; };
+  LET $capacity = type::int($app.lobby_max_players);
+  IF $capacity <= 0 OR array::len($members) >= $capacity { THROW 'Lobby is full'; };
+  DELETE FROM Lobby_Users WHERE out=type::record($user);
+  RELATE (type::record($lobby))->Lobby_Users->(type::record($user)) CONTENT {user_type:'user'};
+  UPDATE type::record($lobby) SET date_updated=$now;
+ };
+ COMMIT TRANSACTION;`, map[string]interface{}{
+		"lobby": id, "user": user.ModelID(), "code": code, "now": time.Now().UTC().Format(time.RFC3339),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return GetLobby(id)
 }
 
 func PutLobby(body *dbtype.Lobby, app *dbtype.Application, user *dbtype.User) (*dbtype.Lobby, error) {
+	if body == nil || app == nil || app.ID == nil {
+		return nil, fmt.Errorf("missing lobby or application")
+	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	body.Date_Created = now
 	body.Guid = database.GetUUID()
@@ -184,21 +263,18 @@ func SwapLobbyHost(lobby *dbtype.Lobby, user *dbtype.User) error {
 }
 
 func LinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User, user_type string) error {
-	// First, remove any existing lobby.
-	_, err := database.Query[any](
-		`DELETE FROM Lobby_Users WHERE out=type::record($user) RETURN *;`,
-		map[string]interface{}{
-			"user": user.ID.String(),
-		},
-	)
-	if err != nil {
-		return err
+	if lobby == nil || lobby.ID == nil || user == nil || user.ID == nil {
+		return fmt.Errorf("missing lobby or user")
 	}
-
-	return database.Relate(lobby.ID, user.ID, "Lobby_Users", map[string]interface{}{
-		"date_created": time.Now().UTC().Format(time.RFC3339),
-		"user_type":    user_type,
-	})
+	_, err := database.Query[any](`
+ BEGIN TRANSACTION;
+ LET $existing = SELECT * FROM Lobby_Users WHERE in=type::record($lobby) AND out=type::record($user);
+ IF array::len($existing) = 0 {
+  DELETE FROM Lobby_Users WHERE out=type::record($user);
+  RELATE (type::record($lobby))->Lobby_Users->(type::record($user)) CONTENT {user_type:$role};
+ };
+ COMMIT TRANSACTION;`, map[string]interface{}{"lobby": lobby.ModelID(), "user": user.ModelID(), "role": user_type})
+	return err
 }
 
 func UnlinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User) error {
