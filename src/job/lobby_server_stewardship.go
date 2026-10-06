@@ -97,6 +97,8 @@ func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
 		RUN_Lobby_Server_Stewardship_Running(lobby, lobpod, node)
 	case v1.PodFailed:
 		RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, node)
+		ministration.Service_Lobby_Notify(lobby.ID.String(), "Server:Failed", "")
+		return
 	}
 
 	// Update the server status if needed.

@@ -11,7 +11,7 @@ import (
 func Handle_TickHost(c *fiber.Ctx) error {
 	lobby, err := repository.GetLobby(c.Params("id"))
 
-	if err != nil || lobby == nil {
+	if err != nil || lobby == nil || lobby.Lobby_Server == nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",

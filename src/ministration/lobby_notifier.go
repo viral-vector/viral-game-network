@@ -25,8 +25,8 @@ func Service_Lobby_Notify(lobby_id string, msg string, user_id string) error {
 	if err != nil {
 		return err
 	}
-	err = cache.Add(channel, string(fin))
-	err = cache.Exp(channel, 60*time.Minute)
-
-	return nil
+	if err := cache.Add(channel, string(fin)); err != nil {
+		return err
+	}
+	return cache.Exp(channel, 60*time.Minute)
 }

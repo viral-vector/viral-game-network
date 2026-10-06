@@ -5,6 +5,7 @@ import (
 	"time"
 	"viral-game-network/src/database"
 	dbtype "viral-game-network/src/database/type"
+	"viral-game-network/src/utils/struct_merge"
 )
 
 func AllLobby(count int, pager int, search string) ([]dbtype.Lobby, int, error) {
@@ -14,20 +15,18 @@ func AllLobby(count int, pager int, search string) ([]dbtype.Lobby, int, error) 
 	,(IF count(SELECT id FROM ->Lobby_Users.out) > 0
 		{array::first(SELECT out.* FROM ->Lobby_Users WHERE user_type = 'host')} ELSE {NULL}).out AS lobby_host
 	,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
-		{array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
+		{array::first(SELECT * FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
 	,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
 	FROM type::table(Lobby)
 	`
-	params := map[string]interface{}{
-		
-	}
-	
+	params := map[string]interface{}{}
+
 	// Search
 	if search != "" {
 		lQuery = fmt.Sprintf("%s WHERE [name, guid] ?~ $search", lQuery)
 		params["search"] = fmt.Sprintf("%s", search)
 	}
-	
+
 	// Ordering
 	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC", lQuery)
 
@@ -47,9 +46,7 @@ func AllLobby(count int, pager int, search string) ([]dbtype.Lobby, int, error) 
 	// Count all lobbies.
 	total, err := database.Query[dbtype.Total](
 		"SELECT count() AS total FROM type::table(Lobby) GROUP ALL;",
-		map[string]interface{}{
-			
-		},
+		map[string]interface{}{},
 	)
 	if err != nil || len(total) == 0 {
 		return lobbies, 0, err
@@ -70,9 +67,7 @@ func AllLobbyNotRunning(count int, pager int) ([]dbtype.Lobby, int, error) {
 	WHERE lobby_server.status NOTINSIDE ['Running', 'Online']
 	ORDER BY date_created DESC
 	`
-	params := map[string]interface{}{
-		
-	}
+	params := map[string]interface{}{}
 
 	if count > -1 {
 		lQuery = fmt.Sprintf("%s LIMIT $ct START $pg", lQuery)
@@ -89,9 +84,7 @@ func AllLobbyNotRunning(count int, pager int) ([]dbtype.Lobby, int, error) {
 	// Count all lobbies.
 	total, err := database.Query[dbtype.Total](
 		"SELECT count() AS total FROM type::table(Lobby) GROUP ALL;",
-		map[string]interface{}{
-			
-		},
+		map[string]interface{}{},
 	)
 	if err != nil || len(total) == 0 {
 		return lobbies, 0, err
@@ -108,7 +101,7 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
 	,(IF count(SELECT id FROM ->Lobby_Users.out) > 0
 		{array::first(SELECT out.* FROM ->Lobby_Users WHERE user_type = 'host')} ELSE {NULL}).out AS lobby_host
 	,(IF count(SELECT id FROM ->Lobby_Server.out) > 0
-		{array::first(SELECT id, name, guid FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
+		{array::first(SELECT * FROM ->Lobby_Server.out)} ELSE {NULL}) AS lobby_server
 	,(SELECT * FROM ->Lobby_Users.out) AS lobby_users
 	FROM type::record($id)
 	ORDER BY date_created DESC;`,
@@ -125,9 +118,20 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
 }
 
 func SetLobby(id string, lobby *dbtype.Lobby) (*dbtype.Lobby, error) {
-	now := time.Now().UTC().Format(time.RFC3339)
-	lobby.Date_Updated = now
-	return database.Update[dbtype.Lobby](*lobby.ID, lobby)
+	current, err := GetLobby(id)
+	if err != nil {
+		return nil, err
+	}
+	if current == nil || lobby == nil {
+		return nil, fmt.Errorf("lobby not found")
+	}
+	// The route selects the record; preserve fields omitted from the request.
+	lobby.ID = current.ID
+	if err := struct_merge.Merge(current, lobby); err != nil {
+		return nil, err
+	}
+	current.Date_Updated = time.Now().UTC().Format(time.RFC3339)
+	return database.Update[dbtype.Lobby](*current.ID, current)
 }
 
 func PutLobby(body *dbtype.Lobby, app *dbtype.Application, user *dbtype.User) (*dbtype.Lobby, error) {
@@ -152,7 +156,7 @@ func PutLobby(body *dbtype.Lobby, app *dbtype.Application, user *dbtype.User) (*
 			return nil, err
 		}
 	}
-	
+
 	return GetLobby(lobby.ID.String())
 }
 
@@ -161,15 +165,11 @@ func DelLobby(id string, lobby *dbtype.Lobby) error {
 }
 
 func LinkLobbyApplication(lobby *dbtype.Lobby, app *dbtype.Application) error {
-	return database.Relate(lobby.ID, app.ID, "Lobby_Application", map[string]interface{}{
-
-	})
+	return database.Relate(lobby.ID, app.ID, "Lobby_Application", map[string]interface{}{})
 }
 
 func LinkLobbyHost(lobby *dbtype.Lobby, user *dbtype.User) error {
-	if err := database.Relate(lobby.ID, user.ID, "Lobby_Host", map[string]interface{}{
-
-	}); err != nil {
+	if err := database.Relate(lobby.ID, user.ID, "Lobby_Host", map[string]interface{}{}); err != nil {
 		return err
 	}
 	return LinkLobbyUser(lobby, user, "host")
@@ -186,7 +186,7 @@ func SwapLobbyHost(lobby *dbtype.Lobby, user *dbtype.User) error {
 func LinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User, user_type string) error {
 	// First, remove any existing lobby.
 	_, err := database.Query[any](
-		`DELETE FROM Lobby_Users WHERE out=$user RETURN *;`,
+		`DELETE FROM Lobby_Users WHERE out=type::record($user) RETURN *;`,
 		map[string]interface{}{
 			"user": user.ID.String(),
 		},
@@ -197,16 +197,16 @@ func LinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User, user_type string) err
 
 	return database.Relate(lobby.ID, user.ID, "Lobby_Users", map[string]interface{}{
 		"date_created": time.Now().UTC().Format(time.RFC3339),
-		"user_type"   : user_type,
+		"user_type":    user_type,
 	})
 }
 
 func UnlinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User) error {
 	_, err := database.Query[any](
-		`DELETE FROM Lobby_Users WHERE in=$lobby AND out=$user RETURN *;`,
+		`DELETE FROM Lobby_Users WHERE in=type::record($lobby) AND out=type::record($user) RETURN *;`,
 		map[string]interface{}{
 			"lobby": lobby.ID.String(),
-			"user" : user.ID.String(),
+			"user":  user.ID.String(),
 		},
 	)
 	return err
@@ -214,7 +214,7 @@ func UnlinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User) error {
 
 func UnlinkLobbyAllUsers(id string) error {
 	_, err := database.Query[any](
-		`DELETE FROM Lobby_Users WHERE in=$lobby RETURN *;`,
+		`DELETE FROM Lobby_Users WHERE in=type::record($lobby) RETURN *;`,
 		map[string]interface{}{
 			"lobby": id,
 		},

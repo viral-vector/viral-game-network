@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
+	"sync"
 	"time"
 	"viral-game-network/src/cache"
 	"viral-game-network/src/database/repository"
@@ -16,7 +18,7 @@ import (
 
 type HostLobbyRequestDTO struct {
 	Name string `json:"name" xml:"name" form:"name"`
-	App string  `json:"app" xml:"guid" form:"app"`
+	App  string `json:"app" xml:"guid" form:"app"`
 }
 
 // Handle_AllLobby
@@ -75,7 +77,7 @@ func Handle_SetLobby(c *fiber.Ctx) error {
 func Handle_GetLobby(c *fiber.Ctx) error {
 	lobby, err := repository.GetLobby(c.Params("id"))
 
-	if err != nil {
+	if err != nil || lobby == nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -93,7 +95,7 @@ func Handle_GetLobby(c *fiber.Ctx) error {
 func Handle_JoinLobby(c *fiber.Ctx) error {
 	lobby, err := repository.GetLobby(c.Params("id"))
 
-	if err != nil {
+	if err != nil || lobby == nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -195,51 +197,67 @@ func Handle_HostLobby(c *fiber.Ctx) error {
 // Handle_SocketLobby
 func Handle_SocketLobby(c *websocket.Conn) {
 	id := c.Params("id")
-	guid := "lobby:" + id + ":channel"
+	channel := "lobby:" + id + ":channel"
 	user := c.Locals("user").(*dbtype.User)
-	var (
-		msg []byte
-		err error
-	)
+	conn := c.Conn
+	defer conn.Close()
 
-	// Sync
-	channel_cache, _ := cache.Get[interface{}](guid)
-	if channel_cache != nil {
-		go func(c *websocket.Conn) {
-			for _, element := range channel_cache.([]string) {
-				time.Sleep(100 * time.Millisecond)
-				if err = c.WriteMessage(1, []byte(element)); err != nil {
-					return
-				}
-			}
-		}(c)
+	subscription := pubsub.Sub(channel)
+	defer pubsub.Close(subscription)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	_, err := subscription.Receive(ctx)
+	cancel()
+	if err != nil {
+		return
 	}
 
-	// Sub
-	sb := pubsub.Sub(guid)
-	go func(c *websocket.Conn) {
-		for msg := range sb.Channel() {
-			if err = c.WriteMessage(1, []byte(msg.Payload)); err != nil {
-				defer pubsub.Close(sb)
+	// Redis stores history as a list. Replay it before starting live writes.
+	history, err := cache.List(channel)
+	if err != nil {
+		return
+	}
+	for _, message := range history {
+		if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+			return
+		}
+	}
+
+	// WebSocket connections allow only one writer at a time.
+	var writer sync.Mutex
+	write := func(message []byte) error {
+		writer.Lock()
+		defer writer.Unlock()
+		return conn.WriteMessage(websocket.TextMessage, message)
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for message := range subscription.Channel() {
+			if err := write([]byte(message.Payload)); err != nil {
+				conn.Close()
 				return
 			}
 		}
-	}(c)
+	}()
+	defer func() {
+		pubsub.Close(subscription)
+		conn.Close()
+		<-done
+	}()
 
-	defer pubsub.Close(sb)
-
-	// Pub
 	for {
-		if _, msg, err = c.ReadMessage(); err != nil {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
 			return
 		}
-		if msg == nil || len(string(msg)) < 3 {
-			if err = c.WriteMessage(1, []byte("{\"error\":\"Message length should >= 3\"}")); err != nil {
+		if len(message) < 3 {
+			if err := write([]byte(`{"error":"Message length should >= 3"}`)); err != nil {
 				return
 			}
 			continue
 		}
-
-		ministration.Service_Lobby_Notify(id, string(msg), user.ID.String())
+		if err := ministration.Service_Lobby_Notify(id, string(message), user.ID.String()); err != nil {
+			return
+		}
 	}
 }

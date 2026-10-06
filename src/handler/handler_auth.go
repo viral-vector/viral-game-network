@@ -2,13 +2,13 @@ package handler
 
 import (
 	"fmt"
-	"time"
+	"github.com/gofiber/fiber/v2"
 	"strings"
+	"time"
 	"viral-game-network/src/auth"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
 	form_builder "viral-game-network/src/utils/form_builder"
-	"github.com/gofiber/fiber/v2"
 )
 
 type AuthUserRequestDTO struct {
@@ -51,16 +51,17 @@ func Handle_ValidateTokenAdmin(c *fiber.Ctx) error {
 	}
 
 	record := dbtype.Admin{
-		ID: nil,
-		Name: claims.Username,
+		ID:    nil,
+		Name:  claims.Username,
 		Email: claims.Username,
 		Phone: claims.Username,
 	}
 
 	admin, err := repository.SelAdmin(&record)
-	if err == nil {
-		c.Locals("admin", admin)
+	if err != nil || admin == nil {
+		return fiber.ErrForbidden
 	}
+	c.Locals("admin", admin)
 
 	return c.Next()
 }
@@ -77,7 +78,7 @@ func Handle_RedirectAdmin(c *fiber.Ctx) error {
 			"message": "Authorized",
 		})
 	}
-	
+
 	return c.Next()
 }
 
@@ -100,9 +101,10 @@ func Handle_ValidateTokenUsers(c *fiber.Ctx) error {
 	}
 
 	user, err := repository.SelUser(&record)
-	if err == nil {
-		c.Locals("user", user)
+	if err != nil || user == nil {
+		return fiber.ErrForbidden
 	}
+	c.Locals("user", user)
 
 	return c.Next()
 }
@@ -114,7 +116,7 @@ func Handle_AuthLobby(c *fiber.Ctx) error {
 		return err
 	}
 
-	// TODO: Get User from repo first  
+	// TODO: Get User from repo first
 	user := dbtype.User{
 		Guid: dto.Name,
 		Name: dto.Name,
@@ -188,7 +190,7 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 	// Get - show form
 	if post == false {
 		form, _ := form_builder.GenerateForm(
-			"POST", 
+			"POST",
 			"/auth/admin",
 			"",
 			AuthAdminRequestDTO{},
@@ -196,10 +198,10 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 			"Login",
 		)
 		return c.Render("admin/login", fiber.Map{
-			"form" : form,
+			"form": form,
 		})
 	}
-	
+
 	// Post - Gen token
 	dto := new(AuthAdminRequestDTO)
 	if err := c.BodyParser(dto); err != nil {
@@ -207,9 +209,9 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 	}
 
 	// Fetch admin
-	admin, err := repository.SelAdmin(&dbtype.Admin {
-		ID: nil,
-		Name: dto.Username,
+	admin, err := repository.SelAdmin(&dbtype.Admin{
+		ID:    nil,
+		Name:  dto.Username,
 		Email: dto.Username,
 		Phone: dto.Username,
 	})
@@ -221,7 +223,7 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 		})
 	}
 
-	// Validate Password 
+	// Validate Password
 	valid, err := auth.HashValidate(dto.Password, admin.Password)
 	if valid == false {
 		c.Status(fiber.StatusBadRequest)
@@ -256,16 +258,16 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 	c.Cookie(cookie)
 
 	return c.JSON(fiber.Map{
-		"message" 		: "Welcome back " + admin.Name,
-		"redirect"		: "/admin",
-		"status"		: "success",
-		"access_token"	: access_token,
+		"message":      "Welcome back " + admin.Name,
+		"redirect":     "/admin",
+		"status":       "success",
+		"access_token": access_token,
 	})
 }
 
 func Handle_AuthAdminRefresh(c *fiber.Ctx) error {
 	admin := c.Locals("admin").(*dbtype.Admin)
-	
+
 	if admin == nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -294,9 +296,9 @@ func Handle_AuthAdminRefresh(c *fiber.Ctx) error {
 	c.Cookie(cookie)
 
 	return c.JSON(fiber.Map{
-		"message" 		: "Authorized " + admin.Name,
-		"status"		: "success",
-		"access_token"	: access_token,
+		"message":      "Authorized " + admin.Name,
+		"status":       "success",
+		"access_token": access_token,
 	})
 
 	return c.JSON(fiber.Map{

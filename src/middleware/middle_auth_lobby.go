@@ -3,15 +3,15 @@ package middleware
 import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
-	"viral-game-network/src/database/type"
 	"viral-game-network/src/database/repository"
+	"viral-game-network/src/database/type"
 )
 
 func Lobby_Read(c *fiber.Ctx) error {
 	_, err := check_read(c)
 
 	if err != nil {
-		return fmt.Errorf("Lobby Read Access Failed.")
+		return fiber.ErrForbidden
 	}
 	return c.Next()
 }
@@ -20,23 +20,25 @@ func Lobby_Write(c *fiber.Ctx) error {
 	lobby, err := check_read(c)
 
 	if err != nil {
-		return fmt.Errorf("Lobby Write Access Failed.")
+		return fiber.ErrForbidden
 	}
 
 	user := c.Locals("user").(*dbtype.User)
 
-	if lobby.Lobby_Host.ID != user.ID {
-		return fmt.Errorf("Lobby Write Access Failed.")
+	if lobby.Lobby_Host == nil || lobby.Lobby_Host.ModelID() != user.ModelID() {
+		return fiber.ErrForbidden
 	}
 	return c.Next()
 }
 
-
 func check_read(c *fiber.Ctx) (*dbtype.Lobby, error) {
 	id := c.Params("id")
-	user := c.Locals("user").(*dbtype.User)
+	user, ok := c.Locals("user").(*dbtype.User)
+	if !ok || user == nil {
+		return nil, fiber.ErrForbidden
+	}
 
-	// Check Lobby 
+	// Check Lobby
 	lobby, err := repository.GetLobby(id)
 	if err != nil {
 		return nil, err
@@ -45,13 +47,23 @@ func check_read(c *fiber.Ctx) (*dbtype.Lobby, error) {
 		return nil, fmt.Errorf("Lobby nnot found.")
 	}
 
-	// Check host/user
-	lobby_users := append(lobby.Lobby_Users, lobby.Lobby_Host)
-	for _, lobby_user := range lobby_users {
-		if user.ID == lobby_user.ID {
-			return lobby, nil
-		} 
+	if hasLobbyAccess(lobby, user) {
+		return lobby, nil
 	}
+	return lobby, fiber.ErrForbidden
+}
 
-	return lobby, fmt.Errorf("Not authorized to access lobby.")
+func hasLobbyAccess(lobby *dbtype.Lobby, user *dbtype.User) bool {
+	if lobby == nil || user == nil || user.ID == nil {
+		return false
+	}
+	if lobby.Lobby_Host != nil && lobby.Lobby_Host.ModelID() == user.ModelID() {
+		return true
+	}
+	for _, member := range lobby.Lobby_Users {
+		if member != nil && member.ID != nil && member.ModelID() == user.ModelID() {
+			return true
+		}
+	}
+	return false
 }
