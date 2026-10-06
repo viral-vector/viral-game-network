@@ -13,6 +13,17 @@ See [LICENSE](LICENSE) for permitted use.
 - Lobby chat and live status notifications.
 - Web administration for applications, players, lobbies, servers, and settings.
 
+## Technologies and why they fit
+
+| Technology | Role and rationale |
+| --- | --- |
+| Go and Fiber | Power the HTTP API, administration panel, and background workers. Go's concurrency model fits handling player connections alongside game-server lifecycle work. |
+| Kubernetes and [K3s](https://docs.k3s.io/) | Kubernetes runs game servers as pods and provides scheduling and lifecycle management. K3s is a lightweight Kubernetes distribution that makes smaller deployments practical; the backend uses the standard Kubernetes API. |
+| [SurrealDB](https://surrealdb.com/docs/learn/data-models/graph/overview) | Stores players, games, lobbies, servers, and configuration. Its graph relationships fit lobby membership and the links between a lobby, its game, and its server. |
+| Redis | Provides caching, chat history, publish/subscribe messaging, rate limits, and shared locks. These support live updates and coordination between backend workers. |
+| Pug, Stimulus, and Bulma | Pug renders the administration pages, Stimulus adds browser interactions, and Bulma supplies the layout and styling. Together they support a responsive interface built around server-rendered HTML. |
+| Docker | Packages the backend and web assets into one image, giving the web application and scheduled workers a consistent deployment environment. |
+
 ## Boot and deploy
 
 You need Docker, reachable Redis and SurrealDB services, and a Kubernetes cluster
