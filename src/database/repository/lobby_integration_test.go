@@ -3,12 +3,15 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"github.com/surrealdb/surrealdb.go/pkg/models"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
+	"viral-game-network/src/cache"
 	"viral-game-network/src/database"
 	dbtype "viral-game-network/src/database/type"
 	"viral-game-network/tests/support"
@@ -192,5 +195,45 @@ func TestLobbyCreationRejectsInvalidNameAndPrivateCode(t *testing.T) {
 	}
 	if rooms, total, err := AllLobby(10, 1, ""); err != nil || len(rooms) != 0 || total != 0 {
 		t.Fatalf("invalid creation changed storage: %+v %d %v", rooms, total, err)
+	}
+}
+
+func TestLobbyPatchRespectsLifecycleLease(t *testing.T) {
+	support.Storage(t)
+	app, err := PutApplication(&dbtype.Application{Name: "Game", Guid: "game", Image: "game", Port: "4000", Command: "server", Lobby_Max_Players: "2", Lobby_Max_Persist: "30"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	room, err := PutLobby(&dbtype.Lobby{Name: "Original"}, app, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := "Changed during provisioning"
+	held, err := cache.WithLock(context.Background(), "lobby-lifecycle-lock-"+strings.TrimPrefix(room.ModelID(), "Lobby:"), time.Second, func(context.Context) error {
+		if _, err := PatchLobby(room.ModelID(), &LobbyPatch{Name: &name}); err == nil {
+			t.Error("lobby edited while its lifecycle lease was held")
+		}
+		return nil
+	})
+	if !held || err != nil {
+		t.Fatal("lease setup failed", err)
+	}
+	if current, err := GetLobby(room.ModelID()); err != nil || current.Name != "Original" {
+		t.Fatalf("busy edit changed the lobby: %+v %v", current, err)
+	}
+}
+
+func TestLobbyPatchRejectsOtherRecordTables(t *testing.T) {
+	support.Storage(t)
+	user, err := PutUser(&dbtype.User{Name: "Original user"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := "Invalid update"
+	if _, err := PatchLobby(user.ModelID(), &LobbyPatch{Name: &name}); err == nil {
+		t.Fatal("lobby edit accepted a user record")
+	}
+	if current, err := GetUser(user.ModelID()); err != nil || current.Name != user.Name {
+		t.Fatalf("lobby edit changed another record: %+v %v", current, err)
 	}
 }

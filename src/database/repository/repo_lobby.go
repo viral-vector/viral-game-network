@@ -145,6 +145,28 @@ type LobbyPatch struct {
 }
 
 func PatchLobby(id string, patch *LobbyPatch) (*dbtype.Lobby, error) {
+	if !strings.HasPrefix(id, "Lobby:") || len(id) <= len("Lobby:") || patch == nil {
+		return nil, fmt.Errorf("invalid lobby edit")
+	}
+	var updated *dbtype.Lobby
+	held, err := cache.WithLock(context.Background(), "lobby-lifecycle-lock-"+strings.TrimPrefix(id, "Lobby:"), 60*time.Second, func(ctx context.Context) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		var err error
+		updated, err = patchLobbyTransaction(id, patch)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !held {
+		return nil, fmt.Errorf("lobby busy; retry editing")
+	}
+	return updated, nil
+}
+
+func patchLobbyTransaction(id string, patch *LobbyPatch) (*dbtype.Lobby, error) {
 	current, err := GetLobby(id)
 	if err != nil {
 		return nil, err
@@ -174,7 +196,7 @@ func PatchLobby(id string, patch *LobbyPatch) (*dbtype.Lobby, error) {
 	query := `BEGIN TRANSACTION; UPDATE type::record($lobby) MERGE $fields;`
 	params := map[string]interface{}{"lobby": id, "fields": fields}
 	if patch.Lobby_Application != nil {
-		if patch.Lobby_Application.ID == nil {
+		if patch.Lobby_Application.ID == nil || patch.Lobby_Application.ID.Table != "Application" {
 			return nil, fmt.Errorf("missing application")
 		}
 		app, err := GetApplication(patch.Lobby_Application.ModelID())
