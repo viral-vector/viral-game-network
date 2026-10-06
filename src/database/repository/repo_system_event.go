@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"time"
 	"viral-game-network/src/database"
@@ -72,5 +73,30 @@ func PutSystemEvent(event *dbtype.SystemEvent) (*dbtype.SystemEvent, error) {
 }
 
 func PopSystemevent(event *dbtype.SystemEvent) (*dbtype.SystemEvent, error) {
-	return database.Upsert(event)
+	if event == nil || event.Ref_ID == "" || event.Ref_Source == "" {
+		return nil, fmt.Errorf("system event requires a source and reference ID")
+	}
+	// A stable record ID makes polling and retries idempotent across workers.
+	key := sha256.Sum256([]byte(event.Ref_Source + "\x00" + event.Ref_ID))
+	rows, err := database.Query[dbtype.SystemEvent](`
+		UPSERT type::record($id) SET
+			date_created = IF date_created != NONE AND message = $message
+				AND severity = $severity AND ref_target = $target AND ref_source = $source
+				{ date_created } ELSE { $created },
+			ref_id = $ref, ref_source = $source, ref_target = $target,
+			message = $message, severity = $severity
+		RETURN AFTER;
+	`, map[string]interface{}{
+		"id": fmt.Sprintf("System_Event:%x", key), "ref": event.Ref_ID,
+		"source": event.Ref_Source, "target": event.Ref_Target,
+		"message": event.Message, "severity": event.Severity,
+		"created": time.Now().UTC().Format(time.RFC3339),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) != 1 {
+		return nil, fmt.Errorf("database returned no system event")
+	}
+	return &rows[0], nil
 }

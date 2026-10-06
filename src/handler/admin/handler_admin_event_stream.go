@@ -2,6 +2,7 @@ package handler_admin
 
 import (
 	"bufio"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -37,7 +38,11 @@ func streamSystemEvents(w *bufio.Writer, load func(time.Time) ([]dbtype.SystemEv
 	expiry := time.NewTimer(time.Until(expires))
 	defer expiry.Stop()
 	since := time.Now().Add(-interval)
-	seen := make(map[string]time.Time)
+	type deliveredEvent struct {
+		created time.Time
+		payload [32]byte
+	}
+	seen := make(map[string]deliveredEvent)
 	for {
 		if !expires.After(time.Now()) {
 			return
@@ -56,11 +61,12 @@ func streamSystemEvents(w *bufio.Writer, load func(time.Time) ([]dbtype.SystemEv
 					return
 				}
 				id := message.ModelID()
-				if _, duplicate := seen[id]; id != "" && duplicate {
-					continue
-				}
 				encoded, err := json.Marshal(message)
 				if err != nil {
+					continue
+				}
+				payload := sha256.Sum256(encoded)
+				if previous, duplicate := seen[id]; id != "" && duplicate && previous.payload == payload {
 					continue
 				}
 				if _, err := fmt.Fprintf(w, "data: %s\n\n", encoded); err != nil {
@@ -70,13 +76,17 @@ func streamSystemEvents(w *bufio.Writer, load func(time.Time) ([]dbtype.SystemEv
 					return
 				}
 				if id != "" {
-					seen[id], _ = time.Parse(time.RFC3339, message.Date_Created)
+					created, err := time.Parse(time.RFC3339, message.Date_Created)
+					if err != nil {
+						created = started
+					}
+					seen[id] = deliveredEvent{created: created, payload: payload}
 				}
 			}
 			// Overlap by one second because stored timestamps have second precision.
 			since = started.Add(-time.Second).Truncate(time.Second)
-			for id, created := range seen {
-				if !created.IsZero() && created.Before(since) {
+			for id, delivered := range seen {
+				if delivered.created.Before(since) {
 					delete(seen, id)
 				}
 			}

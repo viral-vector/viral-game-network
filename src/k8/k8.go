@@ -576,25 +576,52 @@ func GetPodLogParts(pod *v1.Pod, tailLines *int64) ([]string, error) {
 }
 
 func GetLogsCluster(tailLines *int64) ([]v1.Event, error) {
+	return GetLogsClusterWithContext(ctx, tailLines)
+}
+
+func GetLogsClusterWithContext(request context.Context, tailLines *int64) ([]v1.Event, error) {
+	if tailLines != nil && *tailLines < 0 {
+		return nil, fmt.Errorf("event limit must be nonnegative")
+	}
 	clientset := getClient()
 	if clientset == nil {
 		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 
-	result, err := clientset.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
+	result, err := clientset.CoreV1().Events(namespace).List(request, metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("GetLogsCluster Error: %v", err)
+		return nil, fmt.Errorf("GetLogsCluster Error: %w", err)
 	}
-	// Sort events by EventTime (most recent first).
+	// Handle both modern and legacy event timestamps, with stable ties.
 	events := result.Items
 	sort.Slice(events, func(i, j int) bool {
-		return events[i].EventTime.Time.After(events[j].EventTime.Time)
+		a, b := clusterEventTime(events[i]), clusterEventTime(events[j])
+		if a.Equal(b) {
+			return events[i].Name < events[j].Name
+		}
+		return a.After(b)
 	})
 
 	// Return only the first 'tail' events.
-	if int64(len(events)) > *tailLines {
+	if tailLines != nil && int64(len(events)) > *tailLines {
 		events = events[:*tailLines]
 	}
 
 	return events, nil
+}
+
+func clusterEventTime(event v1.Event) time.Time {
+	latest := event.EventTime.Time
+	for _, candidate := range []time.Time{event.FirstTimestamp.Time, event.LastTimestamp.Time} {
+		if candidate.After(latest) {
+			latest = candidate
+		}
+	}
+	if event.Series != nil && event.Series.LastObservedTime.Time.After(latest) {
+		latest = event.Series.LastObservedTime.Time
+	}
+	if latest.IsZero() {
+		latest = event.CreationTimestamp.Time
+	}
+	return latest
 }

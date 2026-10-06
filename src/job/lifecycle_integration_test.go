@@ -8,6 +8,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	ktesting "k8s.io/client-go/testing"
 	"strings"
@@ -133,8 +134,49 @@ func TestMonitoringRecordsClusterEventsOnce(t *testing.T) {
 	if events[0].Severity != "warning" || events[0].Ref_Target != "game" || events[0].Message != "Image pull failed" {
 		t.Fatal(events[0])
 	}
-	if cached, err := cache.Get[string]("monitoring-cluster:last_event"); err != nil || cached != now.Format(time.RFC3339) {
-		t.Fatalf("event cursor: %s %v", cached, err)
+	if recent, err := repository.SelSystemEventsInFrame(60); err != nil || len(recent) != 1 {
+		t.Fatalf("cluster event missing from live feed: %+v %v", recent, err)
+	}
+}
+
+func TestMonitoringRetainsEventsSharingTimestampAndModernEvents(t *testing.T) {
+	support.Storage(t)
+	now := time.Now().UTC().Truncate(time.Second)
+	first := &v1.Event{ObjectMeta: metav1.ObjectMeta{Name: "first", Namespace: "vgn-app", UID: "first"}, FirstTimestamp: metav1.NewTime(now), EventTime: metav1.NewMicroTime(now), Message: "first"}
+	client := fake.NewSimpleClientset(first)
+	k8.ConfigureClient(client)
+	t.Cleanup(func() { k8.ConfigureClient(nil) })
+	RUN_Monitoring_ClusterEvents()
+	for _, event := range []*v1.Event{
+		{ObjectMeta: metav1.ObjectMeta{Name: "second", Namespace: "vgn-app", UID: "second"}, FirstTimestamp: metav1.NewTime(now), Message: "same timestamp"},
+		{ObjectMeta: metav1.ObjectMeta{Name: "modern", Namespace: "vgn-app", UID: "modern"}, EventTime: metav1.NewMicroTime(now), Message: "modern event"},
+	} {
+		if _, err := client.CoreV1().Events("vgn-app").Create(context.Background(), event, metav1.CreateOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	RUN_Monitoring_ClusterEvents()
+	if events, total, err := repository.AllSystemEvents(10, 1); err != nil || total != 3 || len(events) != 3 {
+		t.Fatalf("events dropped at cursor boundary: %+v %d %v", events, total, err)
+	}
+}
+
+func TestMonitoringRetriesFailedDatabaseWrite(t *testing.T) {
+	support.Storage(t)
+	now := time.Now().UTC().Truncate(time.Second)
+	client := fake.NewSimpleClientset(&v1.Event{ObjectMeta: metav1.ObjectMeta{Name: "retry", Namespace: "vgn-app", UID: "retry"}, FirstTimestamp: metav1.NewTime(now), Message: "retry"})
+	k8.ConfigureClient(client)
+	t.Cleanup(func() { k8.ConfigureClient(nil) })
+	if _, err := database.Query[any](`DEFINE FIELD OVERWRITE message ON TABLE System_Event TYPE string ASSERT $value != 'retry';`, nil); err != nil {
+		t.Fatal(err)
+	}
+	RUN_Monitoring_ClusterEvents()
+	if _, err := database.Query[any](`DEFINE FIELD OVERWRITE message ON TABLE System_Event TYPE string;`, nil); err != nil {
+		t.Fatal(err)
+	}
+	RUN_Monitoring_ClusterEvents()
+	if events, total, err := repository.AllSystemEvents(10, 1); err != nil || total != 1 || len(events) != 1 {
+		t.Fatalf("failed write was not retried: %+v %d %v", events, total, err)
 	}
 }
 
@@ -279,4 +321,39 @@ func TestLobbyJobsHandleADeletedApplication(t *testing.T) {
 		t.Fatal("provisioned a lobby with no application")
 	}
 	RUN_Lobby_Stewardship(current)
+}
+
+func TestMonitoringReconcilesMoreThanOneHundredEvents(t *testing.T) {
+	support.Storage(t)
+	var objects []runtime.Object
+	for i := 0; i < 121; i++ {
+		objects = append(objects, &v1.Event{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("event-%d", i), Namespace: "vgn-app", UID: types.UID(fmt.Sprintf("event-%d", i))}, Message: "retained event"})
+	}
+	k8.ConfigureClient(fake.NewSimpleClientset(objects...))
+	t.Cleanup(func() { k8.ConfigureClient(nil) })
+	for i := 0; i < 2; i++ {
+		if err := runMonitoringClusterEvents(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if events, total, err := repository.AllSystemEvents(200, 1); err != nil || len(events) != 121 || total != 121 {
+		t.Fatalf("large event batch lost or duplicated: count=%d total=%d error=%v", len(events), total, err)
+	}
+}
+
+func TestMonitoringHonorsExistingLease(t *testing.T) {
+	support.Storage(t)
+	client := fake.NewSimpleClientset()
+	k8.ConfigureClient(client)
+	t.Cleanup(func() { k8.ConfigureClient(nil) })
+	held, err := cache.WithLock(context.Background(), "monitoring-cluster-events", time.Second, func(context.Context) error {
+		Job_Monitoring()
+		return nil
+	})
+	if !held || err != nil {
+		t.Fatal("lease setup failed", err)
+	}
+	if len(client.Actions()) != 0 {
+		t.Fatal("monitoring ran while another worker held the lease")
+	}
 }

@@ -82,3 +82,19 @@ func TestEventStreamEndsAtSessionExpiration(t *testing.T) {
 		t.Fatal("expired session started streaming")
 	}
 }
+
+func TestEventStreamDeliversUpdatedRecordWithinSameSecond(t *testing.T) {
+	out := &disconnectedStream{failAt: 6}
+	message := dbtype.SystemEvent{ID: &models.RecordID{Table: "System_Event", ID: "event"}, Date_Created: time.Now().UTC().Format(time.RFC3339), Message: "Pending"}
+	calls := 0
+	streamSystemEvents(bufio.NewWriter(out), func(time.Time) ([]dbtype.SystemEvent, error) {
+		calls++
+		if calls > 1 {
+			message.Message = "Failed"
+		}
+		return []dbtype.SystemEvent{message}, nil
+	}, time.Millisecond, time.Now().Add(time.Second))
+	if count := strings.Count(out.String(), "data: "); count != 2 || !strings.Contains(out.String(), "Pending") || !strings.Contains(out.String(), "Failed") {
+		t.Fatalf("updated event suppressed or duplicated: %s", out.String())
+	}
+}

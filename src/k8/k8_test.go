@@ -14,7 +14,41 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 )
+
+func TestClusterLogsHandleTimestampFormatsAndLimits(t *testing.T) {
+	now := time.Now().UTC()
+	fakeCluster(t,
+		&v1.Event{ObjectMeta: metav1.ObjectMeta{Name: "legacy", Namespace: namespace}, FirstTimestamp: metav1.NewTime(now)},
+		&v1.Event{ObjectMeta: metav1.ObjectMeta{Name: "modern", Namespace: namespace}, EventTime: metav1.NewMicroTime(now.Add(time.Second))},
+		&v1.Event{ObjectMeta: metav1.ObjectMeta{Name: "series", Namespace: namespace}, EventTime: metav1.NewMicroTime(now.Add(-time.Hour)), Series: &v1.EventSeries{LastObservedTime: metav1.NewMicroTime(now.Add(2 * time.Second))}},
+		&v1.Event{ObjectMeta: metav1.ObjectMeta{Name: "creation", Namespace: namespace, CreationTimestamp: metav1.NewTime(now.Add(-time.Second))}},
+	)
+	events, err := GetLogsCluster(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, event := range events {
+		names = append(names, event.Name)
+	}
+	if !reflect.DeepEqual(names, []string{"series", "modern", "legacy", "creation"}) {
+		t.Fatalf("incorrect event ordering: %v", names)
+	}
+	limit := int64(2)
+	if events, err := GetLogsCluster(&limit); err != nil || len(events) != 2 {
+		t.Fatalf("event limit: %v %v", events, err)
+	}
+	limit = 0
+	if events, err := GetLogsCluster(&limit); err != nil || len(events) != 0 {
+		t.Fatalf("zero event limit: %v %v", events, err)
+	}
+	limit = -1
+	if _, err := GetLogsCluster(&limit); err == nil {
+		t.Fatal("negative event limit accepted")
+	}
+}
 
 func fakeCluster(t *testing.T, objects ...runtime.Object) *fake.Clientset {
 	t.Helper()
