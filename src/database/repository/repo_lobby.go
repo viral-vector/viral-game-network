@@ -238,29 +238,42 @@ func PutLobby(body *dbtype.Lobby, app *dbtype.Application, user *dbtype.User) (*
 	if body == nil || app == nil || app.ID == nil {
 		return nil, fmt.Errorf("missing lobby or application")
 	}
+	name := strings.TrimSpace(body.Name)
+	if name == "" || len(name) > 128 {
+		return nil, fmt.Errorf("invalid lobby name")
+	}
+	if app.ID.Table != "Application" || (user != nil && (user.ID == nil || user.ID.Table != "User")) {
+		return nil, fmt.Errorf("invalid application or host")
+	}
+	if body.Private && body.Code == "" {
+		return nil, fmt.Errorf("private lobby requires a code")
+	}
 	now := time.Now().UTC().Format(time.RFC3339)
-	body.Date_Created = now
-	body.Guid = database.GetUUID()
-
-	// Create the lobby.
-	lobby, err := database.Create[dbtype.Lobby](body)
-	if err != nil {
-		return nil, err
+	guid := database.GetUUID()
+	id := "Lobby:l" + strings.ReplaceAll(guid, "-", "")
+	query := `BEGIN TRANSACTION;
+		CREATE type::record($lobby) CONTENT $fields;
+		RELATE (type::record($lobby))->Lobby_Application->(type::record($app));`
+	params := map[string]interface{}{
+		"lobby": id, "app": app.ModelID(),
+		"fields": map[string]interface{}{
+			"name": name, "guid": guid, "date_created": now, "date_updated": now,
+			"private": body.Private, "code": body.Code,
+		},
 	}
-	// Link the app.
-	err = LinkLobbyApplication(lobby, app)
-	if err != nil {
-		return nil, err
-	}
-	// Link the host.
 	if user != nil {
-		err = LinkLobbyHost(lobby, user)
-		if err != nil {
-			return nil, err
-		}
+		params["user"] = user.ModelID()
+		query += `
+			DELETE FROM Lobby_Host WHERE out=type::record($user);
+			DELETE FROM Lobby_Users WHERE out=type::record($user);
+			RELATE (type::record($lobby))->Lobby_Host->(type::record($user));
+			RELATE (type::record($lobby))->Lobby_Users->(type::record($user)) CONTENT {user_type:'host'};`
 	}
-
-	return GetLobby(lobby.ID.String())
+	query += ` COMMIT TRANSACTION;`
+	if _, err := database.Query[any](query, params); err != nil {
+		return nil, err
+	}
+	return GetLobby(id)
 }
 
 func DelLobby(id string, lobby *dbtype.Lobby) error {
@@ -279,11 +292,33 @@ func LinkLobbyHost(lobby *dbtype.Lobby, user *dbtype.User) error {
 }
 
 func SwapLobbyHost(lobby *dbtype.Lobby, user *dbtype.User) error {
-	err := UnlinkLobbyUser(lobby, lobby.Lobby_Host)
+	if lobby == nil || lobby.ID == nil || lobby.ID.Table != "Lobby" || user == nil || user.ID == nil || user.ID.Table != "User" {
+		return fmt.Errorf("missing lobby or user")
+	}
+	held, err := cache.WithLock(context.Background(), "lobby-lifecycle-lock-"+strings.TrimPrefix(lobby.ModelID(), "Lobby:"), 60*time.Second, func(ctx context.Context) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		_, err := database.Query[any](`
+			BEGIN TRANSACTION;
+			LET $member = SELECT * FROM Lobby_Users WHERE in=type::record($lobby) AND out=type::record($user);
+			IF array::len($member) = 0 { THROW 'New host must already belong to the lobby'; };
+			UPDATE Lobby_Users SET user_type='user' WHERE in=type::record($lobby) AND user_type='host';
+			UPDATE Lobby_Users SET user_type='host' WHERE in=type::record($lobby) AND out=type::record($user);
+			DELETE FROM Lobby_Host WHERE in=type::record($lobby);
+			RELATE (type::record($lobby))->Lobby_Host->(type::record($user));
+			UPDATE type::record($lobby) SET date_updated=$now;
+			COMMIT TRANSACTION;
+		`, map[string]interface{}{"lobby": lobby.ModelID(), "user": user.ModelID(), "now": time.Now().UTC().Format(time.RFC3339)})
+		return err
+	})
 	if err != nil {
 		return err
 	}
-	return LinkLobbyUser(lobby, user, "host")
+	if !held {
+		return fmt.Errorf("lobby busy; retry host transfer")
+	}
+	return nil
 }
 
 func LinkLobbyUser(lobby *dbtype.Lobby, user *dbtype.User, user_type string) error {
