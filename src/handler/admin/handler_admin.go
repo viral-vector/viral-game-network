@@ -1,18 +1,13 @@
 package handler_admin
 
 import (
-	"bufio"
-	"encoding/json"
-	"fmt"
 	"math"
 	"strconv"
-	"time"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
 	"viral-game-network/src/k8"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/valyala/fasthttp"
 )
 
 // ##> Dashboard
@@ -118,46 +113,4 @@ func Handle_Metrics(c *fiber.Ctx) error {
 	return c.Render("admin/metrics", fiber.Map{
 	
 	})
-}
-
-// ##> SSEvents
-func Handle_SSEvents(c *fiber.Ctx) error {
-	c.Set("Content-Type", "text/event-stream")
-	c.Set("Cache-Control", "no-cache")
-	c.Set("Connection", "keep-alive")
-	c.Set("Transfer-Encoding", "chunked")
-
-	// Create a channel to send messages
-	messageChan := make(chan dbtype.SystemEvent)
-
-	c.Status(fiber.StatusOK).Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
-		for msg := range messageChan {
-			// Marshal to JSON
-			msg, err := json.Marshal(msg)
-			if err != nil {
-				continue
-			}
-			// Send the message
-			fmt.Fprintf(w, "data: %s\n\n", msg)
-			err = w.Flush()
-			if err != nil {
-				fmt.Printf("Error while flushing: %v. Closing http connection.\n", err)
-				return
-			}
-		}
-	}))
-
-	go func() {
-		for {
-			messages, err := repository.SelSystemEventsInFrame(5)
-			if err != nil {
-				continue
-			}
-			for i := range messages {
-				messageChan <- messages[i]
-			}
-			time.Sleep(5 * time.Second)
-		}
-	}()
-	return nil
 }

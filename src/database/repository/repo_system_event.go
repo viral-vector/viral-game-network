@@ -24,8 +24,7 @@ func AllSystemEvents(count int, pager int) ([]dbtype.SystemEvent, int, error) {
 
 	// Count All System Events
 	total, err := database.Query[dbtype.Total]("SELECT count() AS total FROM type::table(System_Event) GROUP ALL;",
-		map[string]interface{}{
-		})
+		map[string]interface{}{})
 	if err != nil {
 		return sevents, 0, err
 	}
@@ -47,7 +46,11 @@ func SelSystemEvents(count int64) ([]dbtype.SystemEvent, error) {
 }
 
 func SelSystemEventsInFrame(seconds int32) ([]dbtype.SystemEvent, error) {
-	startTime := time.Now().Add(time.Duration(-seconds) * time.Second).Format(time.RFC3339)
+	return SelSystemEventsSince(time.Now().Add(-time.Duration(seconds) * time.Second))
+}
+
+func SelSystemEventsSince(since time.Time) ([]dbtype.SystemEvent, error) {
+	startTime := since.UTC().Format(time.RFC3339)
 
 	lQuery := `
 	SELECT *
