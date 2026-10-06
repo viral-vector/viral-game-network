@@ -2,8 +2,8 @@ package repository
 
 import (
 	"fmt"
-	"time"
 	"sort"
+	"time"
 	"viral-game-network/src/cache"
 	"viral-game-network/src/database"
 	dbtype "viral-game-network/src/database/type"
@@ -26,10 +26,12 @@ func GetSystemConfigs() ([]dbtype.SystemConfig, error) {
 	`
 	// Get Mapping
 	configMap := dbtype.SystemConfig{}.KeyValMap()
-	mappedMap, _ := database.Query[dbtype.SystemConfig](fmt.Sprintf("%s%s", lQuery, `;`), 
-	map[string]interface{}{
-		
-	})
+	mappedMap, err := database.Query[dbtype.SystemConfig](fmt.Sprintf("%s%s", lQuery, `;`),
+		map[string]interface{}{})
+
+	if err != nil {
+		return nil, err
+	}
 
 	// GLobal datetime
 	datetime := time.Now().UTC().Format(time.RFC3339)
@@ -56,13 +58,13 @@ func GetSystemConfigs() ([]dbtype.SystemConfig, error) {
 	sort.Slice(finalMap, func(i, j int) bool {
 		return finalMap[i].Key < finalMap[j].Key
 	})
-	
+
 	cache.Set[[]dbtype.SystemConfig]("system-configs", finalMap, time.Minute*30)
-	
+
 	return finalMap, nil
 }
 
-func PopSystemConfigs(configs *[]dbtype.SystemConfig) ([]dbtype.SystemConfig, error) {	
+func PopSystemConfigs(configs *[]dbtype.SystemConfig) ([]dbtype.SystemConfig, error) {
 	datetime := time.Now().UTC().Format(time.RFC3339)
 
 	var err error
@@ -70,10 +72,10 @@ func PopSystemConfigs(configs *[]dbtype.SystemConfig) ([]dbtype.SystemConfig, er
 		config.Date_Updated = datetime
 		if config.ID != nil {
 			_, err = database.Update[dbtype.SystemConfig](*config.ID, &config)
-		}else {
+		} else {
 			_, err = database.Upsert[dbtype.SystemConfig](&config)
 		}
-		if err != nil{
+		if err != nil {
 			return nil, fmt.Errorf("Repository: PopSystemConfigs Error: %s", err)
 		}
 	}
@@ -84,7 +86,7 @@ func PopSystemConfigs(configs *[]dbtype.SystemConfig) ([]dbtype.SystemConfig, er
 }
 
 func GetConfigValue(key string) *string {
-	configs, _ := GetSystemConfigs() 
+	configs, _ := GetSystemConfigs()
 	if configs != nil {
 		for _, config := range configs {
 			if config.Key == key {

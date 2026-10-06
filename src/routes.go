@@ -2,8 +2,8 @@ package main
 
 import (
 	"os"
-	"time"
 	"strings"
+	"time"
 	"viral-game-network/src/handler"
 	handler_admin "viral-game-network/src/handler/admin"
 	"viral-game-network/src/middleware"
@@ -25,13 +25,13 @@ func serve_routes(app *fiber.App) {
 	}))
 	app.Use(func(c *fiber.Ctx) error {
 		c.Set("Viral-Game-Network-Entity", c.Get("Viral-Game-Network-Entity"))
-		c.Locals("route", map[string]string {
+		c.Locals("route", map[string]string{
 			"path": c.Path(),
 			"http": c.BaseURL() + c.Path(),
 		})
 		c.Locals("app_env", os.Getenv("APP_ENV"))
 		c.Locals("app_env_dev", strings.HasPrefix(os.Getenv("APP_ENV"), "dev"))
-		c.Locals("title", "VGN - " + c.Path())
+		c.Locals("title", "VGN - "+c.Path())
 		return c.Next()
 	})
 	app.Use(func(c *fiber.Ctx) error {
@@ -54,7 +54,7 @@ func serve_routes(app *fiber.App) {
 	auth := app.Group("/auth")
 	// User Authentication
 	auth.Use([]string{"/lobby", "/guest"}, handler.Handle_ValidateAppKey)
-	auth.Post("/lobby", handler.Handle_AuthLobby).Name("auth/lobby")
+	auth.Post("/lobby", handler.Handle_ValidateTokenUsers, handler.Handle_AuthLobby).Name("auth/lobby")
 	auth.Post("/guest", handler.Handle_AuthGuest).Name("auth/guest")
 	// Admin Authentication
 	auth.Get("/admin", handler.Handle_RedirectAdmin, handler.Handle_AuthAdmin).Name("auth/admin")
@@ -63,7 +63,7 @@ func serve_routes(app *fiber.App) {
 	auth.Get("/admin/logout", handler.Handle_ValidateTokenAdmin, handler.Handle_AuthAdminLogout).Name("auth/admin/logout")
 
 	/**
-	 * 	Admin Routes -----------------------------------------------------------------  
+	 * 	Admin Routes -----------------------------------------------------------------
 	 */
 	admin := app.Group("/admin")
 	// Rate Limit
@@ -77,7 +77,7 @@ func serve_routes(app *fiber.App) {
 	}))
 	// Token Validation
 	admin.Use(handler.Handle_ValidateTokenAdmin)
-	
+
 	admin.Get("/", handler_admin.Handle_Dash).Name("admin")
 	// Cluster
 	admin.Post("/cluster/start", handler_admin.Handle_Cluster_Start)

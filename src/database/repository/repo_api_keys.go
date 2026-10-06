@@ -27,12 +27,13 @@ func GetApiKeys() ([]dbtype.SystemConfig, error) {
 	WHERE string::starts_with(key, "API_KEY_")
 	`
 	// Get Mapping
-	apiKeys, _ := database.Query[dbtype.SystemConfig](fmt.Sprintf("%s;", lQuery), 
-	map[string]interface{}{
-		
-	})
+	apiKeys, err := database.Query[dbtype.SystemConfig](fmt.Sprintf("%s;", lQuery),
+		map[string]interface{}{})
+	if err != nil {
+		return nil, err
+	}
 	cache.Set[[]dbtype.SystemConfig](cacheKey, apiKeys, time.Minute*30)
-	
+
 	return apiKeys, nil
 }
 
@@ -46,12 +47,12 @@ func AddApiKey(name string, key string) error {
 	}
 	datetime := time.Now().UTC().Format(time.RFC3339)
 	_, err := database.Create[dbtype.SystemConfig](&dbtype.SystemConfig{
-		Key   		 : "API_KEY_"+name,
-		Val   		 : key,
-		Type  		 : "text",
-		Version   	 : "0",
-		Date_Created : datetime,
-		Date_Updated : datetime,
+		Key:          "API_KEY_" + name,
+		Val:          key,
+		Type:         "text",
+		Version:      "0",
+		Date_Created: datetime,
+		Date_Updated: datetime,
 	})
 
 	return err

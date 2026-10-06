@@ -14,56 +14,121 @@ import (
 	"viral-game-network/src/database/repository"
 )
 
+type TokenAudience string
+
+const (
+	UserAudience  TokenAudience = "vgn:user"
+	AdminAudience TokenAudience = "vgn:admin"
+)
+
 type Claims struct {
 	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
 
-var vnet_key = []byte(os.Getenv("VNET_KEY"))
-
-func GenerateToken(username string) (string, error) {
-	app_name := *repository.GetConfigValue("VNET_NAME")
-	exp_time := *repository.GetConfigValue("VNET_TOKEN_EXPIRE")
-
-	if app_name == "" {
-		app_name = "VNet"
+// VNET_KEY is shared with game clients and pods. It must never sign sessions.
+func signingKey() ([]byte, error) {
+	key := os.Getenv("VNET_TOKEN_KEY")
+	if len(key) < 32 {
+		return nil, fmt.Errorf("VNET_TOKEN_KEY must contain at least 32 bytes")
 	}
-	if exp_time == "" {
-		exp_time = os.Getenv("VNET_TOKEN_EXPIRE")
+	if key == os.Getenv("VNET_KEY") {
+		return nil, fmt.Errorf("VNET_TOKEN_KEY must differ from VNET_KEY")
 	}
+	return []byte(key), nil
+}
 
-	i, err := strconv.ParseInt(exp_time, 10, 64)
+func ValidateSigningKey() error {
+	_, err := signingKey()
+	return err
+}
+
+func validIdentity(subject string, audience TokenAudience) bool {
+	table := ""
+	switch audience {
+	case UserAudience:
+		table = "User:"
+	case AdminAudience:
+		table = "Admin:"
+	default:
+		return false
+	}
+	return strings.HasPrefix(subject, table) && len(subject) > len(table)
+}
+
+func GenerateToken(username, subject string, audience TokenAudience) (string, error) {
+	key, err := signingKey()
 	if err != nil {
-		return "", fmt.Errorf("Parsing Expire Time: %s", err)
+		return "", err
 	}
-	l := time.Duration(+int(i))
-
+	if strings.TrimSpace(username) == "" || !validIdentity(subject, audience) {
+		return "", fmt.Errorf("invalid session identity")
+	}
+	configs, err := repository.GetSystemConfigs()
+	if err != nil {
+		return "", fmt.Errorf("load session configuration: %w", err)
+	}
+	appName, expiry := os.Getenv("VNET_NAME"), os.Getenv("VNET_TOKEN_EXPIRE")
+	for _, config := range configs {
+		if config.Val == "" {
+			continue
+		}
+		switch config.Key {
+		case "VNET_NAME":
+			appName = config.Val
+		case "VNET_TOKEN_EXPIRE":
+			expiry = config.Val
+		}
+	}
+	if appName == "" {
+		appName = "VNet"
+	}
+	minutes, err := strconv.ParseInt(expiry, 10, 64)
+	if err != nil || minutes <= 0 || minutes > int64((1<<63-1)/time.Minute) {
+		return "", fmt.Errorf("invalid token lifetime in minutes")
+	}
+	now := time.Now()
 	claims := Claims{
 		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(l * time.Minute)),
-			Issuer:    app_name,
+			Subject:   subject,
+			Audience:  jwt.ClaimStrings{string(audience)},
+			ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(minutes) * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(now),
+			Issuer:    appName,
+			ID:        uuid.NewString(),
 		},
 	}
-	access_token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	return access_token.SignedString(vnet_key)
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(key)
 }
 
 func ValidateToken(tokenString string) (*Claims, error) {
-	access_token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return vnet_key, nil
-	}, jwt.WithValidMethods([]string{"HS256"}))
+	key, err := signingKey()
 	if err != nil {
 		return nil, err
 	}
-	claims, ok := access_token.Claims.(*Claims)
-
-	if !access_token.Valid || !ok {
-		return nil, fmt.Errorf("Invalid Token")
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return key, nil
+	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired())
+	if err != nil {
+		return nil, err
 	}
+	claims, ok := token.Claims.(*Claims)
+	if !ok || !token.Valid || strings.TrimSpace(claims.Username) == "" || len(claims.Audience) != 1 || !validIdentity(claims.Subject, TokenAudience(claims.Audience[0])) {
+		return nil, fmt.Errorf("invalid session claims")
+	}
+	return claims, nil
+}
 
-	return claims, err
+func ValidateTokenFor(tokenString string, audience TokenAudience) (*Claims, error) {
+	claims, err := ValidateToken(tokenString)
+	if err != nil {
+		return nil, err
+	}
+	if claims.Audience[0] != string(audience) {
+		return nil, fmt.Errorf("invalid session audience")
+	}
+	return claims, nil
 }
 
 func GenerateAppKey(size int32) string {

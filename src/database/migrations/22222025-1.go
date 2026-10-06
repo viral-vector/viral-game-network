@@ -44,7 +44,7 @@ func init() {
 			DEFINE FIELD date_last_login ON TABLE User TYPE option<string>;
 			DEFINE INDEX idx_user_id ON TABLE User COLUMNS id UNIQUE;
 			DEFINE INDEX idx_user_guid ON TABLE User COLUMNS guid UNIQUE;
-			DEFINE INDEX idx_user_name ON TABLE User COLUMNS name UNIQUE;
+			DEFINE INDEX idx_user_name ON TABLE User COLUMNS name;
 			`,
 		},
 		// Lobby 

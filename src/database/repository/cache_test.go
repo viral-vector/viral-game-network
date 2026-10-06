@@ -33,3 +33,19 @@ func TestCachedConfigurationAndInvalidation(t *testing.T) {
 		t.Fatal("key cache not invalidated", err)
 	}
 }
+
+func TestConfigurationReadFailuresAreNotCached(t *testing.T) {
+	redis := support.Redis(t)
+	if _, err := GetApiKeys(); err == nil {
+		t.Fatal("API key query failure discarded")
+	}
+	if redis.Exists("system-configs-api-keys") {
+		t.Fatal("failed API key read cached")
+	}
+	if _, err := GetSystemConfigs(); err == nil {
+		t.Fatal("system config query failure discarded")
+	}
+	if redis.Exists("system-configs") {
+		t.Fatal("failed configuration read cached")
+	}
+}

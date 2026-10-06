@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"viral-game-network/src/auth"
 	"viral-game-network/src/database"
 	"viral-game-network/src/job"
 	"viral-game-network/src/k8"
@@ -13,6 +14,9 @@ import (
 )
 
 func main() {
+	if err := auth.ValidateSigningKey(); err != nil {
+		log.Fatal(err)
+	}
 	if err := database.Connect(os.Getenv("STORE_ENDPOINT"), os.Getenv("STORE_DATABASE"), "vgn", os.Getenv("STORE_USERNAME"), os.Getenv("STORE_PASSWORD")); err != nil {
 		log.Fatal(err)
 	}

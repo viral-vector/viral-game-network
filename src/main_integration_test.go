@@ -119,7 +119,7 @@ func TestGuestLobbyAndHeartbeatFlow(t *testing.T) {
 	if heartbeat.Data.Status != "Online" {
 		t.Fatal("heartbeat did not mark server online")
 	}
-	unknown, err := auth.GenerateToken("Deleted User")
+	unknown, err := auth.GenerateToken("Deleted User", "User:missing", auth.UserAudience)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,6 +150,11 @@ func TestBootstrapAndAdminSessionViews(t *testing.T) {
 	for _, item := range response.Cookies() {
 		if item.Name == "VNET_SESSION" {
 			cookie = item.Name + "=" + item.Value
+			claims, err := auth.ValidateTokenFor(item.Value, auth.AdminAudience)
+			if err != nil || !item.Expires.Equal(claims.ExpiresAt.Time) || item.Path != "/" || item.SameSite != http.SameSiteStrictMode {
+				t.Fatalf("invalid session cookie: %v", err)
+			}
+			request(t, app, "GET", "/api/lobby", nil, item.Value, "", 403)
 		}
 	}
 	if cookie == "" {
@@ -187,7 +192,7 @@ func TestLobbySocketReplaysHistoryAndBroadcastsMessages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	token, err := auth.GenerateToken(user.Name)
+	token, err := auth.GenerateToken(user.Name, user.ModelID(), auth.UserAudience)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,4 +244,74 @@ func TestLobbySocketReplaysHistoryAndBroadcastsMessages(t *testing.T) {
 	if err := json.Unmarshal(message, &history); err != nil || history.Body != "New message" || history.User_ID != user.ModelID() {
 		t.Fatalf("broadcast: %s %v", message, err)
 	}
+}
+
+func TestGuestSessionsCannotImpersonateAdminsOrPlayers(t *testing.T) {
+	support.Storage(t)
+	t.Setenv("VNET_TOKEN_EXPIRE", "60")
+	redis := support.Redis(t)
+	t.Setenv("CACHE_ENDPOINT", redis.Addr())
+	if err := repository.AddApiKey("test", "test-key"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.PutAdmin(&dbtype.Admin{Name: "admin", Email: "admin@example.invalid", Phone: "123", Password: "unused"}); err != nil {
+		t.Fatal(err)
+	}
+	app := NewApp("../views", "../public")
+	t.Cleanup(func() { app.Shutdown() })
+	guest := func(name string) string {
+		response := request(t, app, "POST", "/auth/guest", map[string]string{"name": name}, "", "", 200)
+		var result struct {
+			Token string `json:"access_token"`
+		}
+		decode(t, response, &result)
+		return result.Token
+	}
+	t.Run("guest token cannot authorize admin", func(t *testing.T) {
+		token := guest("admin")
+		request(t, app, "GET", "/admin/users", nil, "", "VNET_SESSION="+token, 302)
+		request(t, app, "GET", "/auth/admin", nil, "", "VNET_SESSION="+token, 200)
+	})
+	t.Run("duplicate display names have distinct identities", func(t *testing.T) {
+		first, err := auth.ValidateToken(guest("Player"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := auth.ValidateToken(guest("Player"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if first.Subject == "" || second.Subject == "" || first.Subject == second.Subject {
+			t.Fatal("guest sessions share an identity instead of distinct record IDs")
+		}
+		user, err := repository.GetUser(first.Subject)
+		if err != nil {
+			t.Fatal(err)
+		}
+		user.Name = "Renamed player"
+		if _, err := repository.SetUser(user.ModelID(), user); err != nil {
+			t.Fatal(err)
+		}
+		original, err := auth.GenerateToken("Player", first.Subject, auth.UserAudience)
+		if err != nil {
+			t.Fatal(err)
+		}
+		request(t, app, "GET", "/api/lobby", nil, original, "", 200)
+		response := request(t, app, "POST", "/auth/lobby", map[string]string{"name": "admin"}, original, "", 200)
+		var renewed struct {
+			Token string `json:"access_token"`
+		}
+		decode(t, response, &renewed)
+		claims, err := auth.ValidateTokenFor(renewed.Token, auth.UserAudience)
+		if err != nil || claims.Subject != first.Subject || claims.Username != user.Name {
+			t.Fatalf("refresh changed identity: %+v %v", claims, err)
+		}
+		if err := repository.DelUser(user.ModelID(), user); err != nil {
+			t.Fatal(err)
+		}
+		request(t, app, "GET", "/api/lobby", nil, renewed.Token, "", 403)
+	})
+	t.Run("lobby login requires an authenticated session", func(t *testing.T) {
+		request(t, app, "POST", "/auth/lobby", map[string]string{"name": "Player"}, "", "", 403)
+	})
 }
