@@ -13,84 +13,116 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"log"
 	"math/rand"
+	"os"
 	"sort"
 	"strconv"
+	"sync"
+	"time"
 	k8_k3d "viral-game-network/src/k8/k3d"
 )
 
 var ctx = context.Background()
-var config *rest.Config
 var namespace = "vgn-app"
 var clientset kubernetes.Interface
+var clientMutex sync.RWMutex
+var clusterLifecycle sync.Mutex
 var portRange = []int32{30000, 30030}
 var kubeconfig = "/root/.config/k3d/kubeconfig-viral-game-network.yaml"
 
-func Initialize() {
-	kinit, err := k8_k3d.CheckCluster()
+func Initialize() error {
+	if config, err := rest.InClusterConfig(); err == nil {
+		return configureFromConfig(config)
+	} else if err != rest.ErrNotInCluster {
+		return err
+	}
+	if os.Getenv("KUBECONFIG") != "" {
+		config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ClientConfig()
+		if err != nil {
+			return err
+		}
+		return configureFromConfig(config)
+	}
+	running, err := k8_k3d.CheckCluster()
 	if err != nil {
-		log.Println("k8 init error: ", err)
-		return
+		return err
 	}
-	if !kinit {
-		log.Println("k8 init error: K8 Error: Cluster Not Running")
-		return
+	if !running {
+		return fmt.Errorf("K8 Error: Cluster Not Running")
 	}
-
-	LoadConfiguration()
+	return LoadConfiguration()
 }
 
-// ConfigureClient installs a Kubernetes client before serving requests or running jobs.
-func ConfigureClient(client kubernetes.Interface) { clientset = client }
+// ConfigureClient may replace the client while handlers and jobs are running.
+func ConfigureClient(client kubernetes.Interface) {
+	clientMutex.Lock()
+	defer clientMutex.Unlock()
+	clientset = client
+}
 
-func LoadConfiguration() error {
-	// Create the clientset from the config
-	k8_k3d.WrtiteKubeConfig()
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+func getClient() kubernetes.Interface {
+	clientMutex.RLock()
+	defer clientMutex.RUnlock()
+	return clientset
+}
+
+func configureFromConfig(config *rest.Config) error {
+	config = rest.CopyConfig(config)
+	config.Timeout = 15 * time.Second
+	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Println("k8 config error: ", err)
 		return err
 	}
-
-	clientset, err = kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Println("k8 clientset error: ", err)
-		return err
-	}
+	ConfigureClient(client)
 	return nil
 }
 
-func CheckCreateCluster() error {
-	kinit, err := k8_k3d.CheckCluster()
-	if err != nil {
-		log.Println("k8 init error: ", err)
+func LoadConfiguration() error {
+	if err := k8_k3d.WrtiteKubeConfig(); err != nil {
 		return err
 	}
-	if !kinit {
-		err = k8_k3d.CreateCluster(portRange[0], portRange[1])
-		if err != nil {
-			return fmt.Errorf("k8 error creating cluster: " + err.Error())
-		}
-		LoadConfiguration()
-		CreateNameSpace()
-		// Print versrion
-		version, err := clientset.Discovery().ServerVersion()
-		if err == nil {
-			log.Println("k8 cluster initialized: ", version.String())
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return err
+	}
+	return configureFromConfig(config)
+}
+
+func CheckCreateCluster() error {
+	clusterLifecycle.Lock()
+	defer clusterLifecycle.Unlock()
+	running, err := k8_k3d.CheckCluster()
+	if err != nil {
+		return err
+	}
+	if !running {
+		if err := k8_k3d.CreateCluster(portRange[0], portRange[1]); err != nil {
+			return fmt.Errorf("create cluster: %w", err)
 		}
 	}
-
+	if err := LoadConfiguration(); err != nil {
+		return err
+	}
+	if err := CreateNameSpace(); err != nil {
+		return err
+	}
+	if version, err := getClient().Discovery().ServerVersion(); err == nil {
+		log.Println("k8 cluster initialized:", version)
+	}
 	return nil
 }
 
 func CheckDeleteCluster() error {
-	err := k8_k3d.DeleteCluster()
-	if err != nil {
-		return fmt.Errorf("k8 error creating cluster: " + err.Error())
+	clusterLifecycle.Lock()
+	defer clusterLifecycle.Unlock()
+	if err := k8_k3d.DeleteCluster(); err != nil {
+		return fmt.Errorf("delete cluster: %w", err)
 	}
+	ConfigureClient(nil)
 	return nil
 }
 
 func CreateNameSpace() error {
+	clientset := getClient()
 	if clientset == nil {
 		return fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -118,6 +150,7 @@ func CreateNameSpace() error {
 }
 
 func GetClusterStatus() (map[string]interface{}, error) {
+	clientset := getClient()
 	if clientset == nil {
 		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -136,15 +169,21 @@ func GetClusterStatus() (map[string]interface{}, error) {
 
 	// Get Nodes
 	nodeInfo := map[string]interface{}{}
-	nodes, _ := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	nodes, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("list cluster nodes: %w", err)
+	}
 	nodeInfo["nodes"] = map[string]interface{}{}
 	nodeInfo["total"] = 0
 	if nodes != nil {
 		nodeInfo["total"] = len(nodes.Items)
 		for _, node := range nodes.Items {
-			pods, _ := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+			pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 				FieldSelector: "spec.nodeName=" + node.Name,
 			})
+			if err != nil {
+				return nil, fmt.Errorf("list pods on node %s: %w", node.Name, err)
+			}
 			nodeInfo["nodes"].(map[string]interface{})[node.Name] = map[string]interface{}{
 				"name":  node.Name,
 				"ipv4":  GetNodeExternalIP(&node),
@@ -169,6 +208,7 @@ func GetPortRange(min, max int32) []int32 {
 }
 
 func GetNode(name string) (*v1.Node, error) {
+	clientset := getClient()
 	if clientset == nil {
 		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -176,6 +216,7 @@ func GetNode(name string) (*v1.Node, error) {
 }
 
 func FindOpenNodePort() (*v1.Node, int32, error) {
+	clientset := getClient()
 	if clientset == nil {
 		return nil, -1, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -248,6 +289,7 @@ func FindOpenNodePort() (*v1.Node, int32, error) {
 
 // Kill all server pods
 func KillAllServerPods() error {
+	clientset := getClient()
 	if clientset == nil {
 		return fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -269,6 +311,7 @@ func GetAllServerPodsPager(
 	desiredPage int,
 	continueToken string,
 ) ([]*v1.Pod, int, string, error) {
+	clientset := getClient()
 	if clientset == nil {
 		return nil, 0, "", fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -301,6 +344,7 @@ func GetAllServerPodsPager(
 
 // Get All server Pods
 func GetAllServerPodsList(search string, limit int64, continueToken string) ([]*v1.Pod, string, error) {
+	clientset := getClient()
 	if clientset == nil {
 		return nil, "", fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -330,6 +374,7 @@ func GetAllServerPodsList(search string, limit int64, continueToken string) ([]*
 
 // GetServerPod reads the pod without requiring it to be scheduled onto a node.
 func GetServerPod(label string) (*v1.Pod, error) {
+	clientset := getClient()
 	if clientset == nil {
 		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -338,6 +383,7 @@ func GetServerPod(label string) (*v1.Pod, error) {
 
 // Locate Server Pod
 func LocateServerPod(label string) (*v1.Node, *v1.Pod, error) {
+	clientset := getClient()
 	if clientset == nil {
 		return nil, nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -357,6 +403,7 @@ func LocateServerPod(label string) (*v1.Node, *v1.Pod, error) {
 
 // Create Server Pod
 func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, image string, command []string, env map[string]string) (*v1.Pod, error) {
+	clientset := getClient()
 	if clientset == nil {
 		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -421,6 +468,10 @@ func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, imag
 }
 
 func AddServerPodLabel(label string, labels map[string]string) error {
+	clientset := getClient()
+	if clientset == nil {
+		return fmt.Errorf("K8 Error: Cluster Not Running")
+	}
 	// Create a JSON patch to add/update the label.
 	patchDMap := map[string]interface{}{
 		"metadata": map[string]interface{}{
@@ -448,6 +499,7 @@ func AddServerPodLabel(label string, labels map[string]string) error {
 
 // Delete Server Pod
 func DeleteServerPod(label string) error {
+	clientset := getClient()
 	if clientset == nil {
 		return fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -489,6 +541,7 @@ func GetPodHostPort(pod *v1.Pod) int32 {
 }
 
 func GetPodLogParts(pod *v1.Pod, tailLines *int64) ([]string, error) {
+	clientset := getClient()
 	if clientset == nil {
 		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
@@ -515,6 +568,7 @@ func GetPodLogParts(pod *v1.Pod, tailLines *int64) ([]string, error) {
 }
 
 func GetLogsCluster(tailLines *int64) ([]v1.Event, error) {
+	clientset := getClient()
 	if clientset == nil {
 		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}

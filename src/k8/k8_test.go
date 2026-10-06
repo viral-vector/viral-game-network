@@ -1,20 +1,27 @@
 package k8
 
 import (
+	"fmt"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"reflect"
+	"sync"
 	"testing"
 )
 
 func fakeCluster(t *testing.T, objects ...runtime.Object) *fake.Clientset {
 	t.Helper()
-	previous := clientset
+	previous := getClient()
 	client := fake.NewSimpleClientset(objects...)
 	ConfigureClient(client)
-	t.Cleanup(func() { clientset = previous })
+	t.Cleanup(func() { ConfigureClient(previous) })
 	return client
 }
 
@@ -88,7 +95,7 @@ func TestEmptyClusterAndMissingConfiguration(t *testing.T) {
 	if _, _, err := FindOpenNodePort(); err == nil {
 		t.Fatal("empty cluster accepted")
 	}
-	clientset = nil
+	ConfigureClient(nil)
 	if _, _, err := GetAllServerPodsList("", 10, ""); err == nil {
 		t.Fatal("missing client accepted")
 	}
@@ -107,5 +114,74 @@ func TestNodeAddressAndPortHelpers(t *testing.T) {
 	}
 	if !reflect.DeepEqual(GetPortRange(3, 5), []int32{3, 4, 5}) || len(GetPortRange(5, 3)) != 0 {
 		t.Fatal("incorrect port range")
+	}
+}
+
+func TestInitializeUsesExplicitKubeconfigWithoutK3d(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"apiVersion":"v1","kind":"PodList","items":[]}`)
+	}))
+	defer server.Close()
+	path := filepath.Join(t.TempDir(), "kubeconfig")
+	content := fmt.Sprintf("apiVersion: v1\nkind: Config\nclusters:\n- name: test\n  cluster:\n    server: %s\ncontexts:\n- name: test\n  context:\n    cluster: test\n    user: test\ncurrent-context: test\nusers:\n- name: test\n  user: {}\n", server.URL)
+	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("KUBECONFIG", path)
+	t.Setenv("KUBERNETES_SERVICE_HOST", "")
+	t.Setenv("KUBERNETES_SERVICE_PORT", "")
+	previous := getClient()
+	ConfigureClient(nil)
+	t.Cleanup(func() { ConfigureClient(previous) })
+	Initialize()
+	if _, _, err := GetAllServerPodsList("", -1, ""); err != nil {
+		t.Fatal("explicit kubeconfig was ignored", err)
+	}
+}
+
+func TestClientReplacementDuringRequests(t *testing.T) {
+	previous := getClient()
+	t.Cleanup(func() { ConfigureClient(previous) })
+	pod := &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "game", Namespace: namespace}}
+	first, second := fake.NewSimpleClientset(pod), fake.NewSimpleClientset(pod)
+	ConfigureClient(first)
+	var workers sync.WaitGroup
+	workers.Add(2)
+	go func() {
+		defer workers.Done()
+		for i := 0; i < 200; i++ {
+			ConfigureClient(first)
+			ConfigureClient(second)
+		}
+	}()
+	go func() {
+		defer workers.Done()
+		for i := 0; i < 200; i++ {
+			if _, err := GetServerPod("game"); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+	}()
+	workers.Wait()
+}
+
+func TestClusterStatusReturnsPodListFailures(t *testing.T) {
+	client := fakeCluster(t, &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "worker"}})
+	client.PrependReactor("list", "pods", func(ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("pod listing failed")
+	})
+	if _, err := GetClusterStatus(); err == nil {
+		t.Fatal("pod listing failure was discarded")
+	}
+}
+
+func TestAddingLabelsWithoutConfigurationReturnsError(t *testing.T) {
+	previous := getClient()
+	ConfigureClient(nil)
+	t.Cleanup(func() { ConfigureClient(previous) })
+	if err := AddServerPodLabel("game", map[string]string{"server": "id"}); err == nil {
+		t.Fatal("missing client accepted")
 	}
 }

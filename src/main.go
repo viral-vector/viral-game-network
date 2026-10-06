@@ -21,7 +21,9 @@ func main() {
 		log.Fatal(err)
 	}
 	defer database.Close()
-	k8.Initialize()
+	if err := k8.Initialize(); err != nil {
+		log.Printf("Kubernetes unavailable: %v", err)
+	}
 	cmd := os.Getenv("VNET_JOB_NAME")
 	// Start app in env
 	log.Println("Starting VGN", cmd)
