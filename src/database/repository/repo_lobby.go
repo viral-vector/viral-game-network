@@ -119,6 +119,22 @@ func GetLobby(id string) (*dbtype.Lobby, error) {
 	return &lobbies[0], nil
 }
 
+// IsLobbyMember checks the indexed membership edge without loading the lobby's
+// full roster and relationships for every live chat message.
+func IsLobbyMember(lobby, user string) (bool, error) {
+	if !strings.HasPrefix(lobby, "Lobby:") || !strings.HasPrefix(user, "User:") {
+		return false, fmt.Errorf("invalid lobby or user ID")
+	}
+	rows, err := database.Query[dbtype.Total](`
+		SELECT count() AS total FROM Lobby_Users
+		WHERE in=type::record($lobby) AND out=type::record($user) GROUP ALL;
+	`, map[string]interface{}{"lobby": lobby, "user": user})
+	if err != nil {
+		return false, err
+	}
+	return len(rows) > 0 && rows[0].Total > 0, nil
+}
+
 // LobbyPatch includes editable fields only. Pointers distinguish omitted values
 // from explicit false/empty values in JSON and admin form submissions.
 type LobbyPatch struct {

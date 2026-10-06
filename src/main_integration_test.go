@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"github.com/fasthttp/websocket"
 	"github.com/gofiber/fiber/v2"
 	"io"
@@ -16,6 +17,7 @@ import (
 	"testing"
 	"time"
 	"viral-game-network/src/auth"
+	"viral-game-network/src/cache"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
 	"viral-game-network/src/ministration"
@@ -382,4 +384,78 @@ func TestGuestSessionsCannotImpersonateAdminsOrPlayers(t *testing.T) {
 	t.Run("lobby login requires an authenticated session", func(t *testing.T) {
 		request(t, app, "POST", "/auth/lobby", map[string]string{"name": "Player"}, "", "", 403)
 	})
+}
+
+func TestLobbySocketRevokesDepartedMembership(t *testing.T) {
+	for _, action := range []string{"receive", "send", "quiet"} {
+		t.Run(action, func(t *testing.T) {
+			redis := support.Storage(t)
+			t.Setenv("CACHE_ENDPOINT", redis.Addr())
+			user, err := repository.PutUser(&dbtype.User{Name: "Host"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			game, err := repository.PutApplication(&dbtype.Application{Name: "Game", Guid: "game", Image: "game", Port: "4000", Command: "server", Lobby_Max_Players: "4", Lobby_Max_Persist: "30"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			room, err := repository.PutLobby(&dbtype.Lobby{Name: "Room"}, game, user)
+			if err != nil {
+				t.Fatal(err)
+			}
+			token, err := auth.GenerateToken(user.Name, user.ModelID(), auth.UserAudience)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := ministration.Service_Lobby_Notify(room.ModelID(), "welcome", ""); err != nil {
+				t.Fatal(err)
+			}
+			listener, err := net.Listen("tcp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			app := NewApp("../views", "../public")
+			appDone := make(chan error, 1)
+			go func() { appDone <- app.Listener(listener) }()
+			t.Cleanup(func() {
+				app.Shutdown()
+				if err := <-appDone; err != nil {
+					t.Error(err)
+				}
+			})
+			connection, _, err := websocket.DefaultDialer.Dial("ws://"+listener.Addr().String()+"/api/lobby/"+room.ModelID()+"/socket", http.Header{"Viral-Game-Network-Token": []string{token}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer connection.Close()
+			connection.SetReadDeadline(time.Now().Add(3 * time.Second))
+			if _, _, err := connection.ReadMessage(); err != nil {
+				t.Fatal("socket did not finish replay", err)
+			}
+			if err := repository.UnlinkLobbyUser(room, user); err != nil {
+				t.Fatal(err)
+			}
+			switch action {
+			case "receive":
+				if err := ministration.Service_Lobby_Notify(room.ModelID(), "private message", ""); err != nil {
+					t.Fatal(err)
+				}
+			case "send":
+				if err := connection.WriteMessage(websocket.TextMessage, []byte("unauthorized chat")); err != nil {
+					t.Fatal(err)
+				}
+			}
+			_, raw, err := connection.ReadMessage()
+			var timeout net.Error
+			if err == nil || (errors.As(err, &timeout) && timeout.Timeout()) {
+				t.Fatalf("departed member retained chat access: payload=%s error=%v", raw, err)
+			}
+			if action == "send" {
+				history, err := cache.List("lobby:" + room.ModelID() + ":channel")
+				if err != nil || len(history) != 1 {
+					t.Fatalf("departed member published to history: %v %v", history, err)
+				}
+			}
+		})
+	}
 }

@@ -169,6 +169,26 @@ func Handle_SocketLobby(c *websocket.Conn) {
 	}
 	conn.SetReadLimit(4096)
 	conn.SetReadDeadline(expires)
+	authorize := func() error {
+		if !expires.After(time.Now()) {
+			return fiber.ErrForbidden
+		}
+		member, err := repository.IsLobbyMember(id, user.ModelID())
+		if err != nil {
+			return err
+		}
+		if !member {
+			return fiber.ErrForbidden
+		}
+		return nil
+	}
+	send := func(message []byte) error {
+		if err := authorize(); err != nil {
+			return err
+		}
+		conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+		return conn.WriteMessage(websocket.TextMessage, message)
+	}
 
 	subscription := pubsub.Sub(channel)
 	defer pubsub.Close(subscription)
@@ -185,24 +205,36 @@ func Handle_SocketLobby(c *websocket.Conn) {
 		return
 	}
 	for _, message := range history {
-		conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+		if err := send([]byte(message)); err != nil {
 			return
 		}
 	}
 
 	// WebSocket connections allow only one writer at a time.
-	write := lobbyLiveWriter(history, func(message []byte) error {
-		conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
-		return conn.WriteMessage(websocket.TextMessage, message)
-	})
+	write := lobbyLiveWriter(history, send)
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		for message := range subscription.Channel() {
-			if err := write([]byte(message.Payload)); err != nil {
-				conn.Close()
-				return
+		defer func() {
+			// fasthttp may defer closing a hijacked connection until this
+			// handler returns. Wake its blocked reader so it can return.
+			conn.SetReadDeadline(time.Now())
+			conn.Close()
+		}()
+		membership := time.NewTicker(time.Second)
+		defer membership.Stop()
+		messages := subscription.Channel()
+		for {
+			select {
+			case message, open := <-messages:
+				if !open || write([]byte(message.Payload)) != nil {
+					return
+				}
+			case <-membership.C:
+				// Quiet sockets must also close when their member leaves.
+				if authorize() != nil {
+					return
+				}
 			}
 		}
 	}()
@@ -215,6 +247,9 @@ func Handle_SocketLobby(c *websocket.Conn) {
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
+			return
+		}
+		if authorize() != nil {
 			return
 		}
 		if len(message) < 3 {
