@@ -2,6 +2,7 @@
     "name": "viral-game-network-admin",
     "version": "0.1.0",
     "private": true,
+    "license": "SEE LICENSE IN LICENSE",
     "scripts": {
         "build": "webpack --mode production",
         "watch": "webpack --mode development --watch"

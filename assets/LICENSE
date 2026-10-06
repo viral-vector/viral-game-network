@@ -1,0 +1,60 @@
+Viral Game Network Use-Only License, Version 1.0
+
+Copyright (c) 2026 Viral Vector. All rights reserved except as expressly
+granted below.
+
+1. Scope
+
+This license applies to the original code and accompanying materials in
+Viral Game Network owned by Viral Vector (the "Software"). Third-party
+dependencies and materials carrying separate license notices remain governed
+by their own licenses; this license does not replace those licenses.
+
+2. Permission to use and modify
+
+Viral Vector grants you a non-exclusive, royalty-free, non-transferable
+license to download, copy, install, run, and modify the Software for your own
+personal, internal organizational, or commercial use. You may make copies
+needed to develop, test, deploy, and back up the Software for that use.
+
+3. No redistribution
+
+You may not distribute, publish, sell, sublicense, transfer, or otherwise
+provide copies of the Software or any substantial portion of it to any other
+person or entity without prior written permission from Viral Vector.
+
+This restriction applies to both original and modified versions, derivative
+works containing the Software, source code, compiled binaries, packages,
+container images, and copies included in other products. Providing credit or
+retaining this license does not grant permission to redistribute.
+
+4. Ownership and notices
+
+You must not claim authorship or ownership of the original Software or
+misrepresent its origin. Retain existing copyright, attribution, and license
+notices in all copies you make. Identify your modifications as your own
+changes rather than as the original work of Viral Vector. Viral Vector
+retains ownership of the original Software; this license transfers no
+ownership rights and grants no trademark rights.
+
+5. Termination
+
+Your permissions under this license terminate automatically if you violate
+its terms. Upon termination, you must stop using the Software and delete
+copies you control, except copies you are legally required to retain.
+
+6. Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NON-INFRINGEMENT. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE
+LAW, VIRAL VECTOR AND THE CONTRIBUTORS SHALL NOT BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY ARISING FROM THE SOFTWARE OR ITS USE, WHETHER
+IN CONTRACT, TORT, OR OTHERWISE.
+
+7. Reserved rights
+
+All rights not expressly granted are reserved. These terms do not restrict
+rights that applicable law does not allow a license to restrict. For
+redistribution permission or different terms, contact Viral Vector through
+https://github.com/viral-vector/viral-game-network.
