@@ -40,10 +40,10 @@ export class IdleTimer {
     // Stop tracking and remove listeners
     stop() {
         clearTimeout(this._timerId);
-        window.removeEventListener('mousemove', this._boundReset);
-        window.removeEventListener('mousedown', this._boundReset);
-        window.removeEventListener('keypress', this._boundReset);
-        window.removeEventListener('touchstart', this._boundReset);
-        window.removeEventListener('scroll', this._boundReset);
+        window.removeEventListener('mousemove', this._boundReset, true);
+        window.removeEventListener('mousedown', this._boundReset, true);
+        window.removeEventListener('keypress', this._boundReset, true);
+        window.removeEventListener('touchstart', this._boundReset, true);
+        window.removeEventListener('scroll', this._boundReset, true);
     }
 }

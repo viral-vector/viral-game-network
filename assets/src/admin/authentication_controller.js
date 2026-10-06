@@ -3,21 +3,27 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
     connect() {
         // Check if the token is expiring every minute
-        setInterval(() => {
+        this.refreshInterval = setInterval(() => {
             if (this.isJWTTokenExpire()) {
                 this.getFreshJWTToken();
             }
         }, 1000 * 45);
     }
 
+    disconnect() {
+        clearInterval(this.refreshInterval);
+    }
+
     isJWTTokenExpire() {
         const token = this.getCookie('VNET_SESSION');
-        if (token) {
-            const tokenData = JSON.parse(atob(token.split('.')[1]));
-            const exp = tokenData.exp * 1000; // to milliseconds
-            const now = Date.now();
-            const dif = exp - now;
-            return 0 < dif && dif < 5 * 60 * 1000; // If the token is expiring in less than 5 minutes
+        if (!token) return false;
+        try {
+            const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            const { exp } = JSON.parse(atob(payload));
+            const difference = exp * 1000 - Date.now();
+            return Number.isFinite(exp) && 0 < difference && difference < 5 * 60 * 1000;
+        } catch {
+            return false;
         }
     }
 

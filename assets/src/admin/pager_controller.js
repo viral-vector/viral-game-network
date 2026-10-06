@@ -77,7 +77,7 @@ export default class extends Controller {
         const li = document.createElement('li');
         const sp = document.createElement('span');
         sp.innerHTML = `&mldr;`;
-        sp.classList.add('.pagination-ellipsis');
+        sp.classList.add('pagination-ellipsis');
         li.appendChild(sp);
         return li;
     }

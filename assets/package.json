@@ -5,7 +5,10 @@
     "license": "SEE LICENSE IN LICENSE",
     "scripts": {
         "build": "webpack --mode production",
-        "watch": "webpack --mode development --watch"
+        "watch": "webpack --mode development --watch",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage"
     },
     "devDependencies": {
         "@babel/core": "^7.24.4",
@@ -25,6 +28,9 @@
         "webpack-cli": "^5.1.4",
         "webpack-manifest-plugin": "^5.0.0",
         "webpack-pwa-manifest": "^4.3.0",
-        "webpack-remove-empty-scripts": "^1.0.4"
+        "webpack-remove-empty-scripts": "^1.0.4",
+        "vitest": "3.0.9",
+        "@vitest/coverage-v8": "3.0.9",
+        "jsdom": "26.0.0"
     }
 }
