@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
+	"viral-game-network/src/cache"
 	"viral-game-network/src/database"
 	dbtype "viral-game-network/src/database/type"
 )
@@ -183,6 +185,28 @@ func PatchLobby(id string, patch *LobbyPatch) (*dbtype.Lobby, error) {
 // JoinLobby checks capacity and the invitation inside the same transaction as
 // membership replacement. Existing members keep their role when retrying a join.
 func JoinLobby(id string, user *dbtype.User, code string) (*dbtype.Lobby, error) {
+	if !strings.HasPrefix(id, "Lobby:") || len(id) <= len("Lobby:") {
+		return nil, fmt.Errorf("invalid lobby ID")
+	}
+	var joined *dbtype.Lobby
+	held, err := cache.WithLock(context.Background(), "lobby-lifecycle-lock-"+strings.TrimPrefix(id, "Lobby:"), 60*time.Second, func(ctx context.Context) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		var err error
+		joined, err = joinLobbyTransaction(id, user, code)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !held {
+		return nil, fmt.Errorf("lobby busy; retry joining")
+	}
+	return joined, nil
+}
+
+func joinLobbyTransaction(id string, user *dbtype.User, code string) (*dbtype.Lobby, error) {
 	if user == nil || user.ID == nil {
 		return nil, fmt.Errorf("missing user")
 	}
