@@ -2,78 +2,66 @@ package database
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"time"
-	dbtype "viral-game-network/src/database/type"
-	migrations "viral-game-network/src/database/migrations"
-    "github.com/surrealdb/surrealdb.go"
-	"github.com/surrealdb/surrealdb.go/pkg/models"
+	"github.com/fxamacker/cbor/v2"
 	"github.com/google/uuid"
+	"github.com/surrealdb/surrealdb.go"
+	"github.com/surrealdb/surrealdb.go/pkg/models"
+	migrations "viral-game-network/src/database/migrations"
+	dbtype "viral-game-network/src/database/type"
 )
 
 var DBS *surrealdb.DB
-var err error
 
-func init() {
-	log.Println("Database Initialize!")
-
-	DBS, err = surrealdb.New(os.Getenv("STORE_ENDPOINT"))
+// Connect initializes storage explicitly so importing a package has no network effects.
+// Migrations finish before callers can bootstrap or serve requests.
+func Connect(endpoint, namespace, name, username, password string) error {
+	db, err := surrealdb.New(endpoint)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-
-	if err = DBS.Use(os.Getenv("STORE_DATABASE"), "vgn"); err != nil {
-		log.Fatal(err)
+	if _, err = db.SignIn(&surrealdb.Auth{Username: username, Password: password}); err != nil {
+		db.Close()
+		return err
 	}
-
-	authData := &surrealdb.Auth{
-		Username: os.Getenv("STORE_USERNAME"), // use your setup username
-		Password: os.Getenv("STORE_PASSWORD"), // use your setup password
+	if err = db.Use(namespace, name); err != nil {
+		db.Close()
+		return err
 	}
-	
-	if _, err := DBS.SignIn(authData); err != nil {
-		log.Fatal(err)
+	if err = migrations.Migrations_Run(db); err != nil {
+		db.Close()
+		return err
 	}
+	DBS = db
+	return nil
+}
 
-	// Run Migration
-	go func() {
-		time.Sleep(3 * time.Second)
-
-		err := migrations.Migrations_Run(DBS)
-		if err != nil{
-			log.Println("Migrations_Run Error!", err)
-		}
-	}()
-	
-	log.Println("Database Connected!")
+func Close() {
+	if DBS != nil {
+		DBS.Close()
+		DBS = nil
+	}
 }
 
 func Query[T any](query string, params map[string]interface{}) ([]T, error) {
-	// First attempt: decode each QueryResult.Result as []T.
-	queryResultsSlice, err := surrealdb.Query[[]T](DBS, query, params)
-	if err == nil {
-		resultsSlice := *queryResultsSlice
-		var output []T
-		for _, qr := range resultsSlice {
-			// Expecting qr.Result to be of type []T, so flatten it.
-			output = append(output, qr.Result...)
-		}
-		return output, nil
+	if DBS == nil {
+		return nil, fmt.Errorf("database is not connected")
 	}
-
-	// If the first decoding fails, try to decode as a single T.
-	queryResultsSingle, err2 := surrealdb.Query[T](DBS, query, params)
-	if err2 != nil {
-		// Return the original error if both attempts fail.
-		return nil, fmt.Errorf("failed decoding as []T: %w; also failed decoding as T: %v", err, err2)
+	results, err := surrealdb.Query[cbor.RawMessage](DBS, query, params)
+	if err != nil {
+		return nil, err
 	}
-
-	resultsSingle := *queryResultsSingle
 	var output []T
-	for _, qr := range resultsSingle {
-		// Here qr.Result is a single T value; append it directly.
-		output = append(output, qr.Result)
+	for _, result := range *results {
+		var rows []T
+		if err := cbor.Unmarshal(result.Result, &rows); err == nil {
+			output = append(output, rows...)
+			continue
+		}
+		var row T
+		if err := cbor.Unmarshal(result.Result, &row); err != nil {
+			return nil, fmt.Errorf("decode query result: %w", err)
+		}
+		output = append(output, row)
 	}
 	return output, nil
 }
@@ -97,9 +85,9 @@ func Upsert[T dbtype.Model](record *T) (*T, error) {
 	return &(*queryResultsSingle)[0], nil
 }
 
-func Delete[T models.RecordID](id models.RecordID) (error) {
+func Delete[T models.RecordID](id models.RecordID) error {
 	_, err := surrealdb.Query[any](DBS, "DELETE type::record($id);", map[string]interface{}{
-		"id": id.String(), 
+		"id": id.String(),
 	})
 	return err
 }
@@ -114,13 +102,13 @@ func Select[T any](id string) (*T, error) {
 	return &(*result)[0].Result, err
 }
 
-func Relate(in *models.RecordID, out *models.RecordID, table string, data map[string]interface{}) (error) {
+func Relate(in *models.RecordID, out *models.RecordID, table string, data map[string]interface{}) error {
 	// Create a new relationship.
 	relationship := &surrealdb.Relationship{
 		In:       *in,
 		Out:      *out,
 		Relation: models.Table(table),
-		Data: data,
+		Data:     data,
 	}
 	return surrealdb.Relate(DBS, relationship)
 }

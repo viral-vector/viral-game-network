@@ -47,7 +47,6 @@ func CreateCluster(portMin int32, portMax int32) error {
 	// Append additional config file flag.
 	cmdArgs = append(cmdArgs, "--config", "/etc/rancher/k3d/config.yaml")
 
-
 	cmd := exec.Command("k3d", cmdArgs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -85,6 +84,6 @@ func WrtiteKubeConfig() error {
 	if err != nil {
 		return fmt.Errorf("failed to write kubeconfig: %v\nOutput: %s", err, string(output))
 	}
-	fmt.Println("kubeconfig: Output: %s", string(output))
+	fmt.Printf("kubeconfig: Output: %s", string(output))
 	return nil
 }

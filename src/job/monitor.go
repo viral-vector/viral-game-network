@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 	"viral-game-network/src/cache"
-	dbtype "viral-game-network/src/database/type"
 	"viral-game-network/src/database/repository"
+	dbtype "viral-game-network/src/database/type"
 	"viral-game-network/src/k8"
 )
 
@@ -16,7 +16,7 @@ func Job_Monitoring() {
 	// Check if we have a monitoring lock
 	if cache_lock, _ := cache.Get[string]("monitoring-cluster-events"); cache_lock == "" {
 		// Lock monitoring
-		cache.Set[string]("monitoring-cluster-events", "true", time.Second * 5)
+		cache.Set[string]("monitoring-cluster-events", "true", time.Second*5)
 		// RUN
 		RUN_Monitoring_ClusterEvents()
 	}
@@ -31,7 +31,7 @@ func RUN_Monitoring_ClusterEvents() {
 	if cachedLastEventStr != "" {
 		cachedLastEvent, err = time.Parse(time.RFC3339, cachedLastEventStr)
 		if err != nil {
-			log.Println("[Job_Monitoring]: @ClusterEvents: %v", err)
+			log.Printf("[Job_Monitoring]: @ClusterEvents: %v", err)
 		}
 	}
 	ctlines := int64(100)
@@ -40,8 +40,7 @@ func RUN_Monitoring_ClusterEvents() {
 	if cevents != nil {
 		for _, event := range cevents {
 			// Skip events that occurred before the cached last event.
-			if !cachedLastEvent.IsZero() && (
-				event.FirstTimestamp.Time.Before(cachedLastEvent) || event.FirstTimestamp.Time.Equal(cachedLastEvent)) {
+			if !cachedLastEvent.IsZero() && (event.FirstTimestamp.Time.Before(cachedLastEvent) || event.FirstTimestamp.Time.Equal(cachedLastEvent)) {
 				continue
 			}
 
@@ -51,12 +50,12 @@ func RUN_Monitoring_ClusterEvents() {
 				eventType = "warning"
 			}
 			systemEvent := dbtype.SystemEvent{
-				Ref_ID: string(event.ObjectMeta.UID),
-				Ref_Source: "cluster",
+				Ref_ID:       string(event.ObjectMeta.UID),
+				Ref_Source:   "cluster",
 				Date_Created: event.FirstTimestamp.Time.String(),
-				Ref_Target: event.InvolvedObject.Name,
-				Severity: eventType,
-				Message:  event.Message,
+				Ref_Target:   event.InvolvedObject.Name,
+				Severity:     eventType,
+				Message:      event.Message,
 			}
 			repository.PopSystemevent(&systemEvent)
 
@@ -68,6 +67,6 @@ func RUN_Monitoring_ClusterEvents() {
 	}
 	// Update the cache with the latest event timestamp if available.
 	if !latestEventTime.IsZero() {
-		cache.Set("monitoring-cluster:last_event", latestEventTime.Format(time.RFC3339), time.Second * 30)
+		cache.Set("monitoring-cluster:last_event", latestEventTime.Format(time.RFC3339), time.Second*30)
 	}
 }

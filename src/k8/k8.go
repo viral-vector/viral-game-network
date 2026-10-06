@@ -1,31 +1,31 @@
 package k8
 
 import (
-	"context"
-	"fmt"
-	"log"
 	"bufio"
-	"math/rand"
-	"sort"
-	"strconv"
+	"context"
 	"encoding/json"
-	k8_k3d "viral-game-network/src/k8/k3d"
+	"fmt"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"log"
+	"math/rand"
+	"sort"
+	"strconv"
+	k8_k3d "viral-game-network/src/k8/k3d"
 )
 
 var ctx = context.Background()
 var config *rest.Config
 var namespace = "vgn-app"
-var clientset *kubernetes.Clientset
+var clientset kubernetes.Interface
 var portRange = []int32{30000, 30030}
 var kubeconfig = "/root/.config/k3d/kubeconfig-viral-game-network.yaml"
 
-func init() {
+func Initialize() {
 	kinit, err := k8_k3d.CheckCluster()
 	if err != nil {
 		log.Println("k8 init error: ", err)
@@ -38,6 +38,9 @@ func init() {
 
 	LoadConfiguration()
 }
+
+// ConfigureClient installs a Kubernetes client before serving requests or running jobs.
+func ConfigureClient(client kubernetes.Interface) { clientset = client }
 
 func LoadConfiguration() error {
 	// Create the clientset from the config
@@ -130,7 +133,7 @@ func GetClusterStatus() (map[string]interface{}, error) {
 	} else {
 		verInfo = version.String()
 	}
-	
+
 	// Get Nodes
 	nodeInfo := map[string]interface{}{}
 	nodes, _ := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
@@ -229,6 +232,9 @@ func FindOpenNodePort() (*v1.Node, int32, error) {
 			nodeIndex = node
 		}
 	}
+	if maxPorts == 0 {
+		return nil, -1, fmt.Errorf("no open node ports")
+	}
 	portFinal = nodePorts[nodeIndex][rand.Intn(len(nodePorts[nodeIndex]))]
 
 	// Get the node
@@ -257,8 +263,8 @@ func KillAllServerPods() error {
 }
 
 func GetAllServerPodsPager(
-	search string, 
-	limit int64, 
+	search string,
+	limit int64,
 	currentPage int,
 	desiredPage int,
 	continueToken string,
@@ -277,7 +283,7 @@ func GetAllServerPodsPager(
 		currentPage = 1
 		continueToken = ""
 	}
-	
+
 	for currentPage <= desiredPage {
 		pods, newContinueToken, err := GetAllServerPodsList(search, limit, continueToken)
 		if err != nil {
@@ -362,7 +368,7 @@ func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, imag
 			Name:      label,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app": label,
+				"app":      label,
 				"hostport": strconv.Itoa(int(sPort)),
 			},
 		},
@@ -373,21 +379,21 @@ func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, imag
 			},
 			Containers: []v1.Container{
 				{
-					Name:    label,
-					Image:   image,
-					Command: command,
+					Name:            label,
+					Image:           image,
+					Command:         command,
 					ImagePullPolicy: v1.PullAlways,
 					Ports: []v1.ContainerPort{
 						{
-							Name:          "tcp-"+strconv.Itoa(int(sPort)),
+							Name:          "tcp-" + strconv.Itoa(int(sPort)),
 							ContainerPort: aPort,
-							HostPort: 	   sPort,
+							HostPort:      sPort,
 							Protocol:      v1.ProtocolTCP,
 						},
 						{
-							Name:          "udp-"+strconv.Itoa(int(sPort)),
+							Name:          "udp-" + strconv.Itoa(int(sPort)),
 							ContainerPort: aPort,
-							HostPort: 	   sPort,
+							HostPort:      sPort,
 							Protocol:      v1.ProtocolUDP,
 						},
 					},
@@ -418,7 +424,7 @@ func AddServerPodLabel(label string, labels map[string]string) error {
 	if err != nil {
 		return fmt.Errorf("AddServerPodLabel Error: %w", err)
 	}
-	
+
 	_, err = clientset.CoreV1().Pods(namespace).Patch(
 		ctx,
 		label,
@@ -488,7 +494,7 @@ func GetPodLogParts(pod *v1.Pod, tailLines *int64) ([]string, error) {
 		return nil, fmt.Errorf("GetPodLogParts Error: %q: %v", pod.Name, err)
 	}
 	defer stream.Close()
-    
+
 	var builder []string
 	scanner := bufio.NewScanner(stream)
 	for scanner.Scan() {

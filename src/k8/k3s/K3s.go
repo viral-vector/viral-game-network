@@ -1,6 +1,7 @@
 package k8_k3s
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -25,13 +26,9 @@ func CheckCluster() (bool, error) {
 }
 
 func DeleteCluster() error {
-	return nil
+	return fmt.Errorf("K3s cluster lifecycle is not implemented")
 }
 
 func CreateCluster(portMin int32, portMax int32) error {
-	return nil
-}
-
-func CheckCluster() (bool, error) {
-	return false, nil
+	return fmt.Errorf("K3s cluster lifecycle is not implemented")
 }

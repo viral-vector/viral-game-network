@@ -13,13 +13,14 @@ import (
 var ctx = context.Background()
 var rdb *redis.Client
 
-func init() {
-	// Initialize Redis client
-	rdb = redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("CACHE_ENDPOINT"),
-		Password: os.Getenv("CACHE_PASSWORD"),
-		DB:       0,
-	})
+func init() { Configure(os.Getenv("CACHE_ENDPOINT"), os.Getenv("CACHE_PASSWORD")) }
+
+// Configure installs a Redis connection; call before serving requests.
+func Configure(endpoint, password string) {
+	if rdb != nil {
+		rdb.Close()
+	}
+	rdb = redis.NewClient(&redis.Options{Addr: endpoint, Password: password, DB: 0})
 }
 
 // Get retrieves a value from Redis for the given key and attempts to convert it into type T.
@@ -96,3 +97,6 @@ func Exp(key string, dur time.Duration) error {
 func Del(key string) error {
 	return rdb.Del(ctx, key).Err()
 }
+
+// List retrieves cached messages in publication order.
+func List(key string) ([]string, error) { return rdb.LRange(ctx, key, 0, -1).Result() }
