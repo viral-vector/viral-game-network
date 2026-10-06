@@ -62,8 +62,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 
 # Copy K8s configuration files (optimized to avoid duplication)
-COPY ./k8/k3d-config.yaml /etc/rancher/k3d/config.yaml
-COPY ./k8 /etc/rancher/k3d/
+COPY ./bin/k8/k3d-config.yaml /etc/rancher/k3d/config.yaml
+COPY ./bin/k8 /etc/rancher/k3d/
 
 # Copy certificates from SSL stage
 COPY --from=ssl-cert /certs/ssl /app/bin/ssl

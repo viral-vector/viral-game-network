@@ -50,3 +50,7 @@ Thumbs.db
 
 # Assets
 /assets/.node_modules
+
+# Locally versioned tooling and Kubernetes configuration
+/bin/
+/k8/

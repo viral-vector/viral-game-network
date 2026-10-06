@@ -30,3 +30,13 @@ work as your own. See LICENSE for the full terms.
 This is a source-available license with redistribution restrictions.
 Third-party dependencies and files carrying their own license notices remain subject
 to those licenses, including the HashiCorp MPL-2.0 test template in bin/ioc/__tests__.
+
+## Local tooling
+
+The root `bin/` directory is ignored by this repository and has its own local Git history.
+It contains infrastructure tooling, the prototype server, VM images, and Kubernetes
+configuration at `bin/k8/`. The backend Kubernetes package remains at `src/k8/`.
+
+Use `git -C bin status` and `git -C bin commit` to manage tooling changes separately.
+The development Docker build requires the local `bin/k8/` configuration. A fresh clone
+of the main repository does not include `bin/`; restore it from its separate repository.
