@@ -141,3 +141,15 @@ it('stops notification timers and closes its event stream on disconnect', async 
   vi.advanceTimersByTime(500);
   expect(poll).not.toHaveBeenCalled();
 });
+
+it('stops progress polling and removes its global API on disconnect', async () => {
+  vi.useFakeTimers();
+  const controller = await mount('progress', Progress, '<div data-controller="progress"><progress data-progress-target="progress"></progress></div>');
+  const timerCount = vi.getTimerCount();
+  expect(window.progress).toBeDefined();
+  controller.element.remove();
+  for (let i = 0; i < 6; i++) await Promise.resolve();
+  expect(window.progress).toBeUndefined();
+  expect(vi.getTimerCount()).toBe(timerCount - 1);
+  expect(() => vi.advanceTimersByTime(1000)).not.toThrow();
+});

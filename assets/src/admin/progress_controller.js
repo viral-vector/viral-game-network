@@ -4,14 +4,15 @@ export default class extends Controller {
     static targets = ["progress"]
 
     connect() {
-        window.progress = {
+        this.progressApi = {
             show: this.show.bind(this),
             hide: this.hide.bind(this),
         };
+        window.progress = this.progressApi;
         this.hide();
 
         // const lerp = (x, y, a) => x * (1 - a) + y * a;
-        setInterval(() => {
+        this.updateInterval = setInterval(() => {
             if (this.ishow) {
                 this.progressTarget.style.display = "block"
             } else {
@@ -22,6 +23,11 @@ export default class extends Controller {
             //     this.stop()
             // }
         }, 100);
+    }
+
+    disconnect() {
+        clearInterval(this.updateInterval);
+        if (window.progress === this.progressApi) delete window.progress;
     }
 
     show() {
