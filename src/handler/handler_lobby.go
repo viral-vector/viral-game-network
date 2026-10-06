@@ -3,13 +3,13 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"strconv"
 	"time"
 	"viral-game-network/src/cache"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
 	"viral-game-network/src/ministration"
 	"viral-game-network/src/pubsub"
+	"viral-game-network/src/utils/pagination"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -23,8 +23,14 @@ type HostLobbyRequestDTO struct {
 // Handle_AllLobby
 func Handle_AllLobby(c *fiber.Ctx) error {
 	search := c.Query("search", "")
-	curPage, _ := strconv.Atoi(c.Query("page", "1"))
-	perPage, _ := strconv.Atoi(c.Query("show", "100"))
+	perPage, err := pagination.Size(c.Query("show", "100"), 100)
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	curPage, err := pagination.Page(c.Query("page", "1"), perPage)
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
 
 	data, total, err := repository.AllLobby(perPage, curPage, search)
 

@@ -4,16 +4,22 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"math"
-	"strconv"
 	"viral-game-network/src/database/repository"
 	form_builder "viral-game-network/src/utils/form_builder"
+	"viral-game-network/src/utils/pagination"
 )
 
 func Handle_Servers(c *fiber.Ctx) error {
 	search := c.Query("search", "")
-	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
-	servers, total, _ := repository.AllServer(perPage, curPage, search)
+	curPage, err := pagination.Page(c.Query("page", "1"), perPage)
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	servers, total, err := repository.AllServer(perPage, curPage, search)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not load servers")
+	}
 
 	return c.Render("admin/servers", fiber.Map{
 		"servers": servers,

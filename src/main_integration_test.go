@@ -459,3 +459,24 @@ func TestLobbySocketRevokesDepartedMembership(t *testing.T) {
 		})
 	}
 }
+
+func TestLobbyListRejectsInvalidPagination(t *testing.T) {
+	redis := support.Storage(t)
+	t.Setenv("CACHE_ENDPOINT", redis.Addr())
+	user, err := repository.PutUser(&dbtype.User{Name: "Player"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	token, err := auth.GenerateToken(user.Name, user.ModelID(), auth.UserAudience)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app := NewApp("../views", "../public")
+	t.Cleanup(func() { app.Shutdown() })
+	for _, query := range []string{"show=-1", "show=0", "show=101", "show=abc", "page=0", "page=-1", "page=abc", "page=9223372036854775807"} {
+		t.Run(query, func(t *testing.T) {
+			request(t, app, "GET", "/api/lobby?"+query, nil, token, "", 400)
+		})
+	}
+	request(t, app, "GET", "/api/lobby?show=1&page=1", nil, token, "", 200)
+}

@@ -2,10 +2,10 @@ package handler_admin
 
 import (
 	"math"
-	"strconv"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
 	"viral-game-network/src/k8"
+	"viral-game-network/src/utils/pagination"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -96,15 +96,21 @@ func Handle_Cluster_Pods_Stop(c *fiber.Ctx) error {
 
 // ##> Events
 func Handle_Events(c *fiber.Ctx) error {
-	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 30
-	sevents, total, _ := repository.AllSystemEvents(perPage, curPage)
+	curPage, err := pagination.Page(c.Query("page", "1"), perPage)
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	sevents, total, err := repository.AllSystemEvents(perPage, curPage)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not load events")
+	}
 
 	return c.Render("admin/events", fiber.Map{
-		"sevents" : sevents,
-		"total": total,
-		"pages": int(math.Ceil(float64(total) / float64(perPage))),
-		"paged": curPage,
+		"sevents": sevents,
+		"total":   total,
+		"pages":   int(math.Ceil(float64(total) / float64(perPage))),
+		"paged":   curPage,
 	})
 }
 

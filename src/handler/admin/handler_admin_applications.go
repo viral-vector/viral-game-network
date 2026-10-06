@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"strconv"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
 	form_builder "viral-game-network/src/utils/form_builder"
+	"viral-game-network/src/utils/pagination"
 	struct_merge "viral-game-network/src/utils/struct_merge"
 
 	"github.com/gofiber/fiber/v2"
@@ -15,9 +15,15 @@ import (
 
 func Handle_Applications(c *fiber.Ctx) error {
 	search := c.Query("search", "")
-	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
-	apps, total, _ := repository.AllApplication(perPage, curPage, search)
+	curPage, err := pagination.Page(c.Query("page", "1"), perPage)
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	apps, total, err := repository.AllApplication(perPage, curPage, search)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not load applications")
+	}
 
 	return c.Render("admin/applications", fiber.Map{
 		"apps":   apps,

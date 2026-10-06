@@ -3,10 +3,10 @@ package handler_admin
 import (
 	"fmt"
 	"math"
-	"strconv"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
 	form_builder "viral-game-network/src/utils/form_builder"
+	"viral-game-network/src/utils/pagination"
 	struct_merge "viral-game-network/src/utils/struct_merge"
 
 	"github.com/gofiber/fiber/v2"
@@ -14,9 +14,15 @@ import (
 
 func Handle_Users(c *fiber.Ctx) error {
 	search := c.Query("search", "")
-	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := 15
-	users, total, _ := repository.AllUser(perPage, curPage, search)
+	curPage, err := pagination.Page(c.Query("page", "1"), perPage)
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	users, total, err := repository.AllUser(perPage, curPage, search)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not load users")
+	}
 
 	return c.Render("admin/users", fiber.Map{
 		"users":  users,
