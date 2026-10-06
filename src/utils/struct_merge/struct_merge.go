@@ -8,6 +8,9 @@ import (
 // mergeStructs merges non-zero fields from src into dst.
 // Both dst and src must be pointers to structs.
 func Merge[T any](dst, src *T) error {
+	if dst == nil || src == nil {
+		return fmt.Errorf("mergeStructs requires non-nil pointers")
+	}
 	dstVal := reflect.ValueOf(dst).Elem()
 	srcVal := reflect.ValueOf(src).Elem()
 

@@ -5,12 +5,12 @@ import (
 )
 
 type User struct {
-	ID      *models.RecordID `json:"id,omitempty" form:"id,label:ID,type:text,readonly:true"`
-	Name    string `json:"name,omitempty" form:"name,label:Name,type:text,required:true"`
-	Guid    string `json:"guid,omitempty"`
-	Date_Created string `json:"date_created,omitempty"`
-	Date_Updated string `json:"date_updated,omitempty"`
-	Date_LastLogin string `json:"date_last_login,omitempty"`
+	ID             *models.RecordID `json:"id,omitempty" form:"id,label:ID,type:text,readonly:true"`
+	Name           string           `json:"name,omitempty" form:"name,label:Name,type:text,required:true"`
+	Guid           string           `json:"guid,omitempty"`
+	Date_Created   string           `json:"date_created,omitempty"`
+	Date_Updated   string           `json:"date_updated,omitempty"`
+	Date_LastLogin string           `json:"date_last_login,omitempty"`
 }
 
 func (n User) ModelID() string {
@@ -24,6 +24,6 @@ func (n User) TableName() string {
 	return "User"
 }
 
-func (n User) SetGUID(guid string) {
+func (n *User) SetGUID(guid string) {
 	n.Guid = guid
 }

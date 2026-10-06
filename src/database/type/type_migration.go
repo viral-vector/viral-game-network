@@ -5,13 +5,16 @@ import (
 )
 
 type Migration struct {
-	ID  *models.RecordID `json:"id,omitempty"`
-	Name  string `json:"name"`
-	Date_Created string `json:"date_created"`
-	SQL  string `json:"sql"`
+	ID           *models.RecordID `json:"id,omitempty"`
+	Name         string           `json:"name"`
+	Date_Created string           `json:"date_created"`
+	SQL          string           `json:"sql"`
 }
 
 func (n Migration) ModelID() string {
+	if n.ID == nil {
+		return ""
+	}
 	return n.ID.String()
 }
 

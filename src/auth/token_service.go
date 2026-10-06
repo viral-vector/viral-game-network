@@ -1,16 +1,16 @@
 package auth
 
 import (
-	"os"
-	"fmt"
-	"time"
-	"strconv"
-	"strings"
 	"crypto/sha256"
-    "crypto/subtle"
+	"crypto/subtle"
+	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"os"
+	"strconv"
+	"strings"
+	"time"
 	"viral-game-network/src/database/repository"
 )
 
@@ -34,7 +34,7 @@ func GenerateToken(username string) (string, error) {
 
 	i, err := strconv.ParseInt(exp_time, 10, 64)
 	if err != nil {
-  		return "", fmt.Errorf("Parsing Expire Time: %s", err)
+		return "", fmt.Errorf("Parsing Expire Time: %s", err)
 	}
 	l := time.Duration(+int(i))
 
@@ -42,27 +42,27 @@ func GenerateToken(username string) (string, error) {
 		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(l * time.Minute)),
-			Issuer: app_name,
+			Issuer:    app_name,
 		},
 	}
 	access_token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
- 	return access_token.SignedString(vnet_key)
+	return access_token.SignedString(vnet_key)
 }
 
 func ValidateToken(tokenString string) (*Claims, error) {
 	access_token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return vnet_key, nil
-	})
+	}, jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil {
 		return nil, err
 	}
 	claims, ok := access_token.Claims.(*Claims)
 
-	if !access_token.Valid || !ok{
+	if !access_token.Valid || !ok {
 		return nil, fmt.Errorf("Invalid Token")
 	}
-	  
+
 	return claims, err
 }
 
@@ -83,15 +83,15 @@ func ValidateAppKey(key string) (bool, error) {
 			return true, nil
 		}
 	}
-    return false, fmt.Errorf("Invalid app key")
+	return false, fmt.Errorf("Invalid app key")
 }
 
 func HashGenerate(item string) (string, error) {
-    bytes, err := bcrypt.GenerateFromPassword([]byte(item), 14)
-    return string(bytes), err
+	bytes, err := bcrypt.GenerateFromPassword([]byte(item), 14)
+	return string(bytes), err
 }
 
 func HashValidate(item string, hash string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(item))
-    return err == nil, err
+	return err == nil, err
 }

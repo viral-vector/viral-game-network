@@ -2,32 +2,32 @@ package form_builder
 
 import (
 	"fmt"
-	"strconv"
+	"github.com/surrealdb/surrealdb.go/pkg/models"
 	"reflect"
+	"strconv"
 	"strings"
 	dbtype "viral-game-network/src/database/type"
-	"github.com/surrealdb/surrealdb.go/pkg/models"
 )
 
 type FormField struct {
-	Name 		string `json:"name,omitempty"`
-	Label     	string `json:"label,omitempty"`
-	Value  		string `json:"value,omitempty"`
-	Type      	string `json:"type,omitempty"`// input type: "text", "password", "checkbox", etc.
-	Required  	bool `json:"required,omitempty"`
-	Options  	[]map[string]string `json:"options,omitempty"`
-	ReadOnly  	bool `json:"readonly,omitempty"`
-	SortOrder   int32 `json:"readonly,omitempty"`
+	Name      string              `json:"name,omitempty"`
+	Label     string              `json:"label,omitempty"`
+	Value     string              `json:"value,omitempty"`
+	Type      string              `json:"type,omitempty"` // input type: "text", "password", "checkbox", etc.
+	Required  bool                `json:"required,omitempty"`
+	Options   []map[string]string `json:"options,omitempty"`
+	ReadOnly  bool                `json:"readonly,omitempty"`
+	SortOrder int32               `json:"sortorder,omitempty"`
 }
 
 type Form struct {
-	Title  string
-	Submit string
-	Confirm string
-	Action string
-	Method string
-	Fields []FormField
-	CanReset  bool
+	Title         string
+	Submit        string
+	Confirm       string
+	Action        string
+	Method        string
+	Fields        []FormField
+	CanReset      bool
 	DisableSubmit bool
 }
 
@@ -55,6 +55,9 @@ func generateFormFields(input interface{}, mode string) ([]FormField, error) {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
+	if !v.IsValid() || v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("form input must be a non-nil struct or struct pointer")
+	}
 	t := v.Type()
 
 	var fields []FormField
@@ -64,8 +67,8 @@ func generateFormFields(input interface{}, mode string) ([]FormField, error) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 
-        fieldValue := v.Field(i)
-        var valueStr string
+		fieldValue := v.Field(i)
+		var valueStr string
 
 		if (fieldValue.Kind() == reflect.Ptr || fieldValue.Kind() == reflect.Interface) && fieldValue.IsNil() {
 			valueStr = ""
@@ -89,7 +92,7 @@ func generateFormFields(input interface{}, mode string) ([]FormField, error) {
 			continue
 		}
 		tagJson := field.Tag.Get("json")
-		if tagJson == "" {
+		if tagJson == "" || strings.Split(tagJson, ",")[0] == "-" {
 			continue
 		}
 		jprops := parseJsonTag(tagJson)
@@ -137,27 +140,27 @@ func generateFormFields(input interface{}, mode string) ([]FormField, error) {
 }
 
 func GenerateForm(
-	method string, 
-	action string, 
-	mode string, 
-	input interface{}, 
+	method string,
+	action string,
+	mode string,
+	input interface{},
 	title string,
 	submit string,
 ) (*Form, error) {
 	fields, err := generateFormFields(input, mode)
 
 	if submit == "" {
-	   	submit = "Submit"
+		submit = "Submit"
 	}
 
 	return &Form{
-		Title : title,
-		Submit: submit,
-		Action: action,
-		Method: method,
-		Fields: fields,
-		CanReset: true,
-		Confirm: "",
+		Title:         title,
+		Submit:        submit,
+		Action:        action,
+		Method:        method,
+		Fields:        fields,
+		CanReset:      true,
+		Confirm:       "",
 		DisableSubmit: false,
 	}, err
 }
