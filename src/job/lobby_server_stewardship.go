@@ -122,11 +122,12 @@ func runServerStewardship(ctx context.Context, pod *v1.Pod) {
 	if ctx.Err() != nil {
 		return
 	}
-	if _, err := repository.SetServer(server.ModelID(), server); err != nil {
+	updated, err := repository.SyncServerPodState(server.ModelID(), string(lobpod.Status.Phase), server.Address, server.Port)
+	if err != nil {
 		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: updating server for %s: %v", lobpod.Name, err)
 		return
 	}
-	ministration.Service_Lobby_Notify(lobby.ModelID(), "Server:"+server.Status, "")
+	ministration.Service_Lobby_Notify(lobby.ModelID(), "Server:"+updated.Status, "")
 }
 
 // RUN_Lobby_Server_Stewardship_Running updates server info when pod is running.

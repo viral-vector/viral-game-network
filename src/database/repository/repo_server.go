@@ -115,18 +115,30 @@ func GetServerPorts() []int32 {
 	return ports
 }
 
-func TickServer(id string) (*dbtype.Server, error) {
-	server, err := GetServer(id)
+// SyncServerPodState keeps heartbeat readiness when the pod is still running.
+// Updating only pod fields also prevents stale snapshots from restoring metadata.
+func SyncServerPodState(id, phase, address string, port int32) (*dbtype.Server, error) {
+	rows, err := database.Query[dbtype.Server](`UPDATE type::record($id) SET
+  status=IF $phase='Running' AND status='Online' { 'Online' } ELSE { $phase },
+  address=$address, port=$port,
+  date_updated=IF $phase='Running' AND status='Online' { date_updated } ELSE { $now }
+  RETURN AFTER;`, map[string]interface{}{"id": id, "phase": phase, "address": address, "port": port, "now": time.Now().UTC().Format(time.RFC3339)})
 	if err != nil {
-		return nil, fmt.Errorf("TickServer Error: %v", err)
+		return nil, err
 	}
-
-	if server == nil || server.ID == nil {
+	if len(rows) == 0 {
 		return nil, fmt.Errorf("server not found")
 	}
+	return &rows[0], nil
+}
 
-	now := time.Now().UTC().Format(time.RFC3339)
-	server.Date_Updated = now
-	server.Status = "Online"
-	return database.Update[dbtype.Server](*server.ID, server)
+func TickServer(id string) (*dbtype.Server, error) {
+	rows, err := database.Query[dbtype.Server](`UPDATE type::record($id) SET status='Online', date_updated=$now RETURN AFTER;`, map[string]interface{}{"id": id, "now": time.Now().UTC().Format(time.RFC3339)})
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("server not found")
+	}
+	return &rows[0], nil
 }

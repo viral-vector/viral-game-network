@@ -100,3 +100,32 @@ func TestLifecycleJobsShareLobbyLock(t *testing.T) {
 		t.Fatal("locked server state changed", current, err)
 	}
 }
+
+func TestHeartbeatDuringStewardshipKeepsServerOnline(t *testing.T) {
+	_, server, client, pod := lifecycleFixture(t)
+	reading, release := make(chan struct{}), make(chan struct{})
+	client.PrependReactor("get", "nodes", func(ktesting.Action) (bool, runtime.Object, error) {
+		close(reading)
+		<-release
+		return false, nil, nil
+	})
+	finished := make(chan struct{})
+	go func() { RUN_Lobby_Server_Stewardship(pod); close(finished) }()
+	select {
+	case <-reading:
+	case <-time.After(3 * time.Second):
+		close(release)
+		<-finished
+		t.Fatal("stewardship did not read the node")
+	}
+	_, tickErr := repository.TickServer(server.ModelID())
+	close(release)
+	<-finished
+	if tickErr != nil {
+		t.Fatal(tickErr)
+	}
+	current, err := repository.GetServer(server.ModelID())
+	if err != nil || current.Status != "Online" {
+		t.Fatalf("stale pod update replaced heartbeat readiness: %+v %v", current, err)
+	}
+}
