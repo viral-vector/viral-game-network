@@ -134,6 +134,16 @@ func serve_routes(app *fiber.App) {
 	/**
 	 * 	API Routes
 	 */
+	// Game pods authenticate with a token bound to one lobby. Register these
+	// routes before the general API group, which accepts player sessions only.
+	grp_host := app.Group("/api/host")
+	grp_host.Use(limiter.New(limiter.Config{
+		Max: 250, Expiration: time.Second, LimiterMiddleware: limiter.SlidingWindow{},
+		Storage: redis.New(redis.Config{URL: "redis://:" + os.Getenv("CACHE_PASSWORD") + "@" + os.Getenv("CACHE_ENDPOINT") + "/0"}),
+	}))
+	grp_host.Get("/:id/tick", handler.Handle_ValidateHeartbeatToken, handler.Handle_TickHost).Name("host/tick")
+	grp_host.Post("/:id/refresh", handler.Handle_ValidateHeartbeatToken, handler.Handle_RefreshServerToken).Name("host/refresh")
+
 	gapi := app.Group("/api")
 
 	// Token Validation
@@ -158,7 +168,4 @@ func serve_routes(app *fiber.App) {
 	grp_lobby.Post("/:id", middleware.Lobby_Write, handler.Handle_SetLobby).Name("lobby/put")
 	grp_lobby.Get("/:id", handler.Handle_GetLobby).Name("lobby/get")
 
-	// Host/Server Routes
-	grp_host := gapi.Group("/host")
-	grp_host.Get("/:id/tick", handler.Handle_TickHost).Name("host/tick")
 }

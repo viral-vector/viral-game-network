@@ -119,6 +119,26 @@ func TestGuestLobbyAndHeartbeatFlow(t *testing.T) {
 	if heartbeat.Data.Status != "Online" {
 		t.Fatal("heartbeat did not mark server online")
 	}
+	request(t, app, "GET", "/api/host/"+id+"/tick", nil, extraToken, "", 403)
+	request(t, app, "GET", "/api/host/"+id+"/tick", nil, memberToken, "", 403)
+	serverToken, err := auth.GenerateToken("Game server", id, auth.ServerAudience)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request(t, app, "GET", "/api/host/"+id+"/tick", nil, serverToken, "", 200)
+	request(t, app, "GET", "/api/host/Lobby:another/tick", nil, serverToken, "", 403)
+	request(t, app, "GET", "/api/lobby", nil, serverToken, "", 403)
+	request(t, app, "GET", "/admin/users", nil, "", "VNET_SESSION="+serverToken, 302)
+	response = request(t, app, "POST", "/api/host/"+id+"/refresh", nil, serverToken, "", 200)
+	var refreshed struct {
+		Token string `json:"access_token"`
+	}
+	decode(t, response, &refreshed)
+	claims, err := auth.ValidateTokenFor(refreshed.Token, auth.ServerAudience)
+	if err != nil || claims.Subject != id {
+		t.Fatal("server refresh changed lobby identity", err)
+	}
+	request(t, app, "POST", "/api/host/"+id+"/refresh", nil, hostToken, "", 403)
 	unknown, err := auth.GenerateToken("Deleted User", "User:missing", auth.UserAudience)
 	if err != nil {
 		t.Fatal(err)

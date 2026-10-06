@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"viral-game-network/src/auth"
 	"viral-game-network/src/cache"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
@@ -152,6 +153,10 @@ func provisionLobbyServer(ctx context.Context, lobby *dbtype.Lobby, label string
 	// Format the command.
 	cmd := strings.Split(lobby.Lobby_Application.Command, " ")
 
+	serverToken, err := auth.GenerateToken("server:"+label, lobby.ModelID(), auth.ServerAudience)
+	if err != nil {
+		return err
+	}
 	// Prepare environment variables.
 	env := map[string]string{
 		"GAME_PORT":         strconv.Itoa(int(aPort)),
@@ -160,6 +165,7 @@ func provisionLobbyServer(ctx context.Context, lobby *dbtype.Lobby, label string
 		"VNET_HOST":         os.Getenv("VNET_HOST"),
 		"VNET_PORT":         os.Getenv("VNET_PORT"),
 		"VNET_KEY":          os.Getenv("VNET_KEY"),
+		"VNET_SERVER_TOKEN": serverToken,
 		"LOBBY_MAX_PLAYERS": lobby.Lobby_Application.Lobby_Max_Players,
 		"LOBBY_ID":          lobby.ID.String(),
 		"LOBBY_NAME":        lobby.Name,

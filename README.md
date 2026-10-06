@@ -33,11 +33,28 @@ and a JSON body to `POST /auth/lobby` before the token expires. That endpoint
 refreshes the current player session; a supplied name cannot select another user.
 Admin cookies and player tokens have separate audiences and use stable record IDs.
 
+Private joins accept a JSON body such as `{"code":"your-invitation-code"}` at
+`POST /api/lobby/:id/join`. Only the host can retrieve the invitation code from
+the lobby API. Repeating an accepted join preserves membership and host ownership.
+Lobby patches support explicit `false` and empty values without changing record
+IDs, GUIDs, or creation dates.
+
+Provisioned game pods receive `VNET_SERVER_TOKEN`, a token bound to their lobby.
+Use it in `Viral-Game-Network-Token` for `GET /api/host/:id/tick`. Renew it with
+`POST /api/host/:id/refresh` before expiry, and use the returned `access_token` for
+subsequent requests. Other player tokens can heartbeat only the lobby they host.
+Server tokens cannot authorize player or admin APIs.
+
+The project is not deployed, so schema changes are folded into the existing
+migrations. Use a fresh development database to apply revised initial schemas.
+
 After changing admin source files, run `npm ci --prefix assets` and
 `npm --prefix assets run build` before running the Go app directly. The production
 Dockerfile builds the admin assets automatically. Kubernetes uses its service
 account configuration when running inside a cluster, or an explicit `KUBECONFIG`
 when provided; local k3d configuration is the development fallback.
+Port allocation requires permission to list nodes and pods across namespaces so
+other applications' host-port reservations are respected.
 
 ## License
 

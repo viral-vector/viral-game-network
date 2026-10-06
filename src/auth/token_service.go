@@ -17,8 +17,9 @@ import (
 type TokenAudience string
 
 const (
-	UserAudience  TokenAudience = "vgn:user"
-	AdminAudience TokenAudience = "vgn:admin"
+	UserAudience   TokenAudience = "vgn:user"
+	AdminAudience  TokenAudience = "vgn:admin"
+	ServerAudience TokenAudience = "vgn:server"
 )
 
 type Claims struct {
@@ -50,6 +51,8 @@ func validIdentity(subject string, audience TokenAudience) bool {
 		table = "User:"
 	case AdminAudience:
 		table = "Admin:"
+	case ServerAudience:
+		table = "Lobby:"
 	default:
 		return false
 	}

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"viral-game-network/src/auth"
 	"viral-game-network/src/cache"
 	"viral-game-network/src/database"
 	"viral-game-network/src/database/repository"
@@ -54,6 +55,13 @@ func TestProvisionRunningAndFailedServerLifecycle(t *testing.T) {
 	}
 	if variables["LOBBY_ID"] != lobby.ModelID() || variables["GAME_PORT"] != "4000" || variables["NODE_HOST"] != "203.0.113.10" {
 		t.Fatal(variables)
+	}
+	claims, err := auth.ValidateTokenFor(variables["VNET_SERVER_TOKEN"], auth.ServerAudience)
+	if err != nil || claims.Subject != lobby.ModelID() {
+		t.Fatal("game pod lacks a lobby-bound server token", err)
+	}
+	if _, exists := variables["VNET_TOKEN_KEY"]; exists {
+		t.Fatal("game pod received private signing key")
 	}
 	pod.Spec.NodeName = node.Name
 	pod.Status.Phase = v1.PodRunning
