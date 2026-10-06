@@ -67,6 +67,10 @@ func Job_Lobby_Stewardship() {
 
 // RUN_Lobby_Stewardship processes a single lobby to check its persistence and potentially purge it.
 func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
+	if lobby == nil || lobby.ID == nil || (lobby.Lobby_Application == nil || lobby.Lobby_Application.ID == nil) {
+		log.Println("[Job_Lobby_Stewardship]ERROR: missing lobby or application")
+		return
+	}
 	log.Printf("[Job_Lobby_Stewardship]: Evaluating lobby %s", lobby.ID.String())
 
 	// Parse the max persist from the application config.
@@ -75,7 +79,7 @@ func RUN_Lobby_Stewardship(lobby *dbtype.Lobby) {
 		log.Printf("[Job_Lobby_Stewardship]ERROR: parsing Lobby_Max_Persist %v", err)
 		return
 	}
-	
+
 	now := time.Now().UTC()
 	// Use Date_Updated if available; otherwise, fall back to Date_Created.
 	dateStr := lobby.Date_Updated

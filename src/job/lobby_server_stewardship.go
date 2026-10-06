@@ -1,6 +1,8 @@
 package job
 
 import (
+	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"log"
 	"sync"
 	"time"
@@ -61,62 +63,61 @@ func Job_Lobby_Server_Stewardship() {
 
 // RUN_Lobby_Server_Stewardship processes a single pod.
 func RUN_Lobby_Server_Stewardship(pod *v1.Pod) {
-	node, lobpod, err := k8.LocateServerPod(pod.Name)
+	if pod == nil {
+		return
+	}
+	lobpod, err := k8.GetServerPod(pod.Name)
 	if err != nil {
-		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: locating server pod for %s: %v", pod.Name, err)
+		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: reading pod %s: %v", pod.Name, err)
 		return
 	}
-	if node == nil || lobpod == nil {
-		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: Unable to locate node or pod for %s", pod.Name)
+	if lobpod.DeletionTimestamp != nil {
 		return
 	}
-
-	// If the pod is terminating, skip further processing.
-	if pod.DeletionTimestamp != nil {
-		log.Printf("[Job_Lobby_Server_Stewardship]: Pod %s is terminating", lobpod.Name)
-		return
-	}
-
-	// Get the corresponding lobby.
 	lobby, err := repository.GetLobby("Lobby:" + lobpod.Name)
 	if err != nil {
 		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: fetching lobby for %s: %v", lobpod.Name, err)
 		return
 	}
-
-	// If no lobby or no server recorded in the lobby, purge the stale pod/server.
+	// Pending and terminal pods can be cleaned up before a node is assigned.
 	if lobby == nil || lobby.Lobby_Server == nil {
-		RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, node)
-		log.Printf("[Job_Lobby_Server_Stewardship]: Lobby/Server not found for pod %s", lobpod.Name)
+		if err := RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, nil); err != nil {
+			log.Printf("[Job_Lobby_Server_Stewardship]ERROR: purging orphan %s: %v", lobpod.Name, err)
+		}
 		return
 	}
-
-	// Process based on pod phase.
-	switch lobpod.Status.Phase {
-	case v1.PodRunning:
-		RUN_Lobby_Server_Stewardship_Running(lobby, lobpod, node)
-	case v1.PodFailed:
-		RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, node)
-		ministration.Service_Lobby_Notify(lobby.ID.String(), "Server:Failed", "")
-		return
-	}
-
-	// Update the server status if needed.
-	if lobby.Lobby_Server != nil &&
-		(lobby.Lobby_Server.Status != string(lobpod.Status.Phase) && lobby.Lobby_Server.Status != "Running") {
-
-		lobby.Lobby_Server.Status = string(lobpod.Status.Phase)
-
-		if _, err := repository.SetServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
-			log.Printf("[Job_Lobby_Server_Stewardship]ERROR: updating server for lobby %s: %v", lobpod.Name, err)
+	if lobpod.Status.Phase == v1.PodFailed || lobpod.Status.Phase == v1.PodSucceeded {
+		if err := RUN_Lobby_Server_Stewardship_Purger(lobby, lobpod, nil); err != nil {
+			log.Printf("[Job_Lobby_Server_Stewardship]ERROR: purging pod %s: %v", lobpod.Name, err)
 			return
 		}
+		ministration.Service_Lobby_Notify(lobby.ModelID(), "Server:"+string(lobpod.Status.Phase), "")
+		return
 	}
-
-	// Notify lobby users about the current server status.
-	msg := "Server:" + lobby.Lobby_Server.Status
-	ministration.Service_Lobby_Notify(lobby.ID.String(), msg, "")
-	log.Printf("[Job_Lobby_Server_Stewardship]: Server/Pod processed for lobby %s; phase: %s", lobpod.Name, lobpod.Status.Phase)
+	server := lobby.Lobby_Server
+	previousStatus, previousAddress, previousPort := server.Status, server.Address, server.Port
+	status := string(lobpod.Status.Phase)
+	if lobpod.Status.Phase == v1.PodRunning {
+		node, err := k8.GetNode(lobpod.Spec.NodeName)
+		if err != nil {
+			log.Printf("[Job_Lobby_Server_Stewardship]ERROR: reading node for %s: %v", lobpod.Name, err)
+			return
+		}
+		RUN_Lobby_Server_Stewardship_Running(lobby, lobpod, node)
+		// A heartbeat confirms application readiness beyond the Kubernetes phase.
+		if previousStatus == "Online" {
+			status = "Online"
+		}
+	}
+	server.Status = status
+	if server.Status == previousStatus && server.Address == previousAddress && server.Port == previousPort {
+		return
+	}
+	if _, err := repository.SetServer(server.ModelID(), server); err != nil {
+		log.Printf("[Job_Lobby_Server_Stewardship]ERROR: updating server for %s: %v", lobpod.Name, err)
+		return
+	}
+	ministration.Service_Lobby_Notify(lobby.ModelID(), "Server:"+server.Status, "")
 }
 
 // RUN_Lobby_Server_Stewardship_Running updates server info when pod is running.
@@ -127,16 +128,24 @@ func RUN_Lobby_Server_Stewardship_Running(lobby *dbtype.Lobby, pod *v1.Pod, node
 
 // RUN_Lobby_Server_Stewardship_Purger cleans up a server pod and server record.
 func RUN_Lobby_Server_Stewardship_Purger(lobby *dbtype.Lobby, pod *v1.Pod, node *v1.Node) error {
-	// Delete the pod.
-	k8.DeleteServerPod(pod.Name)
-	// Determine the server ID to delete.
-	server, err := repository.GetServerByGuid(pod.Name)
-	if err != nil || server == nil {
-		return nil
+	if pod == nil {
+		return fmt.Errorf("missing server pod")
 	}
-	// Delete the server record.
-	repository.DelServer(server.ID.String(), server)
-	// Delete the server from the lobby.
+	if err := k8.DeleteServerPod(pod.Name); err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	server, err := repository.GetServerByGuid(pod.Name)
+	if err != nil {
+		return err
+	}
+	if server != nil {
+		if server.ID == nil {
+			return fmt.Errorf("missing server record ID")
+		}
+		if err := repository.DelServer(server.ModelID(), server); err != nil {
+			return err
+		}
+	}
 	if lobby != nil {
 		lobby.Lobby_Server = nil
 	}

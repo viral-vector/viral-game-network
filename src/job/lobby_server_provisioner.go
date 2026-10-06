@@ -2,6 +2,7 @@ package job
 
 import (
 	"errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"log"
 	"os"
 	"strconv"
@@ -58,19 +59,24 @@ func Job_Lobby_Server_Provisioner() {
 			defer cache.Del("provisioner-lock-" + label)
 
 			// Locate existing server pod.
-			_, lobpod, _ := k8.LocateServerPod(label)
+			lobpod, podErr := k8.GetServerPod(label)
+			if podErr != nil && !apierrors.IsNotFound(podErr) {
+				log.Printf("[Job_Lobby_Server_Provisioner]ERROR: reading pod %s: %v", label, podErr)
+				return
+			}
 
 			// If no server pod exists, but a Server record is present, delete it.
 			if lobpod == nil && lobby.Lobby_Server != nil {
 				log.Printf("[Job_Lobby_Server_Provisioner]: Deleting lobby %s server", label)
 				if err := repository.DelServer(lobby.Lobby_Server.ID.String(), lobby.Lobby_Server); err != nil {
 					log.Printf("[Job_Lobby_Server_Provisioner]ERROR: deleting lobby %s server: %v", label, err)
+					return
 				}
 				lobby.Lobby_Server = nil
 			}
 
 			// If no server is provisioned, and criteria are met, run provisioning.
-			if lobby.Lobby_Server == nil && len(lobby.Lobby_Users) >= 0 {
+			if lobby.Lobby_Server == nil {
 				if err := RUN_Lobby_Server_Provisioner(&lobby, label); err == nil {
 					log.Printf("[Job_Lobby_Server_Provisioner]: Server created for lobby %s", label)
 				}
@@ -82,13 +88,19 @@ func Job_Lobby_Server_Provisioner() {
 }
 
 func RUN_Lobby_Server_Provisioner(lobby *dbtype.Lobby, label string) error {
+	if lobby == nil || lobby.ID == nil || (lobby.Lobby_Application == nil || lobby.Lobby_Application.ID == nil) {
+		return errors.New("missing lobby or application")
+	}
 	log.Printf("[RUN_Lobby_Server_Provisioner]: Serving lobby %s", label)
 
 	// Check if a server pod already exists.
-	_, lobpod, err := k8.LocateServerPod(label)
+	lobpod, err := k8.GetServerPod(label)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
 	if lobpod != nil {
 		log.Printf("[Job_Lobby_Server_Provisioner]: pod already exists for lobby %s: phase %s", label, lobpod.Status.Phase)
-		return err
+		return nil
 	}
 
 	// Select an open node and port.

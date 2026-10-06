@@ -328,6 +328,14 @@ func GetAllServerPodsList(search string, limit int64, continueToken string) ([]*
 	return pods, list.Continue, nil
 }
 
+// GetServerPod reads the pod without requiring it to be scheduled onto a node.
+func GetServerPod(label string) (*v1.Pod, error) {
+	if clientset == nil {
+		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
+	}
+	return clientset.CoreV1().Pods(namespace).Get(ctx, label, metav1.GetOptions{})
+}
+
 // Locate Server Pod
 func LocateServerPod(label string) (*v1.Node, *v1.Pod, error) {
 	if clientset == nil {
@@ -449,7 +457,7 @@ func DeleteServerPod(label string) error {
 		metav1.DeleteOptions{},
 	)
 	if err != nil {
-		return fmt.Errorf("DeleteServerPod Erorr: %v", err)
+		return fmt.Errorf("DeleteServerPod error: %w", err)
 	}
 	return nil
 }
