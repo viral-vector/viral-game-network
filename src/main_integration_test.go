@@ -133,8 +133,12 @@ func TestBootstrapAndAdminSessionViews(t *testing.T) {
 	redis := support.Redis(t)
 	t.Setenv("CACHE_ENDPOINT", redis.Addr())
 	configs := map[string]string{"adminUsername": "admin", "adminPassword": "password", "appName": "test", "appKey": "test-key"}
-	bootstrap(configs)
-	bootstrap(configs)
+	if err := bootstrap(configs); err != nil {
+		t.Fatal(err)
+	}
+	if err := bootstrap(configs); err != nil {
+		t.Fatal(err)
+	}
 	if admins, total, err := repository.AllAdmin(10, 1, ""); err != nil || total != 1 || len(admins) != 1 {
 		t.Fatalf("bootstrap duplicated admins: %+v %d %v", admins, total, err)
 	}
@@ -173,6 +177,27 @@ func TestBootstrapAndAdminSessionViews(t *testing.T) {
 		if item.Name == "VNET_SESSION" && item.Value != "" {
 			t.Fatal("logout retained session")
 		}
+	}
+}
+
+func TestBootstrapRejectsIncompleteCredentials(t *testing.T) {
+	support.Storage(t)
+	for _, config := range []map[string]string{
+		{},
+		{"adminUsername": "admin", "adminPassword": "password", "appName": "test"},
+		{"adminUsername": "admin", "appName": "test", "appKey": "test-key"},
+	} {
+		if err := bootstrap(config); err == nil {
+			t.Fatal("bootstrap accepted incomplete credentials")
+		}
+	}
+	admins, count, err := repository.AllAdmin(10, 1, "")
+	if err != nil || count != 0 || len(admins) != 0 {
+		t.Fatal("invalid bootstrap created an admin", admins, err)
+	}
+	keys, err := repository.GetApiKeys()
+	if err != nil || len(keys) != 0 {
+		t.Fatal("invalid bootstrap created API keys", err)
 	}
 }
 

@@ -65,12 +65,14 @@ func NewApp(viewsDir, publicDir string) *fiber.App {
 
 func ServeApp() {
 	// bootstrap the application
-	bootstrap(map[string]string{
+	if err := bootstrap(map[string]string{
 		"appKey":        os.Getenv("VNET_KEY"),
 		"appName":       os.Getenv("VNET_NAME"),
 		"adminUsername": os.Getenv("APP_ADMIN_USERNAME"),
 		"adminPassword": os.Getenv("APP_ADMIN_PASSWORD"),
-	})
+	}); err != nil {
+		log.Fatal(err)
+	}
 	app := NewApp("./views", "./public")
 	log.Fatal(app.Listen(":" + os.Getenv("VNET_PORT")))
 }

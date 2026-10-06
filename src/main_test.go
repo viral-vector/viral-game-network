@@ -37,3 +37,10 @@ func TestPublicRoutesAndAuthenticationBoundary(t *testing.T) {
 		})
 	}
 }
+
+func TestBootstrapReturnsStorageFailure(t *testing.T) {
+	support.Redis(t)
+	if err := bootstrap(map[string]string{}); err == nil {
+		t.Fatal("bootstrap accepted missing storage")
+	}
+}
