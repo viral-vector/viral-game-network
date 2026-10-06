@@ -11,10 +11,10 @@ export default class extends Controller {
         };
 
         const showPrompt = (prompt) => {
-            this.titleTarget.innerHTML      = prompt.title   || "Confirm Action";
-            this.messageTarget.innerHTML    = prompt.message || "Accept of Reject?";
-            this.acceptTarget.innerHTML     = prompt.accept  ||  "Yes";
-            this.rejectTarget.innerHTML     = prompt.reject  ||  "No";
+            this.titleTarget.textContent      = prompt.title   || "Confirm Action";
+            this.messageTarget.textContent    = prompt.message || "Accept of Reject?";
+            this.acceptTarget.textContent     = prompt.accept  ||  "Yes";
+            this.rejectTarget.textContent     = prompt.reject  ||  "No";
             this.element.classList.add('is-active');
 
             return new Promise((accept, reject) => {                

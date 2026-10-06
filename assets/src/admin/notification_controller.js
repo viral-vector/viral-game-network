@@ -4,7 +4,7 @@ export default class extends Controller {
     static targets = [
         'pending', 'message'
     ];
-    
+
     connect() {
         this.messages = [
             // {"type":"info", "message":"Hello World 1", "priority": 1},
@@ -15,13 +15,23 @@ export default class extends Controller {
                this.element.classList.add('is-hidden');
             });
         });
-        window.pushNotification = this.NotificationsPush.bind(this);
-        setInterval(
-            this.Notifications.bind(this), 
+        this.pushNotification = this.NotificationsPush.bind(this);
+        window.pushNotification = this.pushNotification;
+        this.notificationTimer = setInterval(
+            () => this.Notifications(),
             100
         );
-        
+
         this.SSEventListen();
+    }
+
+    disconnect() {
+        clearInterval(this.notificationTimer);
+        if (this.eventSource) {
+            this.eventSource.onmessage = null;
+            this.eventSource.close();
+        }
+        if (window.pushNotification === this.pushNotification) delete window.pushNotification;
     }
 
     Notifications () {
@@ -30,30 +40,35 @@ export default class extends Controller {
         });
         if(this.messages.length > 0 && this.element.classList.contains('is-hidden')) {
             let message = this.messages.shift();
-           
-            this.messageTarget.innerHTML = message.message;
-            
+
+            this.messageTarget.textContent = message.message;
+
             let oldClassName = this.element.dataset.type;
-            let newClassName = 'is-' + message.type;
+            const type = ['info', 'success', 'warning', 'danger', 'primary', 'link'].includes(message.type) ? message.type : 'info';
+            let newClassName = 'is-' + type;
             this.element.dataset.type = newClassName;
-            
+
             this.element.classList.remove('is-hidden');
-            this.element.classList.remove(oldClassName);
+            if (oldClassName) this.element.classList.remove(oldClassName);
             this.element.classList.add(newClassName);
         }
-        this.pendingTarget.innerHTML = Math.max(this.messages.length, 0);
+        this.pendingTarget.textContent = Math.max(this.messages.length, 0);
     }
 
     NotificationsPush(message)
     {
-        this.messages.push(message);
+        if (message && typeof message.message === "string") this.messages.push(message);
     }
 
     SSEventListen () {
-        let eventSource = new EventSource("/admin/ssevents");
-        eventSource.onmessage = (event) => {
-            let data = JSON.parse(event.data)
-            this.NotificationsPush({"type": data.severity, "message":data.message});
-        }
+        this.eventSource = new EventSource("/admin/ssevents");
+        this.eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data) this.NotificationsPush({ type: data.severity, message: data.message });
+            } catch {
+                // A malformed event must not stop the remaining notification stream.
+            }
+        };
     }
 }

@@ -105,3 +105,39 @@ it('constructs dashboard charts only when chart elements exist', async () => {
   expect(Chart).toHaveBeenCalledTimes(2);
   expect(Chart.mock.calls.map(([, options]) => options.type)).toEqual(['bar', 'line']);
 });
+
+it('renders notification messages as text instead of HTML', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('EventSource', class { close() {} });
+  const controller = await mount('notification', Notification, '<div class="is-hidden" data-controller="notification"><span data-notification-target="message"></span><span data-notification-target="pending"></span></div>');
+  const message = '<img src="invalid" onerror="alert(1)">';
+  window.pushNotification({ type: 'danger', message });
+  controller.Notifications();
+  expect(controller.messageTarget.textContent).toBe(message);
+  expect(controller.messageTarget.querySelector('img')).toBeNull();
+});
+
+it('renders confirmation labels as text instead of HTML', async () => {
+  const controller = await mount('prompt', Prompt, '<div data-controller="prompt"><span data-prompt-target="title"></span><span data-prompt-target="message"></span><button data-prompt-target="accept"></button><button data-prompt-target="reject"></button></div>');
+  const text = '<img src="invalid" onerror="alert(1)">';
+  const promise = window.prompt.show({ title: text, message: text, accept: text, reject: text });
+  for (const target of [controller.titleTarget, controller.messageTarget, controller.acceptTarget, controller.rejectTarget]) {
+    expect(target.textContent).toBe(text);
+    expect(target.querySelector('img')).toBeNull();
+  }
+  controller.acceptTarget.click();
+  await promise;
+});
+
+it('stops notification timers and closes its event stream on disconnect', async () => {
+  vi.useFakeTimers();
+  const close = vi.fn();
+  vi.stubGlobal('EventSource', class { close = close; });
+  const controller = await mount('notification', Notification, '<div class="is-hidden" data-controller="notification"><span data-notification-target="message"></span><span data-notification-target="pending"></span></div>');
+  const poll = vi.spyOn(controller, 'Notifications');
+  controller.element.remove();
+  for (let i = 0; i < 6; i++) await Promise.resolve();
+  expect(close).toHaveBeenCalledOnce();
+  vi.advanceTimersByTime(500);
+  expect(poll).not.toHaveBeenCalled();
+});
