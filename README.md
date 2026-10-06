@@ -33,6 +33,12 @@ and a JSON body to `POST /auth/lobby` before the token expires. That endpoint
 refreshes the current player session; a supplied name cannot select another user.
 Admin cookies and player tokens have separate audiences and use stable record IDs.
 
+After changing admin source files, run `npm ci --prefix assets` and
+`npm --prefix assets run build` before running the Go app directly. The production
+Dockerfile builds the admin assets automatically. Kubernetes uses its service
+account configuration when running inside a cluster, or an explicit `KUBECONFIG`
+when provided; local k3d configuration is the development fallback.
+
 ## License
 
 Project code is licensed under the custom [Viral Game Network Use-Only License](LICENSE),
