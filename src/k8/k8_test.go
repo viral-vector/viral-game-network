@@ -1,8 +1,10 @@
 package k8
 
 import (
+	"errors"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
@@ -247,5 +249,108 @@ func TestAddingLabelsWithoutConfigurationReturnsError(t *testing.T) {
 	t.Cleanup(func() { ConfigureClient(previous) })
 	if err := AddServerPodLabel("game", map[string]string{"server": "id"}); err == nil {
 		t.Fatal("missing client accepted")
+	}
+}
+
+func TestServerPodUsesActualNodeHostnameLabel(t *testing.T) {
+	node := &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "worker-resource", Labels: map[string]string{"kubernetes.io/hostname": "worker-host"}}}
+	fakeCluster(t, node)
+	pod, err := CreateServerPod("game", node, 30000, 4000, "game:1", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !podCanUseNode(pod, node) {
+		t.Fatalf("game pod cannot be scheduled to its selected node: %v", pod.Spec.NodeSelector)
+	}
+}
+
+func TestInitContainerHostPortIsReserved(t *testing.T) {
+	oldRange := portRange
+	portRange = []int32{30000, 30000}
+	t.Cleanup(func() { portRange = oldRange })
+	fakeCluster(t, &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "worker"}},
+		&v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "reserved", Namespace: "another-app"}, Spec: v1.PodSpec{NodeName: "worker", InitContainers: []v1.Container{{Ports: []v1.ContainerPort{{HostPort: 30000}}}}}},
+	)
+	if _, _, err := FindOpenNodePort(); err == nil {
+		t.Fatal("init container host port allocated again")
+	}
+}
+
+func TestNamespaceReadFailureDoesNotAttemptCreate(t *testing.T) {
+	client := fakeCluster(t)
+	denied := apierrors.NewForbidden(v1.Resource("namespaces"), namespace, fmt.Errorf("denied"))
+	client.PrependReactor("get", "namespaces", func(ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, denied
+	})
+	if err := CreateNameSpace(); !apierrors.IsForbidden(err) {
+		t.Fatalf("namespace lookup error lost: %v", err)
+	}
+	for _, action := range client.Actions() {
+		if action.GetVerb() == "create" {
+			t.Fatal("namespace created after an authorization failure")
+		}
+	}
+}
+
+func TestKillServerPodsReportsFailuresAndContinues(t *testing.T) {
+	client := fakeCluster(t,
+		&v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "first", Namespace: namespace}},
+		&v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "second", Namespace: namespace}},
+	)
+	failed := fmt.Errorf("delete denied")
+	client.PrependReactor("delete", "pods", func(action ktesting.Action) (bool, runtime.Object, error) {
+		if action.(ktesting.DeleteAction).GetName() == "first" {
+			return true, nil, failed
+		}
+		return false, nil, nil
+	})
+	if err := KillAllServerPods(); !errors.Is(err, failed) {
+		t.Fatalf("pod deletion failure swallowed: %v", err)
+	}
+	if _, err := client.CoreV1().Pods(namespace).Get(ctx, "second", metav1.GetOptions{}); !apierrors.IsNotFound(err) {
+		t.Fatal("later pod was not deleted after an earlier failure", err)
+	}
+}
+
+func TestPodHostPortSkipsUnmappedPorts(t *testing.T) {
+	pod := &v1.Pod{Spec: v1.PodSpec{Containers: []v1.Container{{Ports: []v1.ContainerPort{{ContainerPort: 80}, {HostPort: 30000}}}}}}
+	if port := GetPodHostPort(pod); port != 30000 {
+		t.Fatalf("mapped host port missed: %d", port)
+	}
+}
+
+func TestServerPodRejectsMissingNodeAndInvalidPorts(t *testing.T) {
+	client := fakeCluster(t)
+	for _, input := range []struct {
+		node       *v1.Node
+		host, game int32
+	}{
+		{nil, 30000, 4000},
+		{&v1.Node{}, 30000, 4000},
+		{&v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "worker"}}, 0, 4000},
+		{&v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "worker"}}, 30000, 65536},
+	} {
+		if _, err := CreateServerPod("game", input.node, input.host, input.game, "game:1", nil, nil); err == nil {
+			t.Fatal("invalid pod placement accepted")
+		}
+	}
+	if len(client.Actions()) != 0 {
+		t.Fatal("invalid pod reached Kubernetes")
+	}
+	if GetNodeExternalIP(nil) != "" || GetPodHostPort(nil) != 0 {
+		t.Fatal("missing runtime resource should have no address or port")
+	}
+	if ports := GetPortRange(1, int32(2147483647)); len(ports) != 0 {
+		t.Fatal("invalid network port range accepted")
+	}
+}
+
+func TestNamespaceCreateRaceIsIdempotent(t *testing.T) {
+	client := fakeCluster(t)
+	client.PrependReactor("create", "namespaces", func(ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewAlreadyExists(v1.Resource("namespaces"), namespace)
+	})
+	if err := CreateNameSpace(); err != nil {
+		t.Fatal("namespace created concurrently was rejected", err)
 	}
 }

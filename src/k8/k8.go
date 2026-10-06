@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -131,6 +133,9 @@ func CreateNameSpace() error {
 	if err == nil && existing.Name == namespace {
 		return nil
 	}
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("read namespace: %w", err)
+	}
 
 	// Define the namespace
 	space := &v1.Namespace{
@@ -140,8 +145,11 @@ func CreateNameSpace() error {
 	}
 	// Create the namespace
 	result, err := clientset.CoreV1().Namespaces().Create(ctx, space, metav1.CreateOptions{})
+	if apierrors.IsAlreadyExists(err) {
+		return nil
+	}
 	if err != nil {
-		return fmt.Errorf("failed to create namespace: %v", err)
+		return fmt.Errorf("failed to create namespace: %w", err)
 	}
 
 	log.Println("Created K8 Namespace: " + result.Name)
@@ -200,6 +208,9 @@ func GetClusterStatus() (map[string]interface{}, error) {
 }
 
 func GetPortRange(min, max int32) []int32 {
+	if min < 1 || max > 65535 || min > max {
+		return nil
+	}
 	var ports []int32
 	for i := min; i <= max; i++ {
 		ports = append(ports, i)
@@ -257,7 +268,7 @@ func FindOpenNodePort() (*v1.Node, int32, error) {
 			} else if !podCanUseNode(&pod, node) {
 				continue
 			}
-			for _, container := range pod.Spec.Containers {
+			for _, container := range append(pod.Spec.Containers, pod.Spec.InitContainers...) {
 				for _, port := range container.Ports {
 					if port.HostPort != 0 {
 						used[port.HostPort] = true
@@ -306,10 +317,14 @@ func KillAllServerPods() error {
 	if err != nil {
 		return fmt.Errorf("error pulling pods: %s", err)
 	}
+	var failures error
 	for _, pod := range pods.Items {
-		DeleteServerPod(pod.Name)
+		err := clientset.CoreV1().Pods(namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			failures = errors.Join(failures, fmt.Errorf("delete pod %s: %w", pod.Name, err))
+		}
 	}
-	return nil
+	return failures
 }
 
 func GetAllServerPodsPager(
@@ -415,6 +430,16 @@ func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, imag
 	if clientset == nil {
 		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
+	if node == nil || node.Name == "" {
+		return nil, fmt.Errorf("game server requires a target node")
+	}
+	if sPort < 1 || sPort > 65535 || aPort < 1 || aPort > 65535 {
+		return nil, fmt.Errorf("game server ports must be between 1 and 65535")
+	}
+	hostname := node.Labels["kubernetes.io/hostname"]
+	if hostname == "" {
+		hostname = node.Name
+	}
 
 	// Convert map to slice of corev1.EnvVar
 	var envVars []v1.EnvVar
@@ -438,7 +463,7 @@ func CreateServerPod(label string, node *v1.Node, sPort int32, aPort int32, imag
 		Spec: v1.PodSpec{
 			RestartPolicy: v1.RestartPolicyNever,
 			NodeSelector: map[string]string{
-				"kubernetes.io/hostname": node.Name,
+				"kubernetes.io/hostname": hostname,
 			},
 			Containers: []v1.Container{
 				{
@@ -524,6 +549,9 @@ func DeleteServerPod(label string) error {
 
 // Helper function to get the external IP of a node
 func GetNodeExternalIP(node *v1.Node) string {
+	if node == nil {
+		return ""
+	}
 	for _, address := range node.Status.Addresses {
 		if address.Type == v1.NodeExternalIP {
 			return address.Address
@@ -540,9 +568,14 @@ func GetNodeExternalIP(node *v1.Node) string {
 
 // Helper function to get the pods hostport
 func GetPodHostPort(pod *v1.Pod) int32 {
+	if pod == nil {
+		return 0
+	}
 	for _, cnt := range pod.Spec.Containers {
 		for _, port := range cnt.Ports {
-			return port.HostPort
+			if port.HostPort != 0 {
+				return port.HostPort
+			}
 		}
 	}
 	return int32(0)
