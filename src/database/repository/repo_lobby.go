@@ -22,15 +22,17 @@ func AllLobby(count int, pager int, search string) ([]dbtype.Lobby, int, error) 
 	FROM type::table(Lobby)
 	`
 	params := map[string]interface{}{}
+	filter := ""
 
 	// Search
 	if search != "" {
-		lQuery = fmt.Sprintf("%s WHERE [name, guid] ?~ $search", lQuery)
+		filter = " WHERE [name, guid] ?~ $search"
+		lQuery += filter
 		params["search"] = fmt.Sprintf("%s", search)
 	}
 
 	// Ordering
-	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC", lQuery)
+	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC, id ASC", lQuery)
 
 	// Limit and Pagination
 	if count > -1 {
@@ -47,8 +49,8 @@ func AllLobby(count int, pager int, search string) ([]dbtype.Lobby, int, error) 
 
 	// Count all lobbies.
 	total, err := database.Query[dbtype.Total](
-		"SELECT count() AS total FROM type::table(Lobby) GROUP ALL;",
-		map[string]interface{}{},
+		fmt.Sprintf("SELECT count() AS total FROM type::table(Lobby)%s GROUP ALL;", filter),
+		params,
 	)
 	if err != nil || len(total) == 0 {
 		return lobbies, 0, err
@@ -58,7 +60,7 @@ func AllLobby(count int, pager int, search string) ([]dbtype.Lobby, int, error) 
 }
 
 func AllLobbyNotRunning(count int, pager int) ([]dbtype.Lobby, int, error) {
-	lQuery := `
+	filteredQuery := `
 	SELECT * FROM (
 		SELECT *
 		,array::first(SELECT * FROM ->Lobby_Application.out) AS lobby_application
@@ -67,8 +69,8 @@ func AllLobbyNotRunning(count int, pager int) ([]dbtype.Lobby, int, error) {
 		FROM type::table(Lobby)
 	)
 	WHERE lobby_server.status NOTINSIDE ['Running', 'Online']
-	ORDER BY date_created DESC
 	`
+	lQuery := filteredQuery + " ORDER BY date_created DESC, id ASC"
 	params := map[string]interface{}{}
 
 	if count > -1 {
@@ -83,9 +85,9 @@ func AllLobbyNotRunning(count int, pager int) ([]dbtype.Lobby, int, error) {
 		return nil, 0, err
 	}
 
-	// Count all lobbies.
+	// Count the same provisioning candidates as the row query.
 	total, err := database.Query[dbtype.Total](
-		"SELECT count() AS total FROM type::table(Lobby) GROUP ALL;",
+		fmt.Sprintf("SELECT count() AS total FROM (%s) GROUP ALL;", filteredQuery),
 		map[string]interface{}{},
 	)
 	if err != nil || len(total) == 0 {

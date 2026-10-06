@@ -15,15 +15,17 @@ func AllServer(count int, pager int, search string) ([]dbtype.Server, int, error
 	FROM type::table(Server)`
 
 	params := map[string]interface{}{}
+	filter := ""
 
 	// Search
 	if search != "" {
-		lQuery = fmt.Sprintf("%s WHERE [name, guid, address, port] ?~ $search", lQuery)
+		filter = " WHERE [name, guid, address, port] ?~ $search"
+		lQuery += filter
 		params["search"] = fmt.Sprintf("%s", search)
 	}
 
 	// Ordering
-	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC", lQuery)
+	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC, id ASC", lQuery)
 
 	// Limit and Pagination
 	if count > -1 {
@@ -39,8 +41,8 @@ func AllServer(count int, pager int, search string) ([]dbtype.Server, int, error
 
 	// Count all servers.
 	total, err := database.Query[dbtype.Total](
-		"SELECT count() AS total FROM type::table(Server) GROUP ALL;",
-		map[string]interface{}{},
+		fmt.Sprintf("SELECT count() AS total FROM type::table(Server)%s GROUP ALL;", filter),
+		params,
 	)
 	if err != nil || len(total) == 0 {
 		return servers, 0, err

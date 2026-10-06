@@ -15,15 +15,17 @@ func AllApplication(count int, pager int, search string) ([]dbtype.Application, 
 	FROM type::table(Application) 
 	`
 	params := map[string]interface{}{}
+	filter := ""
 
 	// Search
 	if search != "" {
-		lQuery = fmt.Sprintf("%s WHERE [name, guid, group, image] ?~ $search", lQuery)
+		filter = " WHERE [name, guid, group, image] ?~ $search"
+		lQuery += filter
 		params["search"] = fmt.Sprintf("%s", search)
 	}
 
 	// Ordering
-	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC", lQuery)
+	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC, id ASC", lQuery)
 
 	// Limit and Pagination
 	if count > -1 {
@@ -40,8 +42,8 @@ func AllApplication(count int, pager int, search string) ([]dbtype.Application, 
 
 	// Count all Applications.
 	total, err := database.Query[dbtype.Total](
-		"SELECT count() AS total FROM type::table(Application) GROUP ALL;",
-		map[string]interface{}{},
+		fmt.Sprintf("SELECT count() AS total FROM type::table(Application)%s GROUP ALL;", filter),
+		params,
 	)
 	if err != nil || len(total) == 0 {
 		return apps, 0, err

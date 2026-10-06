@@ -14,15 +14,17 @@ func AllUser(count int, pager int, search string) ([]dbtype.User, int, error) {
 	FROM type::table(User) 
 	`
 	params := map[string]interface{}{}
+	filter := ""
 
 	// Search
 	if search != "" {
-		lQuery = fmt.Sprintf("%s WHERE [name, guid] ?~ $search", lQuery)
+		filter = " WHERE [name, guid] ?~ $search"
+		lQuery += filter
 		params["search"] = fmt.Sprintf("%s", search)
 	}
 
 	// Ordering
-	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC", lQuery)
+	lQuery = fmt.Sprintf("%s ORDER BY date_created DESC, id ASC", lQuery)
 
 	// Limit and Pagination
 	if count > -1 {
@@ -39,10 +41,8 @@ func AllUser(count int, pager int, search string) ([]dbtype.User, int, error) {
 
 	// Count all User.
 	total, err := database.Query[dbtype.Total](
-		"SELECT count() AS total FROM type::table(User) GROUP ALL;",
-		map[string]interface{}{
-			
-		},
+		fmt.Sprintf("SELECT count() AS total FROM type::table(User)%s GROUP ALL;", filter),
+		params,
 	)
 	if err != nil || len(total) == 0 {
 		return users, 0, err
