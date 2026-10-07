@@ -61,5 +61,8 @@ Thumbs.db
 # Test coverage artifacts
 coverage/
 
+# Air build output
+/tmp/
+
 # Local development documentation
 /README-DEV.md

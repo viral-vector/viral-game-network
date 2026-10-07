@@ -5,6 +5,9 @@ services:
       dockerfile: ./docker/dev/Dockerfile
     env_file:
       - .env
+    environment:
+      VNET_JOB_NAME: ""
+      VNET_TOKEN_KEY: "${VNET_TOKEN_KEY:?Set a private VNET_TOKEN_KEY of at least 32 bytes in .env}"
     container_name: viral-game-network-app
     restart: always
     depends_on:
