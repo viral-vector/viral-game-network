@@ -27,7 +27,7 @@ func serve_routes(app *fiber.App) {
 		c.Set("Viral-Game-Network-Entity", c.Get("Viral-Game-Network-Entity"))
 		c.Locals("route", map[string]string{
 			"path": c.Path(),
-			"http": c.BaseURL() + c.Path(),
+			"http": c.BaseURL() + string(c.Request().URI().RequestURI()),
 		})
 		c.Locals("app_env", os.Getenv("APP_ENV"))
 		c.Locals("app_env_dev", strings.HasPrefix(os.Getenv("APP_ENV"), "dev"))

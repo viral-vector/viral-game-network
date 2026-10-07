@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"viral-game-network/tests/support"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func TestPublicRoutesAndAuthenticationBoundary(t *testing.T) {
@@ -35,6 +37,29 @@ func TestPublicRoutesAndAuthenticationBoundary(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRouteMetadataPreservesSearchAndPagingQuery(t *testing.T) {
+	server := support.Redis(t)
+	t.Setenv("CACHE_ENDPOINT", server.Addr())
+	app := NewApp("../views", "../public")
+	defer app.Shutdown()
+	app.Get("/inspect-route", func(c *fiber.Ctx) error { return c.JSON(c.Locals("route")) })
+	path := "/inspect-route?search=some%20game&page=2&pageToken=cursor%2Bvalue"
+	for _, target := range []string{path, "http://example.com" + path} {
+		response, err := app.Test(httptest.NewRequest("GET", target, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		var route map[string]string
+		if err := json.NewDecoder(response.Body).Decode(&route); err != nil {
+			t.Fatal(err)
+		}
+		if response.StatusCode != 200 || route["path"] != "/inspect-route" || route["http"] != "http://example.com"+path {
+			t.Fatalf("target=%s status=%d route=%v", target, response.StatusCode, route)
+		}
 	}
 }
 

@@ -18,8 +18,65 @@ it('paginates while preserving search and continuation tokens', async () => {
   expect(url.searchParams.get('search')).toBe('alice');
   expect(url.searchParams.get('page')).toBe('6');
   expect(url.searchParams.get('pageToken')).toBe('cursor');
+  expect(url.searchParams.get('prevPage')).toBe('5');
   expect(controller.element.querySelector('.is-current').textContent).toBe('5');
   expect(controller.element.querySelectorAll('.pagination-ellipsis').length).toBe(2);
+});
+
+it('restarts pod pagination for backward navigation and page jumps', async () => {
+  const controller = await mount('pager', Pager, '<nav data-controller="pager" data-pager-route-value="/admin/pods?search=game&amp;page=5&amp;prevPage=4&amp;pageToken=old" data-pager-pages-value="9" data-pager-paged-value="5" data-pager-page-token-value="cursor"><ul class="pagination-list"></ul></nav>');
+  for (const page of [1, 4, 5, 8]) {
+    const url = new URL(controller.createUrl(page));
+    expect(url.searchParams.get('search')).toBe('game');
+    expect(url.searchParams.get('page')).toBe(String(page));
+    expect(url.searchParams.has('pageToken')).toBe(false);
+    expect(url.searchParams.has('prevPage')).toBe(false);
+  }
+});
+
+it('does not duplicate pager links when the controller reconnects', async () => {
+  const controller = await mount('pager', Pager, '<nav data-controller="pager" data-pager-route-value="https://example.com/admin/users" data-pager-pages-value="9" data-pager-paged-value="5"><ul class="pagination-list"></ul></nav>');
+  const count = controller.element.querySelectorAll('a').length;
+  controller.connect();
+  expect(controller.element.querySelectorAll('a').length).toBe(count);
+});
+
+it('does not create page links for an empty list', async () => {
+  const controller = await mount('pager', Pager, '<nav data-controller="pager" data-pager-route-value="https://example.com/admin/users" data-pager-pages-value="0" data-pager-paged-value="1"><ul class="pagination-list"></ul></nav>');
+  expect(controller.element.querySelectorAll('a')).toHaveLength(0);
+});
+
+it.each([' game ', ''])('starts a new search on page one without a stale pod cursor (%s)', async (search) => {
+  vi.useFakeTimers();
+  const urls = [];
+  const serialize = URL.prototype.toString;
+  vi.spyOn(URL.prototype, 'toString').mockImplementation(function () {
+    urls.push(new URL(serialize.call(this)));
+    return window.location.href;
+  });
+  const controller = await mount('search', Search, '<div data-controller="search" data-search-action-value="https://example.com/admin/pods?search=old&amp;page=7&amp;prevPage=6&amp;pageToken=stale"><input data-search-target="control"><button data-search-target="button"></button></div>');
+  controller.controlTarget.value = search;
+  controller.buttonTarget.click();
+  vi.advanceTimersByTime(100);
+  expect(urls).toHaveLength(1);
+  expect(urls[0].searchParams.get('page')).toBe('1');
+  expect(urls[0].searchParams.has('prevPage')).toBe(false);
+  expect(urls[0].searchParams.has('pageToken')).toBe(false);
+  expect(urls[0].searchParams.get('search')).toBe(search.trim() || null);
+});
+
+it('cancels search navigation and removes its listener on disconnect', async () => {
+  vi.useFakeTimers();
+  const controller = await mount('search', Search, '<div data-controller="search" data-search-action-value="https://example.com/admin/users"><input data-search-target="control" value="alice"><button data-search-target="button"></button></div>');
+  const button = controller.buttonTarget;
+  button.click();
+  expect(button.disabled).toBe(true);
+  controller.element.remove();
+  for (let i = 0; i < 6; i++) await Promise.resolve();
+  expect(button.disabled).toBe(false);
+  expect(vi.getTimerCount()).toBe(0);
+  button.click();
+  expect(vi.getTimerCount()).toBe(0);
 });
 
 it('rejects search strings shorter than three characters', async () => {

@@ -11,6 +11,10 @@ export default class extends Controller {
 
     connect() {
         const pagination_list = this.element.querySelector('.pagination-list');
+        if (!pagination_list) return;
+        this.element.querySelectorAll('.pagination-previous, .pagination-next').forEach(button => button.remove());
+        pagination_list.replaceChildren();
+        if (this.pagesValue < 1) return;
 
         // Prev & Next buttons
         if (this.pagesValue > 1) {
@@ -56,9 +60,14 @@ export default class extends Controller {
     }
 
     createUrl(page) {
-        const url = new URL(this.routeValue);
+        const url = new URL(this.routeValue, window.location.href);
         url.searchParams.set('page', page);
-        url.searchParams.set('pageToken', this.pageTokenValue);
+        url.searchParams.delete('pageToken');
+        url.searchParams.delete('prevPage');
+        if (page === this.pagedValue + 1 && this.pageTokenValue) {
+            url.searchParams.set('pageToken', this.pageTokenValue);
+            url.searchParams.set('prevPage', this.pagedValue);
+        }
         return url.toString();
     }
 
