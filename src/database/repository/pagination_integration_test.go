@@ -55,7 +55,7 @@ func TestFilteredListTotalsMatchResults(t *testing.T) {
 			for _, input := range []struct {
 				search            string
 				page, rows, total int
-			}{{"Matchable", 1, 1, 1}, {"Matchable", 2, 0, 1}, {"NoSuchRecord", 1, 0, 0}, {"", 1, 1, 2}} {
+			}{{"Matchable", 1, 1, 1}, {"match", 1, 1, 1}, {"Mtbl", 1, 1, 1}, {"Matchable", 2, 0, 1}, {"NoSuchRecord", 1, 0, 0}, {"", 1, 1, 2}} {
 				rows, total, err := list(1, input.page, input.search)
 				if err != nil || rows != input.rows || total != input.total {
 					t.Errorf("search=%q page=%d: rows=%d total=%d error=%v; want rows=%d total=%d", input.search, input.page, rows, total, err, input.rows, input.total)

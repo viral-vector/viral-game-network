@@ -9,10 +9,10 @@ import (
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func Handle_SSEvents(c *fiber.Ctx) error {
+func Handle_SSEvents(c fiber.Ctx) error {
 	expires, ok := c.Locals("session_expires").(time.Time)
 	if !ok || !expires.After(time.Now()) {
 		return fiber.ErrForbidden
@@ -21,7 +21,7 @@ func Handle_SSEvents(c *fiber.Ctx) error {
 	c.Set("Cache-Control", "no-cache")
 	c.Set("Connection", "keep-alive")
 	// Capture session data before Fiber returns the context to its pool.
-	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
+	c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
 		streamSystemEvents(w, repository.SelSystemEventsSince, 5*time.Second, expires)
 	})
 	return nil

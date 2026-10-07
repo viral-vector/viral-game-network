@@ -1,7 +1,7 @@
 package handler_admin
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"math"
 	"strings"
 	"viral-game-network/src/database/repository"
@@ -9,7 +9,7 @@ import (
 	"viral-game-network/src/utils/pagination"
 )
 
-func Handle_Pods(c *fiber.Ctx) error {
+func Handle_Pods(c fiber.Ctx) error {
 	search := c.Query("search", "")
 	perPage := int64(2)
 	prvPage, err := pagination.Page(c.Query("prevPage", "1"), int(perPage))
@@ -36,11 +36,11 @@ func Handle_Pods(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Pods_Update_View(c *fiber.Ctx) error {
+func Handle_Pods_Update_View(c fiber.Ctx) error {
 	node, pod, err := k8.LocateServerPod(c.Params("id"))
 
 	if err != nil || pod == nil {
-		return c.Redirect("/admin/pods")
+		return c.Redirect().Status(fiber.StatusFound).To("/admin/pods")
 	}
 
 	lobby, _ := repository.GetLobby("Lobby:"+pod.Name)
@@ -56,7 +56,7 @@ func Handle_Pods_Update_View(c *fiber.Ctx) error {
 	}) 
 }
 
-func Handle_Pods_Delete_Crud(c *fiber.Ctx) error {
+func Handle_Pods_Delete_Crud(c fiber.Ctx) error {
 	err := k8.DeleteServerPod(
 		strings.Replace(c.Params("id"), "server-", "", -1))
 

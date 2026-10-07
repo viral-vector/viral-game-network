@@ -1,9 +1,11 @@
 package sqlquery
 
 import (
+	"context"
 	"fmt"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/surrealdb/surrealdb.go"
+	"time"
 )
 
 // Query checks every statement status, including failures inside transactions.
@@ -11,7 +13,9 @@ func Query[T any](db *surrealdb.DB, query string, params map[string]interface{})
 	if db == nil {
 		return nil, fmt.Errorf("database is not connected")
 	}
-	results, err := surrealdb.Query[cbor.RawMessage](db, query, params)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	results, err := surrealdb.Query[cbor.RawMessage](ctx, db, query, params)
 	if err != nil {
 		return nil, err
 	}

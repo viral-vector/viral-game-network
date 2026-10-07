@@ -5,12 +5,12 @@ import (
 	"viral-game-network/src/database/repository"
 	"viral-game-network/src/ministration"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // Heartbeats accept either the owning player or a server session for this lobby.
 // Server sessions have no access to the general player or admin APIs.
-func Handle_ValidateHeartbeatToken(c *fiber.Ctx) error {
+func Handle_ValidateHeartbeatToken(c fiber.Ctx) error {
 	claims, err := auth.ValidateToken(c.Get("Viral-Game-Network-Token"))
 	if err != nil {
 		return fiber.ErrForbidden
@@ -39,7 +39,7 @@ func Handle_ValidateHeartbeatToken(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func Handle_RefreshServerToken(c *fiber.Ctx) error {
+func Handle_RefreshServerToken(c fiber.Ctx) error {
 	if server, _ := c.Locals("server_session").(bool); !server {
 		return fiber.ErrForbidden
 	}
@@ -55,7 +55,7 @@ func Handle_RefreshServerToken(c *fiber.Ctx) error {
 }
 
 // Handle_HostTick
-func Handle_TickHost(c *fiber.Ctx) error {
+func Handle_TickHost(c fiber.Ctx) error {
 	lobby, err := repository.GetLobby(c.Params("id"))
 
 	if err != nil || lobby == nil || lobby.Lobby_Server == nil {

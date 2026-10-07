@@ -19,7 +19,7 @@ func AllApplication(count int, pager int, search string) ([]dbtype.Application, 
 
 	// Search
 	if search != "" {
-		filter = " WHERE [name, guid, group, image] ?~ $search"
+		filter = " WHERE array::any([name, guid, group, image], |$value| string::similarity::fuzzy(<string>($value ?? ''), $search) > 0)"
 		lQuery += filter
 		params["search"] = fmt.Sprintf("%s", search)
 	}

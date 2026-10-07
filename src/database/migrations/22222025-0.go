@@ -41,7 +41,7 @@ func init() {
 			DEFINE INDEX idx_system_event_ref_id ON TABLE System_Event COLUMNS ref_id UNIQUE;
 			DEFINE INDEX idx_system_event_ref_source ON TABLE System_Event COLUMNS ref_source;
 			DEFINE ANALYZER idx_system_event_analyzer TOKENIZERS class FILTERS ascii;
-			DEFINE INDEX idx_system_event_message_analyzer ON TABLE System_Event COLUMNS message SEARCH ANALYZER idx_system_event_analyzer BM25 HIGHLIGHTS;
+			DEFINE INDEX idx_system_event_message_analyzer ON TABLE System_Event COLUMNS message FULLTEXT ANALYZER idx_system_event_analyzer BM25 HIGHLIGHTS;
 			`,
 		},
 		// Admins 

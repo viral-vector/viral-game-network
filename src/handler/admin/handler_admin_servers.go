@@ -2,14 +2,14 @@ package handler_admin
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"math"
 	"viral-game-network/src/database/repository"
 	form_builder "viral-game-network/src/utils/form_builder"
 	"viral-game-network/src/utils/pagination"
 )
 
-func Handle_Servers(c *fiber.Ctx) error {
+func Handle_Servers(c fiber.Ctx) error {
 	search := c.Query("search", "")
 	perPage := 15
 	curPage, err := pagination.Page(c.Query("page", "1"), perPage)
@@ -30,12 +30,12 @@ func Handle_Servers(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Servers_Update_View(c *fiber.Ctx) error {
+func Handle_Servers_Update_View(c fiber.Ctx) error {
 	id := c.Params("id")
 
 	server, err := repository.GetServer(id)
 	if err != nil || server == nil {
-		return c.Redirect("/admin/servers")
+		return c.Redirect().Status(fiber.StatusFound).To("/admin/servers")
 	}
 
 	form, _ := form_builder.GenerateForm(
@@ -53,7 +53,7 @@ func Handle_Servers_Update_View(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Servers_Delete_Crud(c *fiber.Ctx) error {
+func Handle_Servers_Delete_Crud(c fiber.Ctx) error {
 	id := c.Params("id")
 
 	// Fetch Server

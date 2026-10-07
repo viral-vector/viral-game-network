@@ -354,3 +354,13 @@ func TestNamespaceCreateRaceIsIdempotent(t *testing.T) {
 		t.Fatal("namespace created concurrently was rejected", err)
 	}
 }
+
+func TestMissingPodReturnsNoObject(t *testing.T) {
+	previous := getClient()
+	ConfigureClient(fake.NewSimpleClientset())
+	t.Cleanup(func() { ConfigureClient(previous) })
+	pod, err := GetServerPod("missing")
+	if pod != nil || !apierrors.IsNotFound(err) {
+		t.Fatalf("missing pod returned object=%v error=%v", pod, err)
+	}
+}

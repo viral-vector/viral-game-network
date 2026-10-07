@@ -10,7 +10,7 @@ import (
 	dbtype "viral-game-network/src/database/type"
 	form_builder "viral-game-network/src/utils/form_builder"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type ApiCreateCrudDTO struct {
@@ -19,7 +19,7 @@ type ApiCreateCrudDTO struct {
 }
 
 // ##> Configs
-func Handle_Configs(c *fiber.Ctx) error {
+func Handle_Configs(c fiber.Ctx) error {
 	configs, _ := repository.GetSystemConfigs()
 
 	// Clear cache
@@ -59,7 +59,7 @@ func Handle_Configs(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Configs_Update_Crud(c *fiber.Ctx) error {
+func Handle_Configs_Update_Crud(c fiber.Ctx) error {
 	configs, err := repository.GetSystemConfigs()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Could not load settings"})
@@ -89,9 +89,9 @@ func Handle_Configs_Update_Crud(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"status": "success", "message": "Settings Saved"})
 }
 
-func Handle_Configs_ApiKey_Create_Crud(c *fiber.Ctx) error {
+func Handle_Configs_ApiKey_Create_Crud(c fiber.Ctx) error {
 	dto := new(ApiCreateCrudDTO)
-	if err := c.BodyParser(dto); err != nil {
+	if err := c.Bind().Body(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -138,7 +138,7 @@ func Handle_Configs_ApiKey_Create_Crud(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Configs_Delete_Crud(c *fiber.Ctx) error {
+func Handle_Configs_Delete_Crud(c fiber.Ctx) error {
 	id := c.Params("id")
 
 	// Fetch Config

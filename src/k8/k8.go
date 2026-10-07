@@ -425,7 +425,11 @@ func GetServerPod(label string) (*v1.Pod, error) {
 	if clientset == nil {
 		return nil, fmt.Errorf("K8 Error: Cluster Not Running")
 	}
-	return clientset.CoreV1().Pods(namespace).Get(ctx, label, metav1.GetOptions{})
+	pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, label, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return pod, nil
 }
 
 // Locate Server Pod

@@ -5,12 +5,13 @@ package handler_admin
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 	"io"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 	"viral-game-network/src/database"
 	"viral-game-network/src/database/repository"
 	dbtype "viral-game-network/src/database/type"
@@ -21,7 +22,7 @@ func crudRequest(t *testing.T, handler fiber.Handler, method, id string, body an
 	t.Helper()
 	app := fiber.New()
 	app.Use(recover.New())
-	app.Add(method, "/:id", handler)
+	app.Add([]string{method}, "/:id", handler)
 	var encoded bytes.Buffer
 	if body != nil {
 		if err := json.NewEncoder(&encoded).Encode(body); err != nil {
@@ -30,7 +31,7 @@ func crudRequest(t *testing.T, handler fiber.Handler, method, id string, body an
 	}
 	req := httptest.NewRequest(method, "/"+id, &encoded)
 	req.Header.Set("Content-Type", "application/json")
-	response, err := app.Test(req, 60000)
+	response, err := app.Test(req, fiber.TestConfig{Timeout: 60 * time.Second, FailOnTimeout: true})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -2,12 +2,12 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"viral-game-network/src/database/repository"
 	"viral-game-network/src/database/type"
 )
 
-func Lobby_Read(c *fiber.Ctx) error {
+func Lobby_Read(c fiber.Ctx) error {
 	_, err := check_read(c)
 
 	if err != nil {
@@ -16,7 +16,7 @@ func Lobby_Read(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func Lobby_Write(c *fiber.Ctx) error {
+func Lobby_Write(c fiber.Ctx) error {
 	lobby, err := check_read(c)
 
 	if err != nil {
@@ -31,7 +31,7 @@ func Lobby_Write(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func check_read(c *fiber.Ctx) (*dbtype.Lobby, error) {
+func check_read(c fiber.Ctx) (*dbtype.Lobby, error) {
 	id := c.Params("id")
 	user, ok := c.Locals("user").(*dbtype.User)
 	if !ok || user == nil {

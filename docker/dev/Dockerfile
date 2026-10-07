@@ -1,5 +1,5 @@
 # Stage 1: Builder stage
-FROM golang:1.24-alpine AS builder
+FROM golang:1.27.1-alpine3.24 AS builder
 
 ENV PROJECT_DIR=/app \
     GO111MODULE=on \
@@ -14,18 +14,18 @@ RUN apk update && \
     rm -rf /var/cache/apk/*
 
 # Copy Go module files and download dependencies
-COPY go.mod ./
-RUN go mod tidy && go mod download
+COPY go.mod go.sum ./
+RUN go mod download
 
 # Copy source code and build the application
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app ./src
 
-# Install Air for development
-RUN go install github.com/air-verse/air@latest
+# Pin the current Air release so builds are reproducible.
+RUN go install github.com/air-verse/air@v1.67.4
 
 # Stage 2: SSL Certificate generation
-FROM alpine:3.21 AS ssl-cert
+FROM alpine:3.24.2 AS ssl-cert
 
 RUN apk add --no-cache openssl
 
@@ -40,7 +40,7 @@ RUN mkdir -p ./ssl && \
     openssl x509 -req -in ./ssl/tls.client.csr -CA ./ssl/tls.crt -CAkey ./ssl/tls.key -CAcreateserial -out ./ssl/tls.client.crt -days 365
 
 # Stage 3: Runtime stage
-FROM golang:1.24-alpine
+FROM golang:1.27.1-alpine3.24
 
 # Install runtime dependencies only
 RUN apk update && \
@@ -48,13 +48,13 @@ RUN apk update && \
     rm -rf /var/cache/apk/*
 
 # Install kubectl for runtime operations
-ENV KUBECTL_VERSION=1.32.0
+ENV KUBECTL_VERSION=1.37.1
 RUN curl -LO "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
     chmod +x ./kubectl && \
     mv ./kubectl /usr/local/bin/kubectl
 
 # Install k3d for runtime operations
-ENV K3D_VERSION=5.8.3
+ENV K3D_VERSION=5.9.0
 RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=v${K3D_VERSION} bash
 
 # Create non-root user

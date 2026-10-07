@@ -10,10 +10,10 @@ import (
 	"viral-game-network/src/utils/pagination"
 	struct_merge "viral-game-network/src/utils/struct_merge"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func Handle_Admins(c *fiber.Ctx) error {
+func Handle_Admins(c fiber.Ctx) error {
 	search := c.Query("search", "")
 	perPage := 15
 	curPage, err := pagination.Page(c.Query("page", "1"), perPage)
@@ -34,7 +34,7 @@ func Handle_Admins(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admins_Create_View(c *fiber.Ctx) error {
+func Handle_Admins_Create_View(c fiber.Ctx) error {
 	form, _ := form_builder.GenerateForm(
 		"POST",
 		"/admin/admin",
@@ -50,9 +50,9 @@ func Handle_Admins_Create_View(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admins_Create_Crud(c *fiber.Ctx) error {
+func Handle_Admins_Create_Crud(c fiber.Ctx) error {
 	dto := new(dbtype.Admin)
-	if err := c.BodyParser(dto); err != nil {
+	if err := c.Bind().Body(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -93,12 +93,12 @@ func Handle_Admins_Create_Crud(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admins_Update_View(c *fiber.Ctx) error {
+func Handle_Admins_Update_View(c fiber.Ctx) error {
 	id := c.Params("id")
 
 	admin, err := repository.GetAdmin(id)
 	if err != nil || admin == nil {
-		return c.Redirect("/admin/admins")
+		return c.Redirect().Status(fiber.StatusFound).To("/admin/admins")
 	}
 
 	admin.Password = ""
@@ -118,11 +118,11 @@ func Handle_Admins_Update_View(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admins_Update_Crud(c *fiber.Ctx) error {
+func Handle_Admins_Update_Crud(c fiber.Ctx) error {
 	id := c.Params("id")
 
 	dto := new(dbtype.Admin)
-	if err := c.BodyParser(dto); err != nil {
+	if err := c.Bind().Body(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -187,7 +187,7 @@ func Handle_Admins_Update_Crud(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Admins_Delete_Crud(c *fiber.Ctx) error {
+func Handle_Admins_Delete_Crud(c fiber.Ctx) error {
 	id := c.Params("id")
 
 	// Fetch admin

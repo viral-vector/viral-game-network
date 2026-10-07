@@ -11,8 +11,8 @@ import (
 	"viral-game-network/src/pubsub"
 	"viral-game-network/src/utils/pagination"
 
-	"github.com/gofiber/contrib/websocket"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/contrib/v3/websocket"
+	"github.com/gofiber/fiber/v3"
 )
 
 type HostLobbyRequestDTO struct {
@@ -21,7 +21,7 @@ type HostLobbyRequestDTO struct {
 }
 
 // Handle_AllLobby
-func Handle_AllLobby(c *fiber.Ctx) error {
+func Handle_AllLobby(c fiber.Ctx) error {
 	search := c.Query("search", "")
 	perPage, err := pagination.Size(c.Query("show", "100"), 100)
 	if err != nil {
@@ -54,7 +54,7 @@ func Handle_AllLobby(c *fiber.Ctx) error {
 }
 
 // Handle_SetLobby
-func Handle_SetLobby(c *fiber.Ctx) error {
+func Handle_SetLobby(c fiber.Ctx) error {
 	record := new(repository.LobbyPatch)
 	err := json.Unmarshal(c.Body(), record)
 
@@ -89,7 +89,7 @@ func redactLobbyCode(lobby *dbtype.Lobby, user *dbtype.User) {
 	}
 }
 
-func Handle_GetLobby(c *fiber.Ctx) error {
+func Handle_GetLobby(c fiber.Ctx) error {
 	lobby, err := repository.GetLobby(c.Params("id"))
 	if err != nil || lobby == nil {
 		return fiber.ErrBadRequest
@@ -99,12 +99,12 @@ func Handle_GetLobby(c *fiber.Ctx) error {
 }
 
 // Handle_JoinLobby accepts an optional JSON/form invitation code.
-func Handle_JoinLobby(c *fiber.Ctx) error {
+func Handle_JoinLobby(c fiber.Ctx) error {
 	var dto struct {
 		Code string `json:"code" form:"code"`
 	}
 	if len(c.Body()) > 0 {
-		if err := c.BodyParser(&dto); err != nil {
+		if err := c.Bind().Body(&dto); err != nil {
 			return fiber.ErrBadRequest
 		}
 	}
@@ -118,9 +118,9 @@ func Handle_JoinLobby(c *fiber.Ctx) error {
 }
 
 // Handle_HostLobby
-func Handle_HostLobby(c *fiber.Ctx) error {
+func Handle_HostLobby(c fiber.Ctx) error {
 	dto := new(HostLobbyRequestDTO)
-	if err := c.BodyParser(dto); err != nil {
+	if err := c.Bind().Body(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",

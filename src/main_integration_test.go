@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/fasthttp/websocket"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"io"
 	"net"
 	"net/http"
@@ -39,7 +39,7 @@ func request(t *testing.T, app *fiber.App, method, path string, payload any, tok
 	if cookie != "" {
 		req.Header.Set("Cookie", cookie)
 	}
-	response, err := app.Test(req, 60000)
+	response, err := app.Test(req, fiber.TestConfig{Timeout: 60 * time.Second, FailOnTimeout: true})
 	if err != nil {
 		t.Fatal(err)
 	}

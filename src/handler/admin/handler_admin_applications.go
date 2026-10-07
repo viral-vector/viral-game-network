@@ -10,10 +10,10 @@ import (
 	"viral-game-network/src/utils/pagination"
 	struct_merge "viral-game-network/src/utils/struct_merge"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func Handle_Applications(c *fiber.Ctx) error {
+func Handle_Applications(c fiber.Ctx) error {
 	search := c.Query("search", "")
 	perPage := 15
 	curPage, err := pagination.Page(c.Query("page", "1"), perPage)
@@ -34,7 +34,7 @@ func Handle_Applications(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Applications_Create_View(c *fiber.Ctx) error {
+func Handle_Applications_Create_View(c fiber.Ctx) error {
 	form, _ := form_builder.GenerateForm(
 		"POST",
 		"/admin/application",
@@ -50,9 +50,9 @@ func Handle_Applications_Create_View(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Applications_Create_Crud(c *fiber.Ctx) error {
+func Handle_Applications_Create_Crud(c fiber.Ctx) error {
 	dto := new(dbtype.Application)
-	if err := c.BodyParser(dto); err != nil {
+	if err := c.Bind().Body(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -81,12 +81,12 @@ func Handle_Applications_Create_Crud(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Applications_Update_View(c *fiber.Ctx) error {
+func Handle_Applications_Update_View(c fiber.Ctx) error {
 	id := c.Params("id")
 
 	application, err := repository.GetApplication(id)
 	if err != nil || application == nil {
-		return c.Redirect("/admin/applications")
+		return c.Redirect().Status(fiber.StatusFound).To("/admin/applications")
 	}
 
 	form, _ := form_builder.GenerateForm(
@@ -104,11 +104,11 @@ func Handle_Applications_Update_View(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Applications_Update_Crud(c *fiber.Ctx) error {
+func Handle_Applications_Update_Crud(c fiber.Ctx) error {
 	id := c.Params("id")
 
 	dto := new(dbtype.Application)
-	if err := c.BodyParser(dto); err != nil {
+	if err := c.Bind().Body(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -159,7 +159,7 @@ func Handle_Applications_Update_Crud(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Applications_Delete_Crud(c *fiber.Ctx) error {
+func Handle_Applications_Delete_Crud(c fiber.Ctx) error {
 	application, err := repository.GetApplication(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "Application lookup failed"})

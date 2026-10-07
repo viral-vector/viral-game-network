@@ -19,7 +19,7 @@ func AllServer(count int, pager int, search string) ([]dbtype.Server, int, error
 
 	// Search
 	if search != "" {
-		filter = " WHERE [name, guid, address, port] ?~ $search"
+		filter = " WHERE array::any([name, guid, address, port], |$value| string::similarity::fuzzy(<string>($value ?? ''), $search) > 0)"
 		lQuery += filter
 		params["search"] = fmt.Sprintf("%s", search)
 	}

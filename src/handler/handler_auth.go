@@ -2,7 +2,7 @@ package handler
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"strings"
 	"time"
 	"viral-game-network/src/auth"
@@ -22,7 +22,7 @@ type AuthAdminRequestDTO struct {
 
 var NVET_COOKIE_KEY string = "VNET_SESSION"
 
-func Handle_ValidateAppKey(c *fiber.Ctx) error {
+func Handle_ValidateAppKey(c fiber.Ctx) error {
 	app_key := c.Get("Viral-Game-Network-AppKey")
 
 	pass, err := auth.ValidateAppKey(app_key)
@@ -37,17 +37,14 @@ func Handle_ValidateAppKey(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func Handle_ValidateTokenAdmin(c *fiber.Ctx) error {
+func Handle_ValidateTokenAdmin(c fiber.Ctx) error {
 	token := c.Cookies(NVET_COOKIE_KEY)
 
 	claims, err := auth.ValidateTokenFor(token, auth.AdminAudience)
 
 	if err != nil {
 		c.Status(fiber.StatusForbidden)
-		return c.RedirectToRoute("auth/admin", fiber.Map{
-			"status":  "error",
-			"message": "Unauthorized: Bad Token @ " + err.Error(),
-		})
+		return c.Redirect().Status(fiber.StatusFound).Route("auth/admin")
 	}
 
 	admin, err := repository.GetAdmin(claims.Subject)
@@ -61,7 +58,7 @@ func Handle_ValidateTokenAdmin(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func Handle_RedirectAdmin(c *fiber.Ctx) error {
+func Handle_RedirectAdmin(c fiber.Ctx) error {
 	token := c.Cookies(NVET_COOKIE_KEY)
 
 	claims, err := auth.ValidateTokenFor(token, auth.AdminAudience)
@@ -72,16 +69,13 @@ func Handle_RedirectAdmin(c *fiber.Ctx) error {
 			return c.Next()
 		}
 		c.Status(fiber.StatusBadRequest)
-		return c.RedirectToRoute("admin", fiber.Map{
-			"status":  "success",
-			"message": "Authorized",
-		})
+		return c.Redirect().Status(fiber.StatusFound).Route("admin")
 	}
 
 	return c.Next()
 }
 
-func Handle_ValidateTokenUsers(c *fiber.Ctx) error {
+func Handle_ValidateTokenUsers(c fiber.Ctx) error {
 	token := c.Get("Viral-Game-Network-Token")
 
 	claims, err := auth.ValidateTokenFor(token, auth.UserAudience)
@@ -105,10 +99,10 @@ func Handle_ValidateTokenUsers(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func Handle_AuthLobby(c *fiber.Ctx) error {
+func Handle_AuthLobby(c fiber.Ctx) error {
 	dto := new(AuthUserRequestDTO)
 
-	if err := c.BodyParser(dto); err != nil {
+	if err := c.Bind().Body(dto); err != nil {
 		return err
 	}
 
@@ -132,10 +126,10 @@ func Handle_AuthLobby(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_AuthGuest(c *fiber.Ctx) error {
+func Handle_AuthGuest(c fiber.Ctx) error {
 	dto := new(AuthUserRequestDTO)
 
-	if err := c.BodyParser(dto); err != nil {
+	if err := c.Bind().Body(dto); err != nil {
 		return err
 	}
 	name := strings.TrimSpace(dto.Name)
@@ -177,7 +171,7 @@ func Handle_AuthGuest(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_AuthAdmin(c *fiber.Ctx) error {
+func Handle_AuthAdmin(c fiber.Ctx) error {
 	post := strings.ToLower(c.Method()) == "post"
 
 	// Get - show form
@@ -197,7 +191,7 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 
 	// Post - Gen token
 	dto := new(AuthAdminRequestDTO)
-	if err := c.BodyParser(dto); err != nil {
+	if err := c.Bind().Body(dto); err != nil {
 		return err
 	}
 
@@ -264,7 +258,7 @@ func Handle_AuthAdmin(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_AuthAdminRefresh(c *fiber.Ctx) error {
+func Handle_AuthAdminRefresh(c fiber.Ctx) error {
 	admin, ok := c.Locals("admin").(*dbtype.Admin)
 
 	if !ok || admin == nil {
@@ -310,7 +304,7 @@ func Handle_AuthAdminRefresh(c *fiber.Ctx) error {
 
 }
 
-func Handle_AuthAdminLogout(c *fiber.Ctx) error {
+func Handle_AuthAdminLogout(c fiber.Ctx) error {
 	// Create cookie
 	cookie := new(fiber.Cookie)
 	cookie.Name = NVET_COOKIE_KEY
@@ -325,8 +319,5 @@ func Handle_AuthAdminLogout(c *fiber.Ctx) error {
 	// Set cookie
 	c.Cookie(cookie)
 
-	return c.RedirectToRoute("admin", fiber.Map{
-		"status":  "success",
-		"message": "Authorized",
-	})
+	return c.Redirect().Status(fiber.StatusFound).Route("admin")
 }

@@ -19,7 +19,7 @@ services:
     networks:
       - viral-game-network
   cache:
-    image: redis:6.2-alpine
+    image: redis:8.10.2-alpine
     env_file:
       - .env
     container_name: viral-game-network-cache-redis
@@ -32,7 +32,7 @@ services:
     networks:
       - viral-game-network
   store:
-    image: surrealdb/surrealdb:latest
+    image: surrealdb/surrealdb:v3.3.0
     env_file:
       - .env
     container_name: viral-game-network-store-surrealdb
@@ -45,7 +45,7 @@ services:
     networks:
       - viral-game-network
   registry:
-    image: registry:latest
+    image: registry:3.1.2
     env_file:
       - .env
     environment:

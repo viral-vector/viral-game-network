@@ -27,7 +27,10 @@ See [LICENSE](LICENSE) for permitted use.
 ## Boot and deploy
 
 You need Docker, reachable Redis and SurrealDB services, and a Kubernetes cluster
-for running game servers. SurrealDB 2.2.2 is the version verified with this app.
+for running game servers. Use SurrealDB 3.3.0 with this app.
+For existing SurrealDB 2 data, follow the official
+[export/import upgrade guide](https://surrealdb.com/docs/build/migrating/from-old-surrealdb-versions/2x-to-3x)
+before switching the database service to version 3.
 
 1. Clone the repository and create your configuration:
 

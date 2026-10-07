@@ -1,5 +1,5 @@
 # Build the admin assets from the current source instead of shipping stale bundles.
-FROM node:22-alpine AS assets
+FROM node:26.10.0-alpine3.24 AS assets
 WORKDIR /app/assets
 COPY assets/package.json assets/package-lock.json ./
 RUN npm ci
@@ -8,7 +8,7 @@ COPY public/ /app/public/
 RUN npm run build
 
 # Stage 1: Build a static Go binary
-FROM golang:1.24-alpine AS builder
+FROM golang:1.27.1-alpine3.24 AS builder
 WORKDIR /app
 
 # Install git for module fetching (no C-Go code)
@@ -23,7 +23,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags="-s -w" -o /app/app ./src
 
 # Stage 2: Runtime with only the binary
-FROM alpine:3.21
+FROM alpine:3.24.2
 RUN apk add --no-cache ca-certificates
 WORKDIR /app
 COPY --from=builder /app/app /app/app

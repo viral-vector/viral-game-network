@@ -9,8 +9,9 @@ import (
 	"viral-game-network/src/job"
 	"viral-game-network/src/k8"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/template/pug/v2"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/static"
+	"github.com/gofiber/template/pug/v3"
 )
 
 func main() {
@@ -46,7 +47,6 @@ func NewApp(viewsDir, publicDir string) *fiber.App {
 	})
 	// Create a new Fiber app
 	app := fiber.New(fiber.Config{
-		Prefork:           false,
 		CaseSensitive:     true,
 		StrictRouting:     false,
 		ServerHeader:      "VGN",
@@ -57,7 +57,7 @@ func NewApp(viewsDir, publicDir string) *fiber.App {
 	})
 
 	// Serve static files from the public folder
-	app.Static("/", publicDir)
+	app.Use("/", static.New(publicDir))
 	// Register routes
 	serve_routes(app)
 	return app

@@ -9,10 +9,10 @@ import (
 	"viral-game-network/src/utils/pagination"
 	struct_merge "viral-game-network/src/utils/struct_merge"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func Handle_Users(c *fiber.Ctx) error {
+func Handle_Users(c fiber.Ctx) error {
 	search := c.Query("search", "")
 	perPage := 15
 	curPage, err := pagination.Page(c.Query("page", "1"), perPage)
@@ -33,7 +33,7 @@ func Handle_Users(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Users_Create_View(c *fiber.Ctx) error {
+func Handle_Users_Create_View(c fiber.Ctx) error {
 	form, _ := form_builder.GenerateForm(
 		"POST",
 		"/admin/user",
@@ -49,9 +49,9 @@ func Handle_Users_Create_View(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Users_Create_Crud(c *fiber.Ctx) error {
+func Handle_Users_Create_Crud(c fiber.Ctx) error {
 	dto := new(dbtype.User)
-	if err := c.BodyParser(dto); err != nil {
+	if err := c.Bind().Body(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -81,12 +81,12 @@ func Handle_Users_Create_Crud(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Users_Update_View(c *fiber.Ctx) error {
+func Handle_Users_Update_View(c fiber.Ctx) error {
 	id := c.Params("id")
 
 	user, err := repository.GetUser(id)
 	if err != nil || user == nil {
-		return c.Redirect("/admin/users")
+		return c.Redirect().Status(fiber.StatusFound).To("/admin/users")
 	}
 
 	form, _ := form_builder.GenerateForm(
@@ -104,11 +104,11 @@ func Handle_Users_Update_View(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Users_Update_Crud(c *fiber.Ctx) error {
+func Handle_Users_Update_Crud(c fiber.Ctx) error {
 	id := c.Params("id")
 
 	dto := new(dbtype.User)
-	if err := c.BodyParser(dto); err != nil {
+	if err := c.Bind().Body(dto); err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
 			"status":  "error",
@@ -160,7 +160,7 @@ func Handle_Users_Update_Crud(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Users_Delete_Crud(c *fiber.Ctx) error {
+func Handle_Users_Delete_Crud(c fiber.Ctx) error {
 	id := c.Params("id")
 
 	// Fetch user

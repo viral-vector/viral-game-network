@@ -7,11 +7,11 @@ import (
 	"viral-game-network/src/k8"
 	"viral-game-network/src/utils/pagination"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ##> Dashboard
-func Handle_Dash(c *fiber.Ctx) error {
+func Handle_Dash(c fiber.Ctx) error {
 	// Get the cluster status
 	cluster, err := k8.GetClusterStatus()
 	cluster_error := "Cluster is not running"
@@ -37,7 +37,7 @@ func Handle_Dash(c *fiber.Ctx) error {
 }
 
 // ##> Cluster
-func Handle_Cluster_Start(c *fiber.Ctx) error {
+func Handle_Cluster_Start(c fiber.Ctx) error {
 	go func() {
 		err := k8.CheckCreateCluster()
 		systemEvent := dbtype.SystemEvent{
@@ -56,7 +56,7 @@ func Handle_Cluster_Start(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Cluster_Stop(c *fiber.Ctx) error {
+func Handle_Cluster_Stop(c fiber.Ctx) error {
 	go func() {
 		err := k8.CheckDeleteCluster()
 		systemEvent := dbtype.SystemEvent{
@@ -75,7 +75,7 @@ func Handle_Cluster_Stop(c *fiber.Ctx) error {
 	})
 }
 
-func Handle_Cluster_Pods_Stop(c *fiber.Ctx) error {
+func Handle_Cluster_Pods_Stop(c fiber.Ctx) error {
 	go func() {
 		err := k8.KillAllServerPods()
 		systemEvent := dbtype.SystemEvent{
@@ -95,7 +95,7 @@ func Handle_Cluster_Pods_Stop(c *fiber.Ctx) error {
 }
 
 // ##> Events
-func Handle_Events(c *fiber.Ctx) error {
+func Handle_Events(c fiber.Ctx) error {
 	perPage := 30
 	curPage, err := pagination.Page(c.Query("page", "1"), perPage)
 	if err != nil {
@@ -115,7 +115,7 @@ func Handle_Events(c *fiber.Ctx) error {
 }
 
 // ##> Metrics
-func Handle_Metrics(c *fiber.Ctx) error {
+func Handle_Metrics(c fiber.Ctx) error {
 	return c.Render("admin/metrics", fiber.Map{
 	
 	})

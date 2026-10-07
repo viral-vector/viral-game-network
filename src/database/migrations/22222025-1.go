@@ -100,6 +100,7 @@ func init() {
 		dbtype.Migration{
 			SQL: `
 			DEFINE TABLE Lobby_Server SCHEMAFULL TYPE RELATION IN Lobby OUT Server ENFORCED;
+			DEFINE FIELD date_created ON TABLE Lobby_Server TYPE option<string>;
 			DEFINE INDEX idx_lobby_server_in ON TABLE Lobby_Server COLUMNS in;
 			DEFINE INDEX idx_lobby_server_out ON TABLE Lobby_Server COLUMNS out;
 			`,

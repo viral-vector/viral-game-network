@@ -7,7 +7,7 @@ import (
 	"testing"
 	"viral-game-network/tests/support"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func TestPublicRoutesAndAuthenticationBoundary(t *testing.T) {
@@ -45,7 +45,7 @@ func TestRouteMetadataPreservesSearchAndPagingQuery(t *testing.T) {
 	t.Setenv("CACHE_ENDPOINT", server.Addr())
 	app := NewApp("../views", "../public")
 	defer app.Shutdown()
-	app.Get("/inspect-route", func(c *fiber.Ctx) error { return c.JSON(c.Locals("route")) })
+	app.Get("/inspect-route", func(c fiber.Ctx) error { return c.JSON(c.Locals("route")) })
 	path := "/inspect-route?search=some%20game&page=2&pageToken=cursor%2Bvalue"
 	for _, target := range []string{path, "http://example.com" + path} {
 		response, err := app.Test(httptest.NewRequest("GET", target, nil))

@@ -8,11 +8,11 @@ import (
 	handler_admin "viral-game-network/src/handler/admin"
 	"viral-game-network/src/middleware"
 
-	"github.com/gofiber/contrib/websocket"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/helmet"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/contrib/v3/websocket"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/helmet"
+	"github.com/gofiber/fiber/v3/middleware/limiter"
+	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/storage/redis/v3"
 )
 
@@ -23,7 +23,7 @@ func serve_routes(app *fiber.App) {
 		TimeFormat: "01-Jan-2000",
 		TimeZone:   "America/New_York",
 	}))
-	app.Use(func(c *fiber.Ctx) error {
+	app.Use(func(c fiber.Ctx) error {
 		c.Set("Viral-Game-Network-Entity", c.Get("Viral-Game-Network-Entity"))
 		c.Locals("route", map[string]string{
 			"path": c.Path(),
@@ -34,7 +34,7 @@ func serve_routes(app *fiber.App) {
 		c.Locals("title", "VGN - "+c.Path())
 		return c.Next()
 	})
-	app.Use(func(c *fiber.Ctx) error {
+	app.Use(func(c fiber.Ctx) error {
 		err := c.Next()
 
 		route := c.Route()

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"viral-game-network/src/database"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type listViews struct{ calls int }

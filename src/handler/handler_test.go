@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -27,7 +27,7 @@ func TestRejectMalformedRequestBodies(t *testing.T) {
 func TestRejectMissingAndMalformedUserTokens(t *testing.T) {
 	app := fiber.New()
 	app.Use(Handle_ValidateTokenUsers)
-	app.Get("/", func(c *fiber.Ctx) error { return c.SendStatus(200) })
+	app.Get("/", func(c fiber.Ctx) error { return c.SendStatus(200) })
 	for _, token := range []string{"", "invalid"} {
 		request := httptest.NewRequest("GET", "/", nil)
 		request.Header.Set("Viral-Game-Network-Token", token)
