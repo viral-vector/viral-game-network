@@ -24,7 +24,7 @@ func TestAdminListsRejectBadPagesAndReportStoreFailures(t *testing.T) {
 	t.Cleanup(func() { database.DBS = previous })
 	for name, handler := range map[string]fiber.Handler{
 		"users": Handle_Users, "admins": Handle_Admins, "applications": Handle_Applications,
-		"lobbies": Handle_Lobbies, "servers": Handle_Servers, "events": Handle_Events,
+		"lobbies": Handle_Lobbies, "servers": Handle_Servers, "events": Handle_Events, "pods": Handle_Pods,
 	} {
 		t.Run(name, func(t *testing.T) {
 			views := &listViews{}
@@ -49,5 +49,24 @@ func TestAdminListsRejectBadPagesAndReportStoreFailures(t *testing.T) {
 				t.Fatalf("invalid or failed list rendered %d times", views.calls)
 			}
 		})
+	}
+}
+
+func TestPodListRejectsInvalidPreviousPage(t *testing.T) {
+	views := &listViews{}
+	app := fiber.New(fiber.Config{Views: views})
+	app.Get("/", Handle_Pods)
+	for _, page := range []string{"0", "-1", "abc", "9223372036854775807"} {
+		response, err := app.Test(httptest.NewRequest("GET", "/?prevPage="+page, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != 400 {
+			t.Errorf("previous page %s: got %d; want 400", page, response.StatusCode)
+		}
+	}
+	if views.calls != 0 {
+		t.Fatal("invalid list rendered")
 	}
 }

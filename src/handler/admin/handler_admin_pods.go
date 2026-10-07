@@ -1,32 +1,38 @@
 package handler_admin
 
 import (
-	"fmt"
-	"math"
-	"strconv"
-	"strings"
-	"viral-game-network/src/k8"
 	"github.com/gofiber/fiber/v2"
+	"math"
+	"strings"
 	"viral-game-network/src/database/repository"
+	"viral-game-network/src/k8"
+	"viral-game-network/src/utils/pagination"
 )
 
 func Handle_Pods(c *fiber.Ctx) error {
 	search := c.Query("search", "")
-	prvPage, _ := strconv.Atoi(c.Query("prevPage", "1"))
-	curPage, _ := strconv.Atoi(c.Query("page", "1"))
 	perPage := int64(2)
+	prvPage, err := pagination.Page(c.Query("prevPage", "1"), int(perPage))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid previous page"})
+	}
+	curPage, err := pagination.Page(c.Query("page", "1"), int(perPage))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid page"})
+	}
 	pageToken := c.Query("pageToken", "")
-	pods, total, continueToken, _ := k8.GetAllServerPodsPager(search, perPage, prvPage, curPage, pageToken)
-
-	fmt.Println("Pods: ", len(pods), continueToken)
+	pods, total, continueToken, err := k8.GetAllServerPodsPager(search, perPage, prvPage, curPage, pageToken)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not load pods"})
+	}
 
 	return c.Render("admin/pods", fiber.Map{
-		"pods":  pods,
-		"total": total,
-		"pages": int(math.Ceil(float64(total) / float64(perPage))),
-		"paged": curPage,
+		"pods":      pods,
+		"total":     total,
+		"pages":     int(math.Ceil(float64(total) / float64(perPage))),
+		"paged":     curPage,
 		"pageToken": continueToken,
-		"search": search,
+		"search":    search,
 	})
 }
 

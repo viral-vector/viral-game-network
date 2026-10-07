@@ -334,35 +334,56 @@ func GetAllServerPodsPager(
 	desiredPage int,
 	continueToken string,
 ) ([]*v1.Pod, int, string, error) {
+	if limit < 1 || currentPage < 1 || desiredPage < 1 {
+		return nil, 0, "", fmt.Errorf("K8 Error: invalid pagination")
+	}
 	clientset := getClient()
 	if clientset == nil {
 		return nil, 0, "", fmt.Errorf("K8 Error: Cluster Not Running")
 	}
 
-	group, _, err := GetAllServerPodsList(search, -1, "")
+	group, _, err := getServerPodsList(clientset, search, -1, "")
 	if err != nil {
-		return nil, 0, "", fmt.Errorf("K8 Error: %s", err)
+		return nil, 0, "", fmt.Errorf("K8 Error: %w", err)
 	}
 	count := len(group)
+	if count == 0 || int64(desiredPage) > (int64(count)-1)/limit+1 {
+		return nil, count, "", nil
+	}
 
-	if desiredPage <= 1 {
+	// A continuation token points after the previous page. Only the next page
+	// can resume it; backward navigation and page jumps restart the list.
+	if currentPage == desiredPage-1 && continueToken != "" {
+		currentPage = desiredPage
+	} else {
 		currentPage = 1
 		continueToken = ""
 	}
 
+	restarted := false
 	for currentPage <= desiredPage {
-		pods, newContinueToken, err := GetAllServerPodsList(search, limit, continueToken)
-		if err != nil {
-			return nil, count, "", fmt.Errorf("K8 Error: %s", err)
+		pods, newContinueToken, err := getServerPodsList(clientset, search, limit, continueToken)
+		if apierrors.IsResourceExpired(err) && !restarted {
+			// Kubernetes expires list snapshots. Retry once from the beginning.
+			restarted = true
+			currentPage = 1
+			continueToken = ""
+			continue
 		}
-		if currentPage == desiredPage || newContinueToken == "" {
+		if err != nil {
+			return nil, count, "", fmt.Errorf("K8 Error: %w", err)
+		}
+		if currentPage == desiredPage {
 			return pods, count, newContinueToken, nil
+		}
+		if newContinueToken == "" {
+			return nil, count, "", nil
 		}
 		continueToken = newContinueToken
 		currentPage++
 	}
 
-	return nil, 0, "", fmt.Errorf("K8 Error: %s", "no pods found")
+	return nil, count, "", nil
 }
 
 // Get All server Pods
@@ -371,7 +392,10 @@ func GetAllServerPodsList(search string, limit int64, continueToken string) ([]*
 	if clientset == nil {
 		return nil, "", fmt.Errorf("K8 Error: Cluster Not Running")
 	}
+	return getServerPodsList(clientset, search, limit, continueToken)
+}
 
+func getServerPodsList(clientset kubernetes.Interface, search string, limit int64, continueToken string) ([]*v1.Pod, string, error) {
 	listOptions := metav1.ListOptions{}
 	if continueToken != "" {
 		listOptions.Continue = continueToken
@@ -385,7 +409,7 @@ func GetAllServerPodsList(search string, limit int64, continueToken string) ([]*
 
 	list, err := clientset.CoreV1().Pods(namespace).List(ctx, listOptions)
 	if err != nil {
-		return nil, "", fmt.Errorf("error pulling pods: %s", err)
+		return nil, "", fmt.Errorf("error pulling pods: %w", err)
 	}
 
 	pods := make([]*v1.Pod, len(list.Items))
