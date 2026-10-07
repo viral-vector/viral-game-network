@@ -2,7 +2,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts');
-const WebpackPwaManifest = require('webpack-pwa-manifest');
+const CopyPlugin = require('copy-webpack-plugin');
 
 const path = require('path');
 
@@ -72,31 +72,13 @@ module.exports = (env, argv) => {
                 filename: 'css/[name].css',
                 chunkFilename: 'css/[name].chunk.css',
             }),
-            new WebpackPwaManifest({
-                filename: 'manifest.json',
-                name: 'VGN',
-                short_name: 'VGN',
-                start_url: '.',
-                display: 'standalone',
-                theme_color: "#000000",
-                background_color: '#ffffff',
-                description: 'Viral Game Network manifest',
-                orientation: "portrait",
-                scope: "/",
-                lang: "en-US",
-                icons: [
-                    {
-                        src: path.resolve('./../public/images/vgn.webp'),
-                        sizes: [96, 128, 192, 256, 384, 512], // multiple image sizes
-                        destination: path.join('images')
-                    },
-                    {
-                        src: path.resolve('./../public/images/vgn.webp'),
-                        size: '1024x1024',                // generates one 1024×1024 icon
-                        purpose: 'maskable',
-                        destination: path.join('images')
-                    }
-                ]
+            // The web manifest and icons are checked-in assets. Copying them
+            // avoids the obsolete PWA plugin's image-processing dependencies.
+            new CopyPlugin({
+                patterns: [
+                    { from: path.resolve(__dirname, '../public/manifest.json'), to: 'manifest.json' },
+                    { from: path.resolve(__dirname, '../public/images/icon_*.webp'), to: 'images/[name][ext]' },
+                ],
             }),
             ...(isProduction ? [
                 new CompressionPlugin({
